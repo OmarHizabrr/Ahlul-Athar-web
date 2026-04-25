@@ -116,6 +116,15 @@ input {
   outline: none;
 }
 
+select {
+  width: 100%;
+  border: 1px solid #334155;
+  background: #0b1120;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+}
+
 input:focus {
   border-color: #3b82f6;
 }
@@ -231,6 +240,58 @@ input:focus {
 
 .content-header {
   margin-bottom: 0.85rem;
+}
+
+.course-form {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.switch-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.course-search {
+  margin-bottom: 0.6rem;
+}
+
+.course-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.course-item {
+  border: 1px solid #334155;
+  background: #0b1120;
+  border-radius: 12px;
+  padding: 0.8rem;
+}
+
+.course-item h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.1rem;
+}
+
+.course-meta {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0;
+}
+
+.course-meta span {
+  border: 1px solid #334155;
+  border-radius: 20px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.82rem;
+}
+
+.course-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .message {

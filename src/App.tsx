@@ -1,9 +1,10 @@
 import type { ReactElement } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import { LoginPage } from "./pages/LoginPage";
-import { RoleSelectorPage } from "./pages/RoleSelectorPage";
-import { CoursesPage, HomePage, NotificationsPage, PostsPage, ProfilePage } from "./pages/SharedPages";
-import { SplashPage } from "./pages/SplashPage";
+import { LoginPage } from "./pages/LoginPage.tsx";
+import { RoleSelectorPage } from "./pages/RoleSelectorPage.tsx";
+import { HomePage, NotificationsPage, PostsPage, ProfilePage } from "./pages/SharedPages.tsx";
+import { SplashPage } from "./pages/SplashPage.tsx";
+import { CoursesPage } from "./pages/CoursesPage.tsx";
 import { authService } from "./services/authService";
 import type { UserRole } from "./types";
 

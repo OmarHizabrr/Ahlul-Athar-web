@@ -14,17 +14,6 @@ export function HomePage({ role }: { role: UserRole }) {
   );
 }
 
-export function CoursesPage({ role }: { role: UserRole }) {
-  return (
-    <DashboardLayout role={role} title="الدورات">
-      <div className="grid-2">
-        <div className="mini-card">{role === "admin" ? "إدارة الدورات" : "دوراتي المسجلة"}</div>
-        <div className="mini-card">{role === "admin" ? "طلبات التسجيل" : "الدروس المتاحة"}</div>
-      </div>
-    </DashboardLayout>
-  );
-}
-
 export function PostsPage({ role }: { role: UserRole }) {
   return (
     <DashboardLayout role={role} title="المنشورات">

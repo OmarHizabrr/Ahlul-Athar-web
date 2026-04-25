@@ -8,3 +8,15 @@ export interface PlatformUser {
   phoneNumber?: string | null;
   photoURL?: string | null;
 }
+
+export interface Course {
+  id: string;
+  title: string;
+  description: string;
+  courseType: "public" | "private";
+  isActive: boolean;
+  createdBy: string;
+  createdByName: string;
+  studentCount: number;
+  lessonCount: number;
+}
