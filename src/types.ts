@@ -26,10 +26,18 @@ export interface EnrollmentRequest {
   studentId: string;
   studentName: string;
   studentEmail: string;
+  studentPhone?: string;
+  studentPhotoURL?: string;
+  requestType: "course" | "folder";
   targetId: string;
   targetName: string;
-  status: "pending" | "approved" | "rejected";
+  targetDescription?: string;
+  targetImageURL?: string;
+  status: "pending" | "approved" | "rejected" | "expired";
   reason: string;
-  createdAt?: unknown;
-  reviewedAt?: unknown;
+  /** يطابق Flutter: requestedAt (الويب القديم قد يستخدم createdAt). */
+  requestedAt?: unknown;
+  /** يطابق Flutter: processedAt (الويب القديم قد يستخدم reviewedAt). */
+  processedAt?: unknown;
+  adminNotes?: string;
 }

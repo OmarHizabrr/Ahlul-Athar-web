@@ -28,6 +28,8 @@ function requestStatusLabel(status: EnrollmentRequest["status"]): string {
       return "مقبول";
     case "rejected":
       return "مرفوض";
+    case "expired":
+      return "منتهي الصلاحية";
     default:
       return status;
   }
@@ -41,6 +43,8 @@ function emptyRequestsMessage(filter: "all" | EnrollmentRequest["status"]): stri
       return "لا توجد طلبات مقبولة في هذا العرض.";
     case "rejected":
       return "لا توجد طلبات مرفوضة في هذا العرض.";
+    case "expired":
+      return "لا توجد طلبات منتهية في هذا العرض.";
     case "all":
       return "لا توجد أي طلبات انضمام حتى الآن.";
     default:
@@ -60,6 +64,10 @@ export function CoursesPage({ role }: { role: UserRole }) {
   const [requests, setRequests] = useState<EnrollmentRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestFilter, setRequestFilter] = useState<"all" | EnrollmentRequest["status"]>("pending");
+  const [activationOpen, setActivationOpen] = useState(false);
+  const [activationTarget, setActivationTarget] = useState<EnrollmentRequest | null>(null);
+  const [isLifetimeActivation, setIsLifetimeActivation] = useState(true);
+  const [activationDays, setActivationDays] = useState(30);
 
   const user = authService.getLocalUser();
 
@@ -86,7 +94,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
     }
     setRequestsLoading(true);
     try {
-      const data = await coursesService.listEnrollmentRequests(requestFilter);
+      const data = await coursesService.listCourseEnrollmentRequests(requestFilter);
       setRequests(data);
     } catch {
       setMessage("تعذر تحميل طلبات الانضمام.");
@@ -187,19 +195,37 @@ export function CoursesPage({ role }: { role: UserRole }) {
     }
   };
 
-  const onApproveRequest = async (request: EnrollmentRequest) => {
+  const openActivationDialog = (request: EnrollmentRequest) => {
+    setActivationTarget(request);
+    setIsLifetimeActivation(true);
+    setActivationDays(30);
+    setActivationOpen(true);
+  };
+
+  const confirmActivation = async () => {
+    if (!activationTarget) {
+      return;
+    }
     setSubmitting(true);
     try {
-      const { alreadyEnrolled } = await coursesService.approveEnrollmentRequest(request);
+      const expiresAt =
+        isLifetimeActivation ? null : new Date(Date.now() + activationDays * 86_400_000);
+      const { alreadyEnrolled } = await coursesService.approveEnrollmentRequest(activationTarget, {
+        isLifetime: isLifetimeActivation,
+        days: activationDays,
+        expiresAt,
+      });
       setMessage(
         alreadyEnrolled
-          ? "تم اعتماد الطلب. الطالب مسجّل مسبقًا في الدورة—لم نعد أعداد الطلاب مرتين."
-          : "تم قبول الطلب وإضافة الطالب للدورة وتحديث العدد.",
+          ? "تم اعتماد الطلب وتحديث بيانات التفعيل. الطالب كان مسجّلًا مسبقًا—لم نُكرّر زيادة عدد الطلاب."
+          : "تم قبول الطلب وإضافة الطالب للدورة (نفس مسار التطبيق: enrollment_requests + numbers + Mycourses).",
       );
       setIsError(false);
+      setActivationOpen(false);
+      setActivationTarget(null);
       await Promise.all([loadRequests(), loadCourses()]);
     } catch {
-      setMessage("تعذر قبول الطلب.");
+      setMessage("تعذر قبول الطلب. تحقق من صلاحيات Firestore أو الفهارس المركّبة.");
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -207,10 +233,14 @@ export function CoursesPage({ role }: { role: UserRole }) {
   };
 
   const onRejectRequest = async (requestId: string) => {
+    const reason = window.prompt("سبب الرفض (يُحفظ في ملاحظات الإدارة):", "");
+    if (reason === null) {
+      return;
+    }
     setSubmitting(true);
     try {
-      await coursesService.rejectEnrollmentRequest(requestId);
-      setMessage("تم رفض الطلب.");
+      await coursesService.rejectEnrollmentRequest(requestId, reason.trim() || "مرفوض");
+      setMessage("تم رفض الطلب وتسجيل الملاحظة.");
       setIsError(false);
       await loadRequests();
     } catch {
@@ -355,6 +385,13 @@ export function CoursesPage({ role }: { role: UserRole }) {
               مرفوضة
             </button>
             <button
+              className={requestFilter === "expired" ? "primary-btn" : "ghost-btn"}
+              onClick={() => setRequestFilter("expired")}
+              disabled={submitting}
+            >
+              منتهية
+            </button>
+            <button
               className={requestFilter === "all" ? "primary-btn" : "ghost-btn"}
               onClick={() => setRequestFilter("all")}
               disabled={submitting}
@@ -374,27 +411,32 @@ export function CoursesPage({ role }: { role: UserRole }) {
                     الطالب: {request.studentName || "غير معروف"} ({request.studentEmail || "بدون بريد"})
                   </p>
                   <p className="muted">السبب: {request.reason || "—"}</p>
+                  {request.adminNotes ? (
+                    <p className="muted">ملاحظات الإدارة: {request.adminNotes}</p>
+                  ) : null}
                   <p className="muted">
                     الحالة: <strong>{requestStatusLabel(request.status)}</strong>
                   </p>
-                  <p className="muted">
-                    تاريخ الإنشاء: {formatFirestoreTime(request.createdAt)}
-                  </p>
-                  {request.reviewedAt != null ? (
-                    <p className="muted">تاريخ المراجعة: {formatFirestoreTime(request.reviewedAt)}</p>
+                  <p className="muted">تاريخ الطلب: {formatFirestoreTime(request.requestedAt)}</p>
+                  {request.processedAt != null ? (
+                    <p className="muted">تاريخ المعالجة: {formatFirestoreTime(request.processedAt)}</p>
                   ) : null}
                   <div className="course-actions">
                     {request.status === "pending" ? (
                       <>
-                        <button className="primary-btn" onClick={() => onApproveRequest(request)} disabled={submitting}>
-                          قبول
+                        <button
+                          className="primary-btn"
+                          onClick={() => openActivationDialog(request)}
+                          disabled={submitting}
+                        >
+                          قبول (تفعيل)
                         </button>
                         <button className="ghost-btn" onClick={() => onRejectRequest(request.id)} disabled={submitting}>
                           رفض
                         </button>
                       </>
                     ) : (
-                      <span className="muted">تمت مراجعة الطلب. استخدم &quot;معلّقة&quot; لمعالجة طلبات جديدة.</span>
+                      <span className="muted">تمت معالجة الطلب. عرض &quot;معلّقة&quot; للطلبات الجديدة.</span>
                     )}
                   </div>
                 </article>
@@ -402,6 +444,72 @@ export function CoursesPage({ role }: { role: UserRole }) {
             </div>
           )}
         </section>
+      ) : null}
+
+      {activationOpen && activationTarget ? (
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onClick={() => {
+            if (!submitting) {
+              setActivationOpen(false);
+              setActivationTarget(null);
+            }
+          }}
+        >
+          <div
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="activation-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 id="activation-title">فترة تفعيل الدورة</h4>
+            <p className="muted small-print">
+              نفس منطق تطبيق Flutter: اختر &quot;مدى الحياة&quot; أو عدد الأيام قبل انتهاء التفعيل.
+            </p>
+            <label className="switch-line">
+              <input
+                type="checkbox"
+                checked={isLifetimeActivation}
+                onChange={(e) => setIsLifetimeActivation(e.target.checked)}
+                disabled={submitting}
+              />
+              <span>تفعيل مدى الحياة (بدون انتهاء)</span>
+            </label>
+            {!isLifetimeActivation ? (
+              <label className="field-block">
+                <span>عدد أيام التفعيل</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={3650}
+                  value={activationDays}
+                  onChange={(e) => setActivationDays(Number.parseInt(e.target.value, 10) || 1)}
+                  disabled={submitting}
+                />
+              </label>
+            ) : null}
+            <div className="course-actions">
+              <button className="primary-btn" onClick={() => void confirmActivation()} disabled={submitting}>
+                {submitting ? "جاري..." : "تأكيد القبول"}
+              </button>
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => {
+                  if (!submitting) {
+                    setActivationOpen(false);
+                    setActivationTarget(null);
+                  }
+                }}
+                disabled={submitting}
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </DashboardLayout>
   );

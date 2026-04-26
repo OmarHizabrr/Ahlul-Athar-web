@@ -10,14 +10,23 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  Timestamp,
   updateDoc,
   where,
+  type DocumentData,
+  type QueryDocumentSnapshot,
 } from "firebase/firestore";
-import { db } from "../firebase";
+import { auth, db } from "../firebase";
 import type { Course, EnrollmentRequest, PlatformUser } from "../types";
 
 const coursesCollection = collection(db, "courses");
-const enrollmentRequestsCollection = collection(db, "enrollmentRequests");
+const enrollmentRequestsCollection = collection(db, "enrollment_requests");
+
+function generateActivationCode(studentId: string): string {
+  const suffix = studentId.length > 6 ? studentId.slice(-6) : studentId;
+  const ts = Date.now().toString().slice(-4);
+  return `${suffix.toUpperCase()}${ts}`;
+}
 
 const mapCourse = (id: string, data: Record<string, unknown>): Course => ({
   id,
@@ -30,6 +39,54 @@ const mapCourse = (id: string, data: Record<string, unknown>): Course => ({
   studentCount: Number(data.studentCount ?? 0),
   lessonCount: Number(data.lessonCount ?? 0),
 });
+
+function timeMillisFromUnknown(v: unknown): number {
+  if (v == null) {
+    return 0;
+  }
+  if (v instanceof Timestamp) {
+    return v.toMillis();
+  }
+  if (v instanceof Date) {
+    return v.getTime();
+  }
+  if (typeof v === "object" && v !== null && "toDate" in v && typeof (v as { toDate: () => Date }).toDate === "function") {
+    return (v as { toDate: () => Date }).toDate().getTime();
+  }
+  if (typeof v === "string") {
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+  }
+  return 0;
+}
+
+function mapEnrollmentRequest(docSnap: QueryDocumentSnapshot<DocumentData>): EnrollmentRequest {
+  const data = docSnap.data();
+  return {
+    id: docSnap.id,
+    studentId: String(data.studentId ?? ""),
+    studentName: String(data.studentName ?? ""),
+    studentEmail: String(data.studentEmail ?? ""),
+    studentPhone: data.studentPhone != null ? String(data.studentPhone) : undefined,
+    studentPhotoURL: data.studentPhotoURL != null ? String(data.studentPhotoURL) : undefined,
+    requestType: (data.requestType === "folder" ? "folder" : "course") as EnrollmentRequest["requestType"],
+    targetId: String(data.targetId ?? ""),
+    targetName: String(data.targetName ?? ""),
+    targetDescription: data.targetDescription != null ? String(data.targetDescription) : undefined,
+    targetImageURL: data.targetImageURL != null ? String(data.targetImageURL) : undefined,
+    status: (data.status ?? "pending") as EnrollmentRequest["status"],
+    reason: String(data.reason ?? ""),
+    requestedAt: data.requestedAt ?? data.createdAt,
+    processedAt: data.processedAt ?? data.reviewedAt,
+    adminNotes: data.adminNotes != null ? String(data.adminNotes) : undefined,
+  };
+}
+
+export type ActivationOptions = {
+  isLifetime: boolean;
+  days: number;
+  expiresAt: Date | null;
+};
 
 export const coursesService = {
   async listCoursesForRole(role: PlatformUser["role"]) {
@@ -65,75 +122,130 @@ export const coursesService = {
   },
 
   async requestEnrollment(user: PlatformUser, course: Course) {
-    const requestId = `${user.uid}_${course.id}`;
-    const reqRef = doc(db, "enrollmentRequests", requestId);
-    await setDoc(
-      reqRef,
-      {
-        studentId: user.uid,
-        studentName: user.displayName ?? "",
-        studentEmail: user.email ?? "",
-        requestType: "course",
-        targetId: course.id,
-        targetName: course.title,
-        targetDescription: course.description,
-        status: "pending",
-        reason: "طلب انضمام من منصة الويب",
-        createdAt: serverTimestamp(),
-      },
-      { merge: true },
-    );
-  },
-
-  async listEnrollmentRequests(status: EnrollmentRequest["status"] | "all" = "pending") {
-    const q =
-      status === "all"
-        ? query(enrollmentRequestsCollection, orderBy("createdAt", "desc"))
-        : query(enrollmentRequestsCollection, where("status", "==", status), orderBy("createdAt", "desc"));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => {
-      const data = d.data();
-      return {
-        id: d.id,
-        studentId: String(data.studentId ?? ""),
-        studentName: String(data.studentName ?? ""),
-        studentEmail: String(data.studentEmail ?? ""),
-        targetId: String(data.targetId ?? ""),
-        targetName: String(data.targetName ?? ""),
-        status: (data.status ?? "pending") as EnrollmentRequest["status"],
-        reason: String(data.reason ?? ""),
-        createdAt: data.createdAt,
-        reviewedAt: data.reviewedAt,
-      } as EnrollmentRequest;
+    const requestId = `${user.uid}_${course.id}_${Date.now()}`;
+    const reqRef = doc(db, "enrollment_requests", requestId);
+    await setDoc(reqRef, {
+      studentId: user.uid,
+      studentName: user.displayName ?? "",
+      studentEmail: user.email ?? "",
+      studentPhone: user.phoneNumber ?? null,
+      studentPhotoURL: user.photoURL ?? null,
+      requestType: "course",
+      targetId: course.id,
+      targetName: course.title,
+      targetDescription: course.description,
+      targetImageURL: null,
+      status: "pending",
+      reason: "طلب انضمام من منصة الويب",
+      requestedAt: serverTimestamp(),
     });
   },
 
+  /**
+   * يطابق تطبيق Flutter: طلبات من نوع course فقط، مرتبة بـ requestedAt.
+   * التصفية حسب الحالة تتم محليًا لتوافق بيانات قديمة.
+   */
+  async listCourseEnrollmentRequests(status: EnrollmentRequest["status"] | "all" = "pending") {
+    let docs: QueryDocumentSnapshot<DocumentData>[];
+    try {
+      const q = query(
+        enrollmentRequestsCollection,
+        where("requestType", "==", "course"),
+        orderBy("requestedAt", "desc"),
+      );
+      docs = (await getDocs(q)).docs;
+    } catch {
+      const q2 = query(enrollmentRequestsCollection, where("requestType", "==", "course"));
+      const raw = (await getDocs(q2)).docs;
+      docs = raw.slice().sort((a, b) => {
+        const ad = a.data();
+        const bd = b.data();
+        const ta = timeMillisFromUnknown(ad.requestedAt ?? ad.createdAt);
+        const tb = timeMillisFromUnknown(bd.requestedAt ?? bd.createdAt);
+        return tb - ta;
+      });
+    }
+    const mapped = docs.map((d) => mapEnrollmentRequest(d));
+    if (status === "all") {
+      return mapped;
+    }
+    return mapped.filter((r) => r.status === status);
+  },
+
+  /**
+   * قبول طلب — نفس مسار التطبيق: تحديث الطلب + numbers + Mycourses + studentCount
+   * (راجع FirestoreApi.approveEnrollmentRequest + addStudentToCourse)
+   */
   async approveEnrollmentRequest(
     request: EnrollmentRequest,
+    activation: ActivationOptions,
   ): Promise<{ alreadyEnrolled: boolean }> {
-    const requestRef = doc(db, "enrollmentRequests", request.id);
-    const enrollmentRef = doc(db, "mycourses", `${request.studentId}_${request.targetId}`);
-    const courseRef = doc(db, "courses", request.targetId);
-    const existingEnrollment = await getDoc(enrollmentRef);
-    const alreadyEnrolled = existingEnrollment.exists();
+    const user = auth.currentUser;
+    const adminNotes = "تمت الموافقة من منصة الويب";
+    const requestRef = doc(db, "enrollment_requests", request.id);
+    const courseId = request.targetId;
+    const studentId = request.studentId;
 
-    await setDoc(
-      enrollmentRef,
-      {
-        studentId: request.studentId,
-        courseId: request.targetId,
-        isActivated: true,
-        isLifetime: true,
-        status: "approved",
-        approvedAt: serverTimestamp(),
-      },
-      { merge: true },
-    );
+    const courseRef = doc(db, "courses", courseId);
+    const numbersRef = doc(db, "numbers", courseId, "numbers", studentId);
+    const myCourseRef = doc(db, "Mycourses", studentId, "Mycourses", courseId);
 
-    await updateDoc(requestRef, {
+    const existing = await getDoc(numbersRef);
+    const alreadyEnrolled = existing.exists();
+
+    const activationCode = generateActivationCode(studentId);
+    const isLifetime = activation.isLifetime;
+    const expiresAtStr =
+      isLifetime || !activation.expiresAt ? null : activation.expiresAt.toISOString();
+    const days = isLifetime ? 30 : activation.days;
+
+    const requestUpdate: Record<string, unknown> = {
       status: "approved",
-      reviewedAt: serverTimestamp(),
-    });
+      processedAt: serverTimestamp(),
+      processedBy: user?.uid ?? "",
+      processedByName: user?.displayName ?? "",
+      adminNotes,
+      updatedAt: serverTimestamp(),
+      isActivated: true,
+      isLifetime,
+      expiresAt: expiresAtStr,
+      activationDays: days,
+      activatedAt: serverTimestamp(),
+      activationCode,
+    };
+    await updateDoc(requestRef, requestUpdate);
+
+    const studentData: Record<string, unknown> = {
+      studentId,
+      studentName: request.studentName,
+      studentEmail: request.studentEmail,
+      studentPhone: request.studentPhone ?? null,
+      studentPhotoURL: request.studentPhotoURL ?? null,
+      enrolledAt: serverTimestamp(),
+      isActivated: true,
+      isLifetime,
+      expiresAt: expiresAtStr,
+      activationDays: days,
+      activatedAt: serverTimestamp(),
+      activationCode,
+    };
+
+    const courseData: Record<string, unknown> = {
+      courseId,
+      courseTitle: request.targetName,
+      courseDescription: request.targetDescription ?? "",
+      courseImageURL: request.targetImageURL ?? null,
+      enrolledAt: serverTimestamp(),
+      isActivated: true,
+      isLifetime,
+      expiresAt: expiresAtStr,
+      activationDays: days,
+      activatedAt: serverTimestamp(),
+      activationCode,
+    };
+
+    await setDoc(numbersRef, studentData, { merge: true });
+    await setDoc(myCourseRef, courseData, { merge: true });
 
     if (!alreadyEnrolled) {
       await updateDoc(courseRef, { studentCount: increment(1), updatedAt: serverTimestamp() });
@@ -142,11 +254,16 @@ export const coursesService = {
     return { alreadyEnrolled };
   },
 
-  async rejectEnrollmentRequest(requestId: string) {
-    const requestRef = doc(db, "enrollmentRequests", requestId);
+  async rejectEnrollmentRequest(requestId: string, reason: string) {
+    const user = auth.currentUser;
+    const requestRef = doc(db, "enrollment_requests", requestId);
     await updateDoc(requestRef, {
       status: "rejected",
-      reviewedAt: serverTimestamp(),
+      processedAt: serverTimestamp(),
+      processedBy: user?.uid ?? "",
+      processedByName: user?.displayName ?? "",
+      adminNotes: reason,
+      updatedAt: serverTimestamp(),
     });
   },
 };

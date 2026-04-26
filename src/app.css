@@ -319,7 +319,7 @@ input:focus {
 
 .request-filters {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
   gap: 0.5rem;
   margin: 0.6rem 0;
 }
@@ -357,6 +357,70 @@ input:focus {
 button:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.modal-card {
+  width: min(100%, 400px);
+  border-radius: 16px;
+  padding: 1.25rem 1.4rem;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid #334155;
+  box-shadow: 0 24px 48px rgba(2, 6, 23, 0.65);
+}
+
+.modal-card h4 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.modal-card .small-print {
+  margin: 0 0 0.85rem;
+  font-size: 0.82rem;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+
+.modal-card .field-block {
+  display: block;
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.88rem;
+  color: #cbd5e1;
+}
+
+.modal-card .field-block input[type="number"] {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  font: inherit;
+}
+
+.modal-card .course-actions {
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.modal-card .course-actions .primary-btn,
+.modal-card .course-actions .ghost-btn {
+  flex: 1 1 120px;
+  width: auto;
+  min-width: 0;
 }
 
 @media (max-width: 560px) {
