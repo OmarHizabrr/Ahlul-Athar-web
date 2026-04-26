@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
 import type { Course, EnrollmentRequest, UserRole } from "../types";
@@ -280,6 +281,11 @@ export function CoursesPage({ role }: { role: UserRole }) {
           onChange={(e) => setSearch(e.target.value)}
           placeholder="بحث بالدورات..."
         />
+        {role === "student" ? (
+          <Link to="/student/mycourses" className="ghost-btn toolbar-btn">
+            مقرراتي
+          </Link>
+        ) : null}
         <button
           type="button"
           className="ghost-btn toolbar-btn"
@@ -311,6 +317,12 @@ export function CoursesPage({ role }: { role: UserRole }) {
               <div className="course-actions">
                 {role === "admin" ? (
                   <>
+                    <Link
+                      to={`/admin/course/${course.id}/lessons`}
+                      className="primary-btn"
+                    >
+                      دروس
+                    </Link>
                     <button className="ghost-btn" onClick={() => onEdit(course)} disabled={submitting} type="button">
                       تعديل
                     </button>
@@ -319,9 +331,17 @@ export function CoursesPage({ role }: { role: UserRole }) {
                     </button>
                   </>
                 ) : (
-                  <button className="primary-btn" onClick={() => onRequest(course)} disabled={submitting} type="button">
-                    طلب انضمام
-                  </button>
+                  <>
+                    <Link
+                      to={`/student/course/${course.id}`}
+                      className="ghost-btn"
+                    >
+                      تفاصيل المقرر
+                    </Link>
+                    <button className="primary-btn" onClick={() => onRequest(course)} disabled={submitting} type="button">
+                      طلب انضمام
+                    </button>
+                  </>
                 )}
               </div>
             </article>

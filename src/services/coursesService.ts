@@ -99,6 +99,15 @@ export const coursesService = {
     return snapshot.docs.map((d) => mapCourse(d.id, d.data()));
   },
 
+  async getCourseById(courseId: string): Promise<Course | null> {
+    const ref = doc(db, "courses", courseId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      return null;
+    }
+    return mapCourse(snap.id, snap.data() as Record<string, unknown>);
+  },
+
   async createCourse(user: PlatformUser, payload: Pick<Course, "title" | "description" | "courseType" | "isActive">) {
     await addDoc(coursesCollection, {
       ...payload,

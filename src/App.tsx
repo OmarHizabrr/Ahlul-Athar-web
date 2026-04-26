@@ -14,6 +14,18 @@ const NotificationsPage = lazy(() =>
   import("./pages/dashboard/NotificationsPage").then((m) => ({ default: m.NotificationsPage })),
 );
 const ProfilePage = lazy(() => import("./pages/dashboard/ProfilePage").then((m) => ({ default: m.ProfilePage })));
+const StudentMyCoursesPage = lazy(() =>
+  import("./pages/StudentMyCoursesPage").then((m) => ({ default: m.StudentMyCoursesPage })),
+);
+const StudentCourseViewPage = lazy(() =>
+  import("./pages/StudentCourseViewPage").then((m) => ({ default: m.StudentCourseViewPage })),
+);
+const StudentLessonViewPage = lazy(() =>
+  import("./pages/StudentLessonViewPage").then((m) => ({ default: m.StudentLessonViewPage })),
+);
+const AdminCourseLessonsPage = lazy(() =>
+  import("./pages/AdminCourseLessonsPage").then((m) => ({ default: m.AdminCourseLessonsPage })),
+);
 
 function AuthLoading() {
   return (
@@ -77,6 +89,14 @@ function App() {
             }
           />
           <Route
+            path="/admin/course/:courseId/lessons"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminCourseLessonsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/posts"
             element={
               <ProtectedRoute role="admin">
@@ -113,6 +133,30 @@ function App() {
             element={
               <ProtectedRoute role="student">
                 <CoursesPage role="student" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/mycourses"
+            element={
+              <ProtectedRoute role="student">
+                <StudentMyCoursesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/course/:courseId"
+            element={
+              <ProtectedRoute role="student">
+                <StudentCourseViewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/course/:courseId/lesson/:lessonId"
+            element={
+              <ProtectedRoute role="student">
+                <StudentLessonViewPage />
               </ProtectedRoute>
             }
           />

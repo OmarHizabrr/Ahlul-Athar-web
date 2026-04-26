@@ -470,6 +470,33 @@ input:focus {
   margin-top: 0.75rem;
 }
 
+.lesson-course-meta {
+  margin: 0.5rem 0;
+}
+
+.lesson-embed {
+  margin: 0.75rem 0;
+}
+
+.lesson-body {
+  margin-top: 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid #334155;
+}
+
+.lesson-pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #e2e8f0;
+  font: inherit;
+  line-height: 1.6;
+}
+
+.lesson-lead {
+  line-height: 1.5;
+}
+
 button:disabled {
   opacity: 0.65;
   cursor: not-allowed;

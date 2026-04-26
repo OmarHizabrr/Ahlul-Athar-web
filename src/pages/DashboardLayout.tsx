@@ -27,6 +27,7 @@ export function DashboardLayout({ role, title, children }: DashboardLayoutProps)
         <nav className="nav-list">
           <Link to={base}>الرئيسية</Link>
           <Link to={`${base}/courses`}>الدورات</Link>
+          {role === "student" ? <Link to="/student/mycourses">مقرراتي</Link> : null}
           <Link to={`${base}/posts`}>المنشورات</Link>
           <Link to={`${base}/notifications`}>الإشعارات</Link>
           <Link to={`${base}/profile`}>الملف الشخصي</Link>

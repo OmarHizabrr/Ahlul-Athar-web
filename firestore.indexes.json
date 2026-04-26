@@ -31,6 +31,16 @@
         { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "lessons",
+      "queryScope": "COLLECTION",
+      "fields": [{ "fieldPath": "createdAt", "order": "DESCENDING" }]
+    },
+    {
+      "collectionGroup": "Mycourses",
+      "queryScope": "COLLECTION",
+      "fields": [{ "fieldPath": "enrolledAt", "order": "DESCENDING" }]
     }
   ],
   "fieldOverrides": []

@@ -53,6 +53,14 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() || isOwnerUid(userId);
     }
 
+    // دروس المقرر — نفس Flutter: lessons/{courseId}/lessons/{lessonId}
+    match /lessons/{courseId}/lessons/{lessonId} {
+      allow read: if isAdmin() ||
+        (signedIn() &&
+          exists(/databases/$(database)/documents/Mycourses/$(request.auth.uid)/Mycourses/$(courseId)));
+      allow create, update, delete: if isAdmin();
+    }
+
     match /posts/{id} {
       // دعم isPublished أو published (ميراث بيانات)
       allow read: if isAdmin() ||

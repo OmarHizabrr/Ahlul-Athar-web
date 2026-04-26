@@ -21,6 +21,41 @@ export interface Course {
   lessonCount: number;
 }
 
+/** صف `Mycourses/{uid}/Mycourses/{courseId}` كما في تطبيق Flutter. */
+export interface MyCourseEntry {
+  courseId: string;
+  courseTitle: string;
+  courseDescription: string;
+  courseImageURL?: string;
+  enrolledAt: unknown;
+  isActivated: boolean;
+  isLifetime?: boolean;
+  /** يدمج بيانات من `courses/{id}` عند الجلب. */
+  isActiveOnCatalog?: boolean;
+  lessonCount?: number;
+  studentCount?: number;
+}
+
+/**
+ * درس ضمن `lessons/{courseId}/lessons/{lessonId}` — الحقول مرنة لتتوافق مع Flutter.
+ */
+export interface Lesson {
+  id: string;
+  courseId: string;
+  title: string;
+  description?: string;
+  content?: string;
+  txtContent?: string;
+  contentType?: string;
+  videoUrl?: string;
+  pdfUrl?: string;
+  audioUrl?: string;
+  duration?: number;
+  difficulty?: string;
+  createdAt: unknown;
+  createdByName?: string;
+}
+
 /** منشور عام / إعلان — يظهر للطلاب عند isPublished. */
 export interface Post {
   id: string;
