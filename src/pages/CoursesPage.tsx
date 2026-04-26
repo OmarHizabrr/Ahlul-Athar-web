@@ -4,6 +4,7 @@ import { DashboardLayout } from "./DashboardLayout";
 import { authService } from "../services/authService";
 import { coursesService } from "../services/coursesService";
 import type { Course, EnrollmentRequest, UserRole } from "../types";
+import { formatFirestoreTime } from "../utils/firestoreTime";
 
 type CourseForm = {
   title: string;
@@ -18,6 +19,34 @@ const initialForm: CourseForm = {
   courseType: "public",
   isActive: true,
 };
+
+function requestStatusLabel(status: EnrollmentRequest["status"]): string {
+  switch (status) {
+    case "pending":
+      return "معلّق";
+    case "approved":
+      return "مقبول";
+    case "rejected":
+      return "مرفوض";
+    default:
+      return status;
+  }
+}
+
+function emptyRequestsMessage(filter: "all" | EnrollmentRequest["status"]): string {
+  switch (filter) {
+    case "pending":
+      return "لا توجد طلبات معلّقة.";
+    case "approved":
+      return "لا توجد طلبات مقبولة في هذا العرض.";
+    case "rejected":
+      return "لا توجد طلبات مرفوضة في هذا العرض.";
+    case "all":
+      return "لا توجد أي طلبات انضمام حتى الآن.";
+    default:
+      return "لا توجد طلبات.";
+  }
+}
 
 export function CoursesPage({ role }: { role: UserRole }) {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -161,8 +190,12 @@ export function CoursesPage({ role }: { role: UserRole }) {
   const onApproveRequest = async (request: EnrollmentRequest) => {
     setSubmitting(true);
     try {
-      await coursesService.approveEnrollmentRequest(request);
-      setMessage("تم قبول الطلب وإضافة الطالب للدورة.");
+      const { alreadyEnrolled } = await coursesService.approveEnrollmentRequest(request);
+      setMessage(
+        alreadyEnrolled
+          ? "تم اعتماد الطلب. الطالب مسجّل مسبقًا في الدورة—لم نعد أعداد الطلاب مرتين."
+          : "تم قبول الطلب وإضافة الطالب للدورة وتحديث العدد.",
+      );
       setIsError(false);
       await Promise.all([loadRequests(), loadCourses()]);
     } catch {
@@ -230,12 +263,22 @@ export function CoursesPage({ role }: { role: UserRole }) {
         </form>
       ) : null}
 
-      <input
-        className="course-search"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="بحث بالدورات..."
-      />
+      <div className="toolbar">
+        <input
+          className="course-search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="بحث بالدورات..."
+        />
+        <button
+          type="button"
+          className="ghost-btn toolbar-btn"
+          onClick={() => void loadCourses()}
+          disabled={submitting}
+        >
+          تحديث الدورات
+        </button>
+      </div>
 
       {message ? <p className={isError ? "message error" : "message success"}>{message}</p> : null}
 
@@ -278,14 +321,24 @@ export function CoursesPage({ role }: { role: UserRole }) {
 
       {role === "admin" ? (
         <section className="requests-panel">
-          <h3>طلبات الانضمام للدورات</h3>
+          <div className="requests-header">
+            <h3>طلبات الانضمام للدورات</h3>
+            <button
+              type="button"
+              className="ghost-btn toolbar-btn"
+              onClick={() => void loadRequests()}
+              disabled={submitting}
+            >
+              تحديث الطلبات
+            </button>
+          </div>
           <div className="request-filters">
             <button
               className={requestFilter === "pending" ? "primary-btn" : "ghost-btn"}
               onClick={() => setRequestFilter("pending")}
               disabled={submitting}
             >
-              معلقة
+              معلّقة
             </button>
             <button
               className={requestFilter === "approved" ? "primary-btn" : "ghost-btn"}
@@ -311,7 +364,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
           </div>
           {requestsLoading ? <p className="muted">جاري تحميل الطلبات...</p> : null}
           {!requestsLoading && requests.length === 0 ? (
-            <p className="muted">لا توجد طلبات معلقة.</p>
+            <p className="muted">{emptyRequestsMessage(requestFilter)}</p>
           ) : (
             <div className="course-list">
               {requests.map((request) => (
@@ -321,7 +374,15 @@ export function CoursesPage({ role }: { role: UserRole }) {
                     الطالب: {request.studentName || "غير معروف"} ({request.studentEmail || "بدون بريد"})
                   </p>
                   <p className="muted">السبب: {request.reason || "—"}</p>
-                  <p className="muted">الحالة: {request.status}</p>
+                  <p className="muted">
+                    الحالة: <strong>{requestStatusLabel(request.status)}</strong>
+                  </p>
+                  <p className="muted">
+                    تاريخ الإنشاء: {formatFirestoreTime(request.createdAt)}
+                  </p>
+                  {request.reviewedAt != null ? (
+                    <p className="muted">تاريخ المراجعة: {formatFirestoreTime(request.reviewedAt)}</p>
+                  ) : null}
                   <div className="course-actions">
                     {request.status === "pending" ? (
                       <>
@@ -333,7 +394,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
                         </button>
                       </>
                     ) : (
-                      <span className="muted">هذا الطلب تمت مراجعته بالفعل.</span>
+                      <span className="muted">تمت مراجعة الطلب. استخدم &quot;معلّقة&quot; لمعالجة طلبات جديدة.</span>
                     )}
                   </div>
                 </article>

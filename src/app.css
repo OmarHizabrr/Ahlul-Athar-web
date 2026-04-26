@@ -254,8 +254,25 @@ input:focus {
   gap: 0.5rem;
 }
 
-.course-search {
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
   margin-bottom: 0.6rem;
+}
+
+.toolbar .course-search {
+  flex: 1 1 200px;
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.toolbar-btn {
+  width: auto;
+  white-space: nowrap;
+  padding: 0.75rem 1rem;
+  margin: 0;
 }
 
 .course-list {
@@ -307,6 +324,19 @@ input:focus {
   margin: 0.6rem 0;
 }
 
+.requests-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.requests-header h3 {
+  margin: 0;
+}
+
 .message {
   margin: 0.85rem 0 0;
   padding: 0.7rem 0.85rem;
@@ -347,5 +377,9 @@ button:disabled {
 @media (max-width: 900px) {
   .dashboard-page {
     grid-template-columns: 1fr;
+  }
+
+  .request-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

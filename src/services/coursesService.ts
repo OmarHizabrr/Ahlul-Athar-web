@@ -108,11 +108,14 @@ export const coursesService = {
     });
   },
 
-  async approveEnrollmentRequest(request: EnrollmentRequest) {
+  async approveEnrollmentRequest(
+    request: EnrollmentRequest,
+  ): Promise<{ alreadyEnrolled: boolean }> {
     const requestRef = doc(db, "enrollmentRequests", request.id);
     const enrollmentRef = doc(db, "mycourses", `${request.studentId}_${request.targetId}`);
     const courseRef = doc(db, "courses", request.targetId);
     const existingEnrollment = await getDoc(enrollmentRef);
+    const alreadyEnrolled = existingEnrollment.exists();
 
     await setDoc(
       enrollmentRef,
@@ -132,9 +135,11 @@ export const coursesService = {
       reviewedAt: serverTimestamp(),
     });
 
-    if (!existingEnrollment.exists()) {
+    if (!alreadyEnrolled) {
       await updateDoc(courseRef, { studentCount: increment(1), updatedAt: serverTimestamp() });
     }
+
+    return { alreadyEnrolled };
   },
 
   async rejectEnrollmentRequest(requestId: string) {
