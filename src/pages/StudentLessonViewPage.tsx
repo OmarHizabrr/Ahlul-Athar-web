@@ -101,11 +101,9 @@ export function StudentLessonViewPage() {
     return () => window.removeEventListener("ah:quiz-updated", onQuiz);
   }, [user, runLoad]);
 
-  const lessonLede = "محتوى الدرس (نص، فيديو، PDF، صوت) كما في تطبيق الجوال — بعد التحقق من التسجيل وقواعد الفتح.";
-
   if (!ready) {
     return (
-      <DashboardLayout role="student" title="درس" lede={lessonLede}>
+      <DashboardLayout role="student" title="درس" lede={undefined}>
         <PageLoadHint text="جاري التهيئة..." />
       </DashboardLayout>
     );
@@ -115,12 +113,13 @@ export function StudentLessonViewPage() {
     return null;
   }
 
-  const ct = lesson?.contentType?.trim();
-  const typeLabel = ct ? CONTENT_TYPE_LABEL[ct] ?? ct : null;
-
   return (
-    <DashboardLayout role="student" title={lesson?.title ?? "درس"} lede={lessonLede}>
-      <p>
+    <DashboardLayout
+      role="student"
+      title={lesson?.title ?? (loading ? "…" : "درس")}
+      lede={undefined}
+    >
+      <p className="lesson-back">
         <Link to={`/student/course/${courseId}`} className="inline-link">
           ← العودة لقائمة دروس المقرر
         </Link>
@@ -136,57 +135,121 @@ export function StudentLessonViewPage() {
           </p>
         </div>
       ) : (
-        <>
-          <div className="toolbar" style={{ marginTop: "0.35rem" }}>
-            <button
-              type="button"
-              className="ghost-btn toolbar-btn"
-              onClick={() => void runLoad("refresh")}
-              disabled={refreshing}
-              aria-busy={refreshing}
-            >
-              <ButtonBusyLabel busy={refreshing}>تحديث الدرس</ButtonBusyLabel>
-            </button>
-          </div>
-          {lesson.description ? <p className="muted lesson-lead">{lesson.description}</p> : null}
-          <div className="lesson-meta-card">
-            <p className="muted post-meta" style={{ margin: 0 }}>
-              {formatFirestoreTime(lesson.createdAt)} · {lesson.createdByName || "—"}
-              {typeLabel ? ` · محتوى: ${typeLabel}` : ""}
-              {lesson.duration != null ? ` · ${lesson.duration} د` : ""}
-              {lesson.difficulty ? ` · ${lesson.difficulty}` : ""}
-            </p>
-          </div>
-          <LessonContentView lesson={lesson} />
-          {quizzes.length > 0 ? (
-            <div className="lesson-quiz-section">
-              <h3 className="form-section-title">اختبارات الدرس</h3>
-              <ul className="lesson-quiz-list">
-                {quizzes.map((q) => (
-                  <li key={q.quizFileId}>
-                    <div className="lesson-quiz-row">
-                      <span className="lesson-quiz-title">{q.title}</span>
-                      <span className="lesson-quiz-pill" data-st={q.status === "none" ? "none" : q.status}>
-                        {q.status === "graded"
-                          ? "مُتاح / مقيّم"
-                          : q.status === "pending"
-                            ? "مُرسل — بانتظار التصحيح"
-                            : "لم يُرسل بعد"}
-                      </span>
-                      <Link
-                        className="ghost-btn"
-                        to={`/student/course/${courseId}/lesson/${lessonId}/quiz/${q.quizFileId}`}
-                      >
-                        فتح / التفاصيل
-                      </Link>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </>
+        <StudentLessonBody
+          courseId={courseId}
+          lessonId={lessonId}
+          lesson={lesson}
+          quizzes={quizzes}
+          onRefresh={() => void runLoad("refresh")}
+          refreshing={refreshing}
+        />
       )}
     </DashboardLayout>
+  );
+}
+
+function StudentLessonBody({
+  courseId,
+  lessonId,
+  lesson,
+  quizzes,
+  onRefresh,
+  refreshing,
+}: {
+  courseId: string;
+  lessonId: string;
+  lesson: Lesson;
+  quizzes: LessonQuizItem[];
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
+  const ct = lesson.contentType?.trim().toLowerCase() ?? "";
+  const typeLabel = ct ? CONTENT_TYPE_LABEL[ct] ?? lesson.contentType : null;
+
+  return (
+    <article className="lesson-reader">
+      <div className="toolbar lesson-toolbar">
+        <button
+          type="button"
+          className="ghost-btn toolbar-btn"
+          onClick={onRefresh}
+          disabled={refreshing}
+          aria-busy={refreshing}
+        >
+          <ButtonBusyLabel busy={refreshing}>تحديث</ButtonBusyLabel>
+        </button>
+      </div>
+
+      <div className="lesson-hero card-elevated">
+        {lesson.imageUrl ? (
+          <div className="lesson-hero-cover">
+            <img
+              src={lesson.imageUrl}
+              alt={lesson.title}
+              className="lesson-hero-img"
+              loading="eager"
+              decoding="async"
+            />
+          </div>
+        ) : null}
+        <div className="lesson-hero-inner">
+          {lesson.description ? <p className="lesson-hero-sub">{lesson.description}</p> : null}
+          <div className="lesson-chips" aria-label="معلومات الدرس">
+            {typeLabel ? (
+              <span className="meta-pill meta-pill--info" title="نوع المحتوى">
+                {typeLabel}
+              </span>
+            ) : null}
+            {lesson.duration != null ? <span className="meta-pill meta-pill--muted">{lesson.duration} دقيقة</span> : null}
+            {lesson.difficulty ? <span className="meta-pill meta-pill--muted">{lesson.difficulty}</span> : null}
+            {lesson.hasMandatoryQuiz ? (
+              <span className="meta-pill meta-pill--ok" title="للمتابعة إلى الدرس التالي">
+                اختبار إجباري
+              </span>
+            ) : null}
+          </div>
+          <p className="lesson-hero-meta muted small">
+            {formatFirestoreTime(lesson.createdAt)}
+            {lesson.createdByName ? ` · ${lesson.createdByName}` : ""}
+          </p>
+        </div>
+      </div>
+
+      {lesson.hasMandatoryQuiz ? (
+        <p className="lesson-mandatory-hint muted small" role="note">
+          قد يُطلب اجتياز اختبار هذا الدرس حسب إعدادات المقرر للانتقال للدرس التالي.
+        </p>
+      ) : null}
+
+      <LessonContentView lesson={lesson} />
+
+      {quizzes.length > 0 ? (
+        <div className="lesson-quiz-section">
+          <h3 className="form-section-title">اختبارات الدرس</h3>
+          <ul className="lesson-quiz-list">
+            {quizzes.map((q) => (
+              <li key={q.quizFileId}>
+                <div className="lesson-quiz-row">
+                  <span className="lesson-quiz-title">{q.title}</span>
+                  <span className="lesson-quiz-pill" data-st={q.status === "none" ? "none" : q.status}>
+                    {q.status === "graded"
+                      ? "مُتاح / مقيّم"
+                      : q.status === "pending"
+                        ? "مُرسل — بانتظار التصحيح"
+                        : "لم يُرسل بعد"}
+                  </span>
+                  <Link
+                    className="ghost-btn"
+                    to={`/student/course/${courseId}/lesson/${lessonId}/quiz/${q.quizFileId}`}
+                  >
+                    فتح الاختبار
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </article>
   );
 }

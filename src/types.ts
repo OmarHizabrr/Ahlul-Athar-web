@@ -56,6 +56,8 @@ export interface Lesson {
   createdByName?: string;
   /** يتطلب اجتياز اختبارات الدرس السابق (كما في Flutter). */
   hasMandatoryQuiz?: boolean;
+  /** صورة غلاف / رأس الدرس إن وُجدت في Firestore (أسماء حقول شائعة مع تطبيق الجوال). */
+  imageUrl?: string;
 }
 
 /** صف مُهيأ للواجهة: درس + هل مفتوح + سبب بسيط عند المنع. */

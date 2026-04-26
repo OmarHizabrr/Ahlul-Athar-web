@@ -32,7 +32,30 @@ function timeMillisFromUnknown(v: unknown): number {
   return 0;
 }
 
+function firstNonEmptyString(data: DocumentData, keys: string[]): string | undefined {
+  for (const k of keys) {
+    const v = data[k];
+    if (v != null) {
+      const s = String(v).trim();
+      if (s.length > 0) {
+        return s;
+      }
+    }
+  }
+  return undefined;
+}
+
 function mapLesson(courseId: string, id: string, data: DocumentData): Lesson {
+  const imageUrl = firstNonEmptyString(data, [
+    "imageUrl",
+    "coverImage",
+    "coverUrl",
+    "thumbnail",
+    "bannerUrl",
+    "image",
+    "photoUrl",
+    "lessonImage",
+  ]);
   return {
     id,
     courseId,
@@ -49,6 +72,7 @@ function mapLesson(courseId: string, id: string, data: DocumentData): Lesson {
     createdAt: data.createdAt,
     createdByName: data.createdByName != null ? String(data.createdByName) : undefined,
     hasMandatoryQuiz: data.hasMandatoryQuiz === true,
+    imageUrl,
   };
 }
 
