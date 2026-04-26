@@ -80,9 +80,11 @@ export function StudentLessonViewPage() {
     }
   }, [ready, user, load]);
 
+  const lessonLede = "محتوى الدرس بعد التحقق من التسجيل في المقرر وقواعد فتح الدرس (مثل التطبيق).";
+
   if (!ready) {
     return (
-      <DashboardLayout role="student" title="درس">
+      <DashboardLayout role="student" title="درس" lede={lessonLede}>
         <p className="muted">جاري التهيئة...</p>
       </DashboardLayout>
     );
@@ -93,7 +95,7 @@ export function StudentLessonViewPage() {
   }
 
   return (
-    <DashboardLayout role="student" title={lesson?.title ?? "درس"}>
+    <DashboardLayout role="student" title={lesson?.title ?? "درس"} lede={lessonLede}>
       <p>
         <Link to={`/student/course/${courseId}`} className="inline-link">
           ← العودة لقائمة دروس المقرر

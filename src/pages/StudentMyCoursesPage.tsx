@@ -36,7 +36,7 @@ export function StudentMyCoursesPage() {
 
   if (!ready) {
     return (
-      <DashboardLayout role="student" title="مقرراتي">
+      <DashboardLayout role="student" title="مقرراتي" lede="مقرراتك بعد قبول طلبات الانضمام.">
         <p className="muted">جاري التهيئة...</p>
       </DashboardLayout>
     );
@@ -47,15 +47,31 @@ export function StudentMyCoursesPage() {
   }
 
   return (
-    <DashboardLayout role="student" title="مقرراتي">
-      <p className="muted">
-        الدورات التي قبلتك الإدارة فيها — مثل تبويب <strong>دوراتي</strong> في تطبيق Flutter.
-      </p>
+    <DashboardLayout
+      role="student"
+      title="مقرراتي"
+      lede="الدورات التي وافقت الإدارة على انضمامك إليها — يطابق تبويب «دوراتي» في تطبيق الجوال."
+    >
+      <div className="toolbar">
+        <button type="button" className="ghost-btn toolbar-btn" onClick={() => void load()} disabled={loading}>
+          {loading ? "جاري التحديث..." : "تحديث القائمة"}
+        </button>
+        <Link to="/student/courses" className="ghost-btn toolbar-btn">
+          تصفح الكتالوج
+        </Link>
+      </div>
       {message ? <p className="message error">{message}</p> : null}
       {loading ? (
         <p className="muted">جاري التحميل...</p>
       ) : rows.length === 0 ? (
-        <p className="muted">لا يوجد مقررات مسجّل بها. تصفح «الدورات» لإرسال طلب انضمام.</p>
+        <div className="empty-state">
+          <p className="muted">لا يوجد مقررات مسجّل بها بعد.</p>
+          <p className="empty-state-actions">
+            <Link to="/student/courses" className="primary-btn">
+              الذهاب لصفحة الدورات وطلب الانضمام
+            </Link>
+          </p>
+        </div>
       ) : (
         <div className="course-list">
           {rows.map((c) => (

@@ -23,10 +23,10 @@ export function SplashPage() {
 
   return (
     <main className="center-page">
-      <section className="card splash-card">
-        <p className="badge">Ahlul Athar</p>
-        <h1>جاري التحميل...</h1>
-        <p>تجهيز المنصة الموحدة للويب والموبايل</p>
+      <section className="card splash-card" aria-busy="true" aria-label="جاري التحميل">
+        <p className="badge">أهل الأثر</p>
+        <h1>جاري التهيئة...</h1>
+        <p className="muted">مزامنة الحساب مع نفس بيانات تطبيق الجوال</p>
       </section>
     </main>
   );

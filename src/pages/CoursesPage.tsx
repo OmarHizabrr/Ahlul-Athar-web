@@ -220,9 +220,14 @@ export function CoursesPage({ role }: { role: UserRole }) {
     }
   };
 
+  const pageLede =
+    role === "admin"
+      ? "إنشاء وتعديل المقررات، إدارة طلبات الانضمام، وربط الدروس من صفحة «دروس المقرر»."
+      : "تصفح المقررات المتاحة، اطلب الانضمام، أو انتقل إلى «مقرراتي» بعد الموافقة.";
+
   if (!ready) {
     return (
-      <DashboardLayout role={role} title="الدورات">
+      <DashboardLayout role={role} title="الدورات" lede={pageLede}>
         <p className="muted">جاري التهيئة...</p>
       </DashboardLayout>
     );
@@ -233,7 +238,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
   }
 
   return (
-    <DashboardLayout role={role} title="الدورات">
+    <DashboardLayout role={role} title="الدورات" lede={pageLede}>
       {role === "admin" ? (
         <form className="course-form" onSubmit={onSubmit}>
           <input

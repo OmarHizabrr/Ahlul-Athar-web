@@ -6,10 +6,12 @@ import type { UserRole } from "../types";
 interface DashboardLayoutProps {
   role: UserRole;
   title: string;
+  /** سطر توضيحي تحت العنوان (نفس الاستعمال في واجهة التطبيق) */
+  lede?: ReactNode;
   children: ReactNode;
 }
 
-export function DashboardLayout({ role, title, children }: DashboardLayoutProps) {
+export function DashboardLayout({ role, title, lede, children }: DashboardLayoutProps) {
   const base = role === "admin" ? "/admin" : "/student";
 
   return (
@@ -33,6 +35,7 @@ export function DashboardLayout({ role, title, children }: DashboardLayoutProps)
         <section className="content">
           <div className="content-header">
             <h1>{title}</h1>
+            {lede != null && lede !== false ? <p className="content-lede muted">{lede}</p> : null}
           </div>
           {children}
         </section>

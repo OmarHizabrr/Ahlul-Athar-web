@@ -102,9 +102,12 @@ export function AdminCourseLessonsPage() {
     }
   };
 
+  const lessonsLede =
+    "إضافة وحذف الدروس، وتحديد اختبار إجباري قبل الدرس التالي عند الحاجة — كما في منطق التطبيق.";
+
   if (!ready) {
     return (
-      <DashboardLayout role="admin" title="دروس المقرر">
+      <DashboardLayout role="admin" title="دروس المقرر" lede={lessonsLede}>
         <p className="muted">جاري التهيئة...</p>
       </DashboardLayout>
     );
@@ -115,7 +118,7 @@ export function AdminCourseLessonsPage() {
   }
 
   return (
-    <DashboardLayout role="admin" title={course ? `دروس: ${course.title}` : "دروس المقرر"}>
+    <DashboardLayout role="admin" title={course ? `دروس: ${course.title}` : "دروس المقرر"} lede={lessonsLede}>
       <p>
         <Link to="/admin/courses" className="inline-link">
           ← العودة لقائمة المقررات

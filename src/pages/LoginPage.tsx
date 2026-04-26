@@ -62,9 +62,9 @@ export function LoginPage() {
   return (
     <main className="center-page">
       <section className="card">
-        <p className="badge">Login</p>
-        <h1>تسجيل الدخول كـ {roleText}</h1>
-        <p className="muted">بداية موحّدة مع التطبيق: Google أو رقم الهاتف + كلمة المرور.</p>
+        <p className="badge">أهل الأثر</p>
+        <h1>تسجيل الدخول — {roleText}</h1>
+        <p className="muted">نفس بيانات التطبيق: Google أو رقم الجوال وكلمة المرور المرتبطة بالحساب.</p>
 
         <button className="google-btn" onClick={onGoogleLogin} disabled={loadingGoogle || loadingPhone}>
           <FcGoogle size={24} />
@@ -108,7 +108,11 @@ export function LoginPage() {
           تغيير نوع الحساب
         </button>
 
-        {message ? <p className={isError ? "message error" : "message success"}>{message}</p> : null}
+        {message ? (
+          <p className={isError ? "message error" : "message success"} role="status" aria-live="polite">
+            {message}
+          </p>
+        ) : null}
       </section>
     </main>
   );

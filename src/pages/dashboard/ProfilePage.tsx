@@ -113,9 +113,11 @@ export function ProfilePage({ role }: { role: UserRole }) {
     [u, syncUserFromStorage],
   );
 
+  const profileLede = "تعديل الاسم والجوال وصورة الملف — يطابق مستند المستخدم في Firestore وتطبيق الجوال.";
+
   if (!ready) {
     return (
-      <DashboardLayout role={role} title="الملف الشخصي">
+      <DashboardLayout role={role} title="الملف الشخصي" lede={profileLede}>
         <p className="muted">جاري التهيئة...</p>
       </DashboardLayout>
     );
@@ -126,7 +128,7 @@ export function ProfilePage({ role }: { role: UserRole }) {
   }
 
   return (
-    <DashboardLayout role={role} title="الملف الشخصي">
+    <DashboardLayout role={role} title="الملف الشخصي" lede={profileLede}>
       {loading ? (
         <p className="muted">جاري التحميل...</p>
       ) : (

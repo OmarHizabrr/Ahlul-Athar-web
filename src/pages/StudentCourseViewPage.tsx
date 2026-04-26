@@ -46,9 +46,11 @@ export function StudentCourseViewPage() {
     }
   }, [ready, user, courseId, load]);
 
+  const courseLede = "تفاصيل المقرر وقائمة الدروس مع القفل والتقدم كما في تطبيق الجوال.";
+
   if (!ready) {
     return (
-      <DashboardLayout role="student" title="مقرر">
+      <DashboardLayout role="student" title="مقرر" lede={courseLede}>
         <p className="muted">جاري التهيئة...</p>
       </DashboardLayout>
     );
@@ -61,7 +63,7 @@ export function StudentCourseViewPage() {
   const title = course?.title ?? "مقرر";
 
   return (
-    <DashboardLayout role="student" title={title}>
+    <DashboardLayout role="student" title={title} lede={courseLede}>
       {loading ? (
         <p className="muted">جاري التحميل...</p>
       ) : !course ? (

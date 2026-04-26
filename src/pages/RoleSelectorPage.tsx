@@ -15,9 +15,9 @@ export function RoleSelectorPage() {
   return (
     <main className="center-page">
       <section className="card">
-        <p className="badge">Role Selector</p>
+        <p className="badge">أهل الأثر</p>
         <h1>اختر نوع الحساب</h1>
-        <p className="muted">نفس تدفق تطبيق Flutter: طالب أو مسؤول.</p>
+        <p className="muted">نفس تدفق تطبيق الجوال: طالب أو مسؤول، ثم تسجيل الدخول.</p>
 
         <div className="grid-2">
           <button className="primary-btn" onClick={() => navigate("/login?role=student")}>

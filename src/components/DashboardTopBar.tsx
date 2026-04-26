@@ -49,8 +49,11 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
         void refreshUnread();
       }
     };
+    const onNotifUpdated = () => void refreshUnread();
+    window.addEventListener("ah:notifications-updated", onNotifUpdated);
     document.addEventListener("visibilitychange", onVis);
     return () => {
+      window.removeEventListener("ah:notifications-updated", onNotifUpdated);
       window.clearInterval(t);
       document.removeEventListener("visibilitychange", onVis);
     };

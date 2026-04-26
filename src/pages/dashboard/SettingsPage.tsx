@@ -16,18 +16,22 @@ export function SettingsPage({ role }: { role: UserRole }) {
 
   if (!ready) {
     return (
-      <DashboardLayout role={role} title="الإعدادات">
+      <DashboardLayout
+        role={role}
+        title="الإعدادات"
+        lede="اختصارات للحساب والجلسة — تفاصيل الملف والخروج متاحة أيضاً من الشريط العلوي."
+      >
         <p className="muted">جاري التهيئة...</p>
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout role={role} title="الإعدادات">
-      <p className="muted settings-lead">
-        إدارة الحساب والجلسة — نفس بنية التطبيق: الملف الشخصي، الإشعارات، وتسجيل الخروج متاحة أيضاً من الشريط
-        العلوي.
-      </p>
+    <DashboardLayout
+      role={role}
+      title="الإعدادات"
+      lede="اختصارات للحساب والجلسة — تفاصيل الملف والخروج متاحة أيضاً من الشريط العلوي."
+    >
       <ul className="settings-links">
         <li>
           <Link className="settings-link" to={`${base}/profile`}>

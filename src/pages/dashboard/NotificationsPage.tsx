@@ -64,6 +64,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
     try {
       await notificationsService.markRead(id);
       await load();
+      window.dispatchEvent(new CustomEvent("ah:notifications-updated"));
     } finally {
       setSubmitting(false);
     }
@@ -77,6 +78,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
     try {
       await notificationsService.markAllReadForUser(u.uid);
       await load();
+      window.dispatchEvent(new CustomEvent("ah:notifications-updated"));
     } finally {
       setSubmitting(false);
     }
@@ -105,14 +107,22 @@ export function NotificationsPage({ role }: { role: UserRole }) {
 
   if (!ready) {
     return (
-      <DashboardLayout role={role} title="الإشعارات">
+      <DashboardLayout
+        role={role}
+        title="الإشعارات"
+        lede="نفس مزامنة الإشعارات مع تطبيق الجوال. يُحدَّث العداد في الشريط عند تعليم القراءة."
+      >
         <p className="muted">جاري التهيئة...</p>
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout role={role} title="الإشعارات">
+    <DashboardLayout
+      role={role}
+      title="الإشعارات"
+      lede="نفس مزامنة الإشعارات مع تطبيق الجوال. يُحدَّث العداد في الشريط عند تعليم القراءة."
+    >
       {role === "admin" && u ? (
         <form className="course-form" onSubmit={onSend}>
           <h3 className="form-section-title">إرسال إشعار لمستخدم</h3>

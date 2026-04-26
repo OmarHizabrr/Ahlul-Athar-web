@@ -574,6 +574,31 @@ input:focus {
   margin-bottom: 0.85rem;
 }
 
+.content-header h1 {
+  margin: 0 0 0.2rem;
+}
+
+.content-lede {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  max-width: 44rem;
+}
+
+.home-welcome {
+  margin: 0 0 0.9rem;
+  font-size: 1.02rem;
+  color: #e2e8f0;
+}
+
+.empty-state {
+  padding: 0.5rem 0 1rem;
+}
+
+.empty-state-actions {
+  margin-top: 0.75rem;
+}
+
 .course-form {
   display: grid;
   gap: 0.6rem;

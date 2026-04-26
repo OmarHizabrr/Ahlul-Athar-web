@@ -6,8 +6,13 @@ import { postsService } from "../../services/postsService";
 import type { UserRole } from "../../types";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
 
+const postsLede: Record<UserRole, string> = {
+  admin: "كتابة منشور ونشره للطلاب. الطلاب يرون المنشورات المفعّلة فقط (كما في التطبيق).",
+  student: "الإعلانات والمنشورات التي نشرتها الإدارة للطلاب.",
+};
+
 export function PostsPage({ role }: { role: UserRole }) {
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
   const [posts, setPosts] = useState<Awaited<ReturnType<typeof postsService.listForRole>>>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -56,8 +61,16 @@ export function PostsPage({ role }: { role: UserRole }) {
     }
   };
 
+  if (!ready) {
+    return (
+      <DashboardLayout role={role} title="المنشورات" lede={postsLede[role]}>
+        <p className="muted">جاري التهيئة...</p>
+      </DashboardLayout>
+    );
+  }
+
   return (
-    <DashboardLayout role={role} title="المنشورات">
+    <DashboardLayout role={role} title="المنشورات" lede={postsLede[role]}>
       {role === "admin" && user ? (
         <form className="course-form" onSubmit={onCreate}>
           <h3 className="form-section-title">إنشاء منشور</h3>
