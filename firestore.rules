@@ -1,3 +1,4 @@
+// انشر: firebase deploy --only firestore:rules,firestore:indexes
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -10,37 +11,61 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
-    // ملفات المستخدمين — التعديل لاحقاً حسب سياسة التطبيق
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        exists(userPath()) &&
+        get(userPath()).data.role == 'admin';
+    }
+
     match /users/{userId} {
-      allow read: if signedIn();
-      allow create: if isOwnerUid(userId);
-      allow update: if isOwnerUid(userId);
+      allow read: if isOwnerUid(userId) || isAdmin();
+      allow create, update: if isOwnerUid(userId);
     }
 
     match /courses/{courseId} {
-      allow read: if true;
-      allow write: if signedIn();
+      allow read: if isAdmin() || resource.data.isActive == true;
+      allow create, update, delete: if isAdmin();
     }
 
     match /enrollment_requests/{id} {
-      allow read, write: if signedIn();
+      allow create: if signedIn() &&
+        request.resource.data.studentId == request.auth.uid &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.requestType is string;
+
+      allow read: if isAdmin() || resource.data.studentId == request.auth.uid;
+
+      allow update, delete: if isAdmin();
     }
 
     match /numbers/{courseId}/numbers/{studentId} {
-      allow read, write: if signedIn();
+      allow read: if isAdmin() || isOwnerUid(studentId);
+      allow create, update: if isAdmin() || isOwnerUid(studentId);
+      allow delete: if isAdmin();
     }
 
     match /Mycourses/{userId}/Mycourses/{courseId} {
-      allow read, write: if isOwnerUid(userId);
+      allow read: if isAdmin() || isOwnerUid(userId);
+      allow create, update, delete: if isAdmin() || isOwnerUid(userId);
     }
 
     match /posts/{id} {
-      allow read: if true;
-      allow write: if signedIn();
+      // دعم isPublished أو published (ميراث بيانات)
+      allow read: if isAdmin() ||
+        resource.data.isPublished == true ||
+        resource.data.published == true;
+      allow create, update, delete: if isAdmin();
     }
 
     match /notifications/{id} {
-      allow read, write: if signedIn();
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAdmin() && request.resource.data.keys().hasAll(['userId', 'title', 'body']);
+      allow update: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
     }
   }
 }
