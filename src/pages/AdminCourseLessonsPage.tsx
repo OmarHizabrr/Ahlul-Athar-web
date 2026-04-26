@@ -16,6 +16,32 @@ const CONTENT_TYPES = [
   { v: "audio", label: "صوت" },
 ] as const;
 
+function buildLessonPayload(
+  title: string,
+  description: string,
+  content: string,
+  contentType: string,
+  hasMandatoryQuiz: boolean,
+  videoUrl: string,
+  pdfUrl: string,
+  audioUrl: string,
+  duration: string,
+  difficulty: string,
+) {
+  return {
+    title: title.trim(),
+    description: description.trim(),
+    content: content.trim(),
+    contentType,
+    hasMandatoryQuiz,
+    videoUrl: videoUrl.trim(),
+    pdfUrl: pdfUrl.trim(),
+    audioUrl: audioUrl.trim(),
+    duration: duration.trim(),
+    difficulty: difficulty.trim(),
+  };
+}
+
 export function AdminCourseLessonsPage() {
   const { courseId = "" } = useParams();
   const { user, ready } = useAuth();
@@ -31,6 +57,11 @@ export function AdminCourseLessonsPage() {
   const [contentType, setContentType] = useState<string>("text");
   const [hasMandatoryQuiz, setHasMandatoryQuiz] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [audioUrl, setAudioUrl] = useState("");
+  const [duration, setDuration] = useState("");
+  const [difficulty, setDifficulty] = useState("");
 
   const resetForm = () => {
     setEditingId(null);
@@ -39,6 +70,11 @@ export function AdminCourseLessonsPage() {
     setContent("");
     setContentType("text");
     setHasMandatoryQuiz(false);
+    setVideoUrl("");
+    setPdfUrl("");
+    setAudioUrl("");
+    setDuration("");
+    setDifficulty("");
   };
 
   const startEdit = (L: Lesson) => {
@@ -48,6 +84,11 @@ export function AdminCourseLessonsPage() {
     setContent(String(L.txtContent ?? L.content ?? ""));
     setContentType(L.contentType || "text");
     setHasMandatoryQuiz(L.hasMandatoryQuiz === true);
+    setVideoUrl(L.videoUrl ?? "");
+    setPdfUrl(L.pdfUrl ?? "");
+    setAudioUrl(L.audioUrl ?? "");
+    setDuration(L.duration != null && !Number.isNaN(L.duration) ? String(L.duration) : "");
+    setDifficulty(L.difficulty ?? "");
     setMessage("");
     requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -85,24 +126,48 @@ export function AdminCourseLessonsPage() {
     }
     setSubmitting(true);
     setMessage("");
+    if (contentType === "text" && !content.trim()) {
+      setMessage("المحتوى النصي مطلوب عند اختيار «نص».");
+      setIsError(true);
+      setSubmitting(false);
+      return;
+    }
+    if (contentType === "video" && !videoUrl.trim()) {
+      setMessage("أضف رابط الفيديو أو غيّر نوع المحتوى.");
+      setIsError(true);
+      setSubmitting(false);
+      return;
+    }
+    if (contentType === "pdf" && !pdfUrl.trim()) {
+      setMessage("أضف رابط ملف الـ PDF أو غيّر نوع المحتوى.");
+      setIsError(true);
+      setSubmitting(false);
+      return;
+    }
+    if (contentType === "audio" && !audioUrl.trim()) {
+      setMessage("أضف رابط الملف الصوتي أو غيّر نوع المحتوى.");
+      setIsError(true);
+      setSubmitting(false);
+      return;
+    }
+    const payload = buildLessonPayload(
+      title,
+      description,
+      content,
+      contentType,
+      hasMandatoryQuiz,
+      videoUrl,
+      pdfUrl,
+      audioUrl,
+      duration,
+      difficulty,
+    );
     try {
       if (editingId) {
-        await lessonsService.updateLesson(courseId, editingId, {
-          title: title.trim(),
-          description: description.trim(),
-          content: content.trim(),
-          contentType,
-          hasMandatoryQuiz,
-        });
+        await lessonsService.updateLesson(courseId, editingId, payload);
         setMessage("تم حفظ تعديلات الدرس.");
       } else {
-        await lessonsService.createLesson(user, courseId, {
-          title: title.trim(),
-          description: description.trim(),
-          content: content.trim(),
-          contentType,
-          hasMandatoryQuiz,
-        });
+        await lessonsService.createLesson(user, courseId, payload);
         setMessage("تم إضافة الدرس وتحديث العدد في المقرر.");
         resetForm();
       }
@@ -204,14 +269,77 @@ export function AdminCourseLessonsPage() {
                 ))}
               </select>
             </label>
+            <div className="admin-lesson-urls">
+              <p className="muted small form-hint">روابط الوسائط (كما في تطبيق الجوال) — تُحفظ في الحقول videoUrl / pdfUrl / audioUrl</p>
+              <label>
+                <span>رابط الفيديو (YouTube، Vimeo، مباشر…)</span>
+                <input
+                  className="text-input"
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://"
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                />
+              </label>
+              <label>
+                <span>رابط PDF</span>
+                <input
+                  className="text-input"
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://"
+                  value={pdfUrl}
+                  onChange={(e) => setPdfUrl(e.target.value)}
+                />
+              </label>
+              <label>
+                <span>رابط الصوت</span>
+                <input
+                  className="text-input"
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://"
+                  value={audioUrl}
+                  onChange={(e) => setAudioUrl(e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="form-row-2">
+              <label>
+                <span>المدة (دقائق، اختياري)</span>
+                <input
+                  className="text-input"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  placeholder="مثال: 15"
+                />
+              </label>
+              <label>
+                <span>الصعوبة (نص — كما في التطبيق)</span>
+                <input
+                  className="text-input"
+                  value={difficulty}
+                  onChange={(e) => setDifficulty(e.target.value)}
+                  placeholder="سهل / متوسط / صعب"
+                />
+              </label>
+            </div>
             <label>
-              <span>المحتوى (نص / تعليمات — للفيديو أضف الرابط لاحقاً من التطبيق عند الحاجة)</span>
+              <span>
+                {contentType === "text"
+                  ? "المحتوى النصي للدرس"
+                  : "نص تعليمات / ملاحظات (اختياري — يظهر للطالب مع الرابط)"}
+              </span>
               <textarea
                 className="text-input textarea"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={5}
-                required
+                required={contentType === "text"}
               />
             </label>
             <label className="switch-line">
@@ -247,6 +375,13 @@ export function AdminCourseLessonsPage() {
                   <p className="muted post-meta">
                     {formatFirestoreTime(L.createdAt)} · {L.contentType || "نص"}
                     {L.hasMandatoryQuiz ? " · إجباري للتالي" : ""}
+                    {L.duration != null ? ` · ${L.duration} د` : ""}
+                    {L.difficulty ? ` · ${L.difficulty}` : ""}
+                  </p>
+                  <p className="lesson-asset-badges" aria-label="الوسائط">
+                    {L.videoUrl ? <span className="asset-badge">فيديو</span> : null}
+                    {L.pdfUrl ? <span className="asset-badge">PDF</span> : null}
+                    {L.audioUrl ? <span className="asset-badge">صوت</span> : null}
                   </p>
                   <p className="muted">{L.description?.slice(0, 120) || "—"}</p>
                   <div className="course-actions lesson-admin-actions">

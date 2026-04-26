@@ -2,6 +2,7 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -51,6 +52,60 @@ function mapLesson(courseId: string, id: string, data: DocumentData): Lesson {
   };
 }
 
+/** بيانات الدرس كما في تطبيق Flutter: نص + روابط + خيارات. */
+export type LessonWritePayload = {
+  title: string;
+  description: string;
+  content: string;
+  contentType: string;
+  hasMandatoryQuiz?: boolean;
+  videoUrl?: string;
+  pdfUrl?: string;
+  audioUrl?: string;
+  duration?: string;
+  difficulty?: string;
+};
+
+function mergeLessonFields(payload: LessonWritePayload, isUpdate: boolean): Record<string, unknown> {
+  const out: Record<string, unknown> = {
+    title: payload.title,
+    description: payload.description,
+    content: payload.content,
+    contentType: payload.contentType,
+    hasMandatoryQuiz: payload.hasMandatoryQuiz === true,
+    updatedAt: serverTimestamp(),
+  };
+  const urls = {
+    videoUrl: (payload.videoUrl ?? "").trim(),
+    pdfUrl: (payload.pdfUrl ?? "").trim(),
+    audioUrl: (payload.audioUrl ?? "").trim(),
+  } as const;
+  for (const k of Object.keys(urls) as (keyof typeof urls)[]) {
+    const t = urls[k];
+    if (t) {
+      out[k] = t;
+    } else if (isUpdate) {
+      out[k] = deleteField();
+    }
+  }
+  const dur = (payload.duration ?? "").toString().trim();
+  if (dur !== "") {
+    const n = Number(dur);
+    if (!Number.isNaN(n) && n >= 0) {
+      out.duration = n;
+    }
+  } else if (isUpdate) {
+    out.duration = deleteField();
+  }
+  const diff = (payload.difficulty ?? "").trim();
+  if (diff) {
+    out.difficulty = diff;
+  } else if (isUpdate) {
+    out.difficulty = deleteField();
+  }
+  return out;
+}
+
 export const lessonsService = {
   async listByCourseId(courseId: string): Promise<Lesson[]> {
     let docs: QueryDocumentSnapshot<DocumentData>[];
@@ -81,41 +136,21 @@ export const lessonsService = {
     return mapLesson(courseId, s.id, s.data() as DocumentData);
   },
 
-  async createLesson(
-    _user: PlatformUser,
-    courseId: string,
-    payload: { title: string; description: string; content: string; contentType: string; hasMandatoryQuiz?: boolean },
-  ) {
+  async createLesson(_user: PlatformUser, courseId: string, payload: LessonWritePayload) {
     const col = lessonsForCourse(courseId);
-    await addDoc(col, {
-      title: payload.title,
-      description: payload.description,
-      content: payload.content,
-      contentType: payload.contentType,
-      hasMandatoryQuiz: payload.hasMandatoryQuiz === true,
-      createdByName: _user.displayName ?? "Admin",
-      createdBy: _user.uid,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+    const data = mergeLessonFields(payload, false);
+    data.createdByName = _user.displayName ?? "Admin";
+    data.createdBy = _user.uid;
+    data.createdAt = serverTimestamp();
+    await addDoc(col, data);
     const courseRef = doc(db, "courses", courseId);
     await updateDoc(courseRef, { lessonCount: increment(1), updatedAt: serverTimestamp() });
   },
 
-  async updateLesson(
-    courseId: string,
-    lessonId: string,
-    payload: { title: string; description: string; content: string; contentType: string; hasMandatoryQuiz?: boolean },
-  ) {
+  async updateLesson(courseId: string, lessonId: string, payload: LessonWritePayload) {
     const lessonRef = doc(db, "lessons", courseId, "lessons", lessonId);
-    await updateDoc(lessonRef, {
-      title: payload.title,
-      description: payload.description,
-      content: payload.content,
-      contentType: payload.contentType,
-      hasMandatoryQuiz: payload.hasMandatoryQuiz === true,
-      updatedAt: serverTimestamp(),
-    });
+    const data = mergeLessonFields(payload, true);
+    await updateDoc(lessonRef, data);
     const courseRef = doc(db, "courses", courseId);
     await updateDoc(courseRef, { updatedAt: serverTimestamp() });
   },
