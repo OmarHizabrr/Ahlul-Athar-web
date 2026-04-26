@@ -461,6 +461,15 @@ input:focus {
   color: #fecaca;
 }
 
+.message.error.error-detail {
+  font-size: 0.82rem;
+  word-break: break-word;
+}
+
+.error-boundary-actions {
+  margin-top: 0.75rem;
+}
+
 button:disabled {
   opacity: 0.65;
   cursor: not-allowed;
