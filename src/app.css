@@ -53,6 +53,11 @@ h1 {
   color: #cbd5e1;
 }
 
+.muted.small {
+  font-size: 0.86rem;
+  margin: 0.25rem 0 0.5rem;
+}
+
 .google-btn,
 .primary-btn,
 .ghost-btn {
