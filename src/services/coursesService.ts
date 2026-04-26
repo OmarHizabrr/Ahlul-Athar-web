@@ -4,6 +4,7 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  increment,
   orderBy,
   query,
   serverTimestamp,
@@ -12,9 +13,10 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import type { Course, PlatformUser } from "../types";
+import type { Course, EnrollmentRequest, PlatformUser } from "../types";
 
 const coursesCollection = collection(db, "courses");
+const enrollmentRequestsCollection = collection(db, "enrollmentRequests");
 
 const mapCourse = (id: string, data: Record<string, unknown>): Course => ({
   id,
@@ -80,5 +82,57 @@ export const coursesService = {
       },
       { merge: true },
     );
+  },
+
+  async listPendingEnrollmentRequests() {
+    const q = query(enrollmentRequestsCollection, where("status", "==", "pending"), orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        studentId: String(data.studentId ?? ""),
+        studentName: String(data.studentName ?? ""),
+        studentEmail: String(data.studentEmail ?? ""),
+        targetId: String(data.targetId ?? ""),
+        targetName: String(data.targetName ?? ""),
+        status: "pending",
+        reason: String(data.reason ?? ""),
+      } as EnrollmentRequest;
+    });
+  },
+
+  async approveEnrollmentRequest(request: EnrollmentRequest) {
+    const requestRef = doc(db, "enrollmentRequests", request.id);
+    const enrollmentRef = doc(db, "mycourses", `${request.studentId}_${request.targetId}`);
+    const courseRef = doc(db, "courses", request.targetId);
+
+    await setDoc(
+      enrollmentRef,
+      {
+        studentId: request.studentId,
+        courseId: request.targetId,
+        isActivated: true,
+        isLifetime: true,
+        status: "approved",
+        approvedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    await updateDoc(requestRef, {
+      status: "approved",
+      reviewedAt: serverTimestamp(),
+    });
+
+    await updateDoc(courseRef, { studentCount: increment(1), updatedAt: serverTimestamp() });
+  },
+
+  async rejectEnrollmentRequest(requestId: string) {
+    const requestRef = doc(db, "enrollmentRequests", requestId);
+    await updateDoc(requestRef, {
+      status: "rejected",
+      reviewedAt: serverTimestamp(),
+    });
   },
 };

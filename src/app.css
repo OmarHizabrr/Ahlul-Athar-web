@@ -294,6 +294,12 @@ input:focus {
   gap: 0.5rem;
 }
 
+.requests-panel {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid #334155;
+}
+
 .message {
   margin: 0.85rem 0 0;
   padding: 0.7rem 0.85rem;

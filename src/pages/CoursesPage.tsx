@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { DashboardLayout } from "./DashboardLayout";
 import { authService } from "../services/authService";
 import { coursesService } from "../services/coursesService";
-import type { Course, UserRole } from "../types";
+import type { Course, EnrollmentRequest, UserRole } from "../types";
 
 type CourseForm = {
   title: string;
@@ -28,6 +28,8 @@ export function CoursesPage({ role }: { role: UserRole }) {
   const [form, setForm] = useState<CourseForm>(initialForm);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
+  const [requests, setRequests] = useState<EnrollmentRequest[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
 
   const user = authService.getLocalUser();
 
@@ -46,6 +48,26 @@ export function CoursesPage({ role }: { role: UserRole }) {
 
   useEffect(() => {
     void loadCourses();
+  }, [role]);
+
+  const loadRequests = async () => {
+    if (role !== "admin") {
+      return;
+    }
+    setRequestsLoading(true);
+    try {
+      const data = await coursesService.listPendingEnrollmentRequests();
+      setRequests(data);
+    } catch {
+      setMessage("تعذر تحميل طلبات الانضمام.");
+      setIsError(true);
+    } finally {
+      setRequestsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadRequests();
   }, [role]);
 
   const filtered = useMemo(() => {
@@ -129,6 +151,36 @@ export function CoursesPage({ role }: { role: UserRole }) {
       setIsError(false);
     } catch {
       setMessage("فشل إرسال طلب الانضمام.");
+      setIsError(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const onApproveRequest = async (request: EnrollmentRequest) => {
+    setSubmitting(true);
+    try {
+      await coursesService.approveEnrollmentRequest(request);
+      setMessage("تم قبول الطلب وإضافة الطالب للدورة.");
+      setIsError(false);
+      await Promise.all([loadRequests(), loadCourses()]);
+    } catch {
+      setMessage("تعذر قبول الطلب.");
+      setIsError(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const onRejectRequest = async (requestId: string) => {
+    setSubmitting(true);
+    try {
+      await coursesService.rejectEnrollmentRequest(requestId);
+      setMessage("تم رفض الطلب.");
+      setIsError(false);
+      await loadRequests();
+    } catch {
+      setMessage("تعذر رفض الطلب.");
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -222,6 +274,36 @@ export function CoursesPage({ role }: { role: UserRole }) {
           ))}
         </div>
       )}
+
+      {role === "admin" ? (
+        <section className="requests-panel">
+          <h3>طلبات الانضمام للدورات</h3>
+          {requestsLoading ? <p className="muted">جاري تحميل الطلبات...</p> : null}
+          {!requestsLoading && requests.length === 0 ? (
+            <p className="muted">لا توجد طلبات معلقة.</p>
+          ) : (
+            <div className="course-list">
+              {requests.map((request) => (
+                <article className="course-item" key={request.id}>
+                  <h3>{request.targetName}</h3>
+                  <p className="muted">
+                    الطالب: {request.studentName || "غير معروف"} ({request.studentEmail || "بدون بريد"})
+                  </p>
+                  <p className="muted">السبب: {request.reason || "—"}</p>
+                  <div className="course-actions">
+                    <button className="primary-btn" onClick={() => onApproveRequest(request)} disabled={submitting}>
+                      قبول
+                    </button>
+                    <button className="ghost-btn" onClick={() => onRejectRequest(request.id)} disabled={submitting}>
+                      رفض
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
     </DashboardLayout>
   );
 }

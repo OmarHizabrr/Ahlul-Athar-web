@@ -20,3 +20,14 @@ export interface Course {
   studentCount: number;
   lessonCount: number;
 }
+
+export interface EnrollmentRequest {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  targetId: string;
+  targetName: string;
+  status: "pending" | "approved" | "rejected";
+  reason: string;
+}
