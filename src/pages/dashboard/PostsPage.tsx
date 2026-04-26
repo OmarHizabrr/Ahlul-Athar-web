@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { DashboardLayout } from "../DashboardLayout";
 import { postsService } from "../../services/postsService";
-import type { UserRole } from "../../types";
+import type { Post, UserRole } from "../../types";
 import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
 
@@ -20,6 +20,7 @@ export function PostsPage({ role }: { role: UserRole }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [publish, setPublish] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
@@ -40,7 +41,25 @@ export function PostsPage({ role }: { role: UserRole }) {
     void load();
   }, [load]);
 
-  const onCreate = async (e: FormEvent) => {
+  const resetForm = () => {
+    setEditingId(null);
+    setTitle("");
+    setBody("");
+    setPublish(true);
+  };
+
+  const startEdit = (p: Post) => {
+    setEditingId(p.id);
+    setTitle(p.title);
+    setBody(p.body);
+    setPublish(p.isPublished);
+    setMessage("");
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
+
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!user || role !== "admin") {
       return;
@@ -48,14 +67,21 @@ export function PostsPage({ role }: { role: UserRole }) {
     setSubmitting(true);
     setMessage("");
     try {
-      await postsService.create(user, { title, body, publish });
-      setTitle("");
-      setBody("");
-      setMessage("تم حفظ المنشور.");
+      if (editingId) {
+        await postsService.updatePost(editingId, { title, body, isPublished: publish });
+        setMessage("تم حفظ تعديلات المنشور.");
+        resetForm();
+      } else {
+        await postsService.create(user, { title, body, publish });
+        setTitle("");
+        setBody("");
+        setPublish(true);
+        setMessage("تم حفظ المنشور.");
+      }
       setIsError(false);
       await load();
     } catch {
-      setMessage("تعذر إنشاء المنشور.");
+      setMessage(editingId ? "تعذر حفظ التعديل." : "تعذر إنشاء المنشور.");
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -73,8 +99,16 @@ export function PostsPage({ role }: { role: UserRole }) {
   return (
     <DashboardLayout role={role} title="المنشورات" lede={postsLede[role]}>
       {role === "admin" && user ? (
-        <form className="course-form card-elevated" onSubmit={onCreate}>
-          <h3 className="form-section-title">إنشاء منشور</h3>
+        <form className="course-form card-elevated" onSubmit={onSubmit}>
+          <h3 className="form-section-title">{editingId ? "تعديل منشور" : "إنشاء منشور"}</h3>
+          {editingId ? (
+            <p className="muted small">
+              تعديل المنشور الحالي.{" "}
+              <button type="button" className="link-btn" onClick={resetForm} disabled={submitting}>
+                إلغاء وإضافة منشور جديد
+              </button>
+            </p>
+          ) : null}
           <label>
             <span>العنوان</span>
             <input
@@ -102,9 +136,16 @@ export function PostsPage({ role }: { role: UserRole }) {
             />
             <span>نشر للطلاب (يظهر في التطبيق والويب)</span>
           </label>
-          <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
-            <ButtonBusyLabel busy={submitting}>نشر</ButtonBusyLabel>
-          </button>
+          <div className="form-actions-row">
+            <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
+              <ButtonBusyLabel busy={submitting}>{editingId ? "حفظ التعديلات" : "نشر"}</ButtonBusyLabel>
+            </button>
+            {editingId ? (
+              <button type="button" className="ghost-btn" onClick={resetForm} disabled={submitting}>
+                إلغاء
+              </button>
+            ) : null}
+          </div>
         </form>
       ) : null}
 
@@ -134,12 +175,23 @@ export function PostsPage({ role }: { role: UserRole }) {
                     <button
                       type="button"
                       className="ghost-btn"
+                      onClick={() => startEdit(p)}
+                      disabled={submitting}
+                    >
+                      تعديل
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-btn"
                       disabled={submitting}
                       aria-busy={submitting}
                       onClick={async () => {
                         setSubmitting(true);
                         try {
                           await postsService.updatePublish(p.id, !p.isPublished);
+                          if (editingId === p.id) {
+                            setPublish(!p.isPublished);
+                          }
                           await load();
                         } finally {
                           setSubmitting(false);
@@ -161,6 +213,9 @@ export function PostsPage({ role }: { role: UserRole }) {
                         }
                         setSubmitting(true);
                         try {
+                          if (editingId === p.id) {
+                            resetForm();
+                          }
                           await postsService.remove(p.id);
                           await load();
                         } finally {

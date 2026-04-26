@@ -89,6 +89,18 @@ export const postsService = {
     });
   },
 
+  async updatePost(
+    postId: string,
+    payload: { title: string; body: string; isPublished: boolean },
+  ) {
+    await updateDoc(doc(db, "posts", postId), {
+      title: payload.title.trim(),
+      body: payload.body.trim(),
+      isPublished: payload.isPublished,
+      updatedAt: serverTimestamp(),
+    });
+  },
+
   async remove(postId: string) {
     await deleteDoc(doc(db, "posts", postId));
   },

@@ -85,6 +85,24 @@ export function HomePage({ role }: { role: UserRole }) {
       ) : (
         <>
           <p className="home-welcome">مرحباً، {displayName}.</p>
+          <nav className="home-shortcuts" aria-label="اختصارات سريعة">
+            {role === "admin" ? (
+              <>
+                <Link to="/admin/courses">الدورات</Link>
+                <Link to="/admin/posts">المنشورات</Link>
+                <Link to="/admin/notifications">الإشعارات</Link>
+                <Link to="/admin/settings">الإعدادات</Link>
+              </>
+            ) : (
+              <>
+                <Link to="/student/mycourses">مقرراتي</Link>
+                <Link to="/student/enrollment-requests">طلباتي</Link>
+                <Link to="/student/courses">الدورات</Link>
+                <Link to="/student/posts">المنشورات</Link>
+                <Link to="/student/notifications">الإشعارات</Link>
+              </>
+            )}
+          </nav>
           {loadError ? <p className="message error">{loadError}</p> : null}
           <div className="grid-2 home-stats-grid">
             <div className="card-stat stat-tile">

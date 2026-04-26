@@ -715,6 +715,29 @@ input:focus {
   color: #e2e8f0;
 }
 
+.home-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.65rem;
+  margin: 0 0 1.1rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(51, 65, 85, 0.65);
+  background: rgba(15, 23, 42, 0.55);
+  max-width: 44rem;
+}
+
+.home-shortcuts a {
+  color: #7dd3fc;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.home-shortcuts a:hover {
+  text-decoration: underline;
+}
+
 .empty-state {
   padding: 0.5rem 0 1rem;
 }
