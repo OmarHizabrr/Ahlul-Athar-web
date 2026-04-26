@@ -1,10 +1,35 @@
 /**
- * تطبيع بيانات أسئلة اختبار من وثيقة `quiz_files` (أشكال شائعة مع Flutter/لوحة التحكم).
+ * تطبيع بيانات أسئلة اختبار من وثيقة `quiz_files` (أشكال شائعة) أو دمجها مع
+ * مسار `quiz_questions` (تطبيق الجوال).
  */
-export type WebQuizRow = { key: string; text: string; options?: string[] };
+export type WebQuizRowKind = "multiple_choice" | "true_false" | "open";
+
+export type WebQuizRow = {
+  key: string;
+  /** سطر عرضي مركّب (للتوافق مع واجهات سابقة) */
+  text: string;
+  title: string;
+  body: string;
+  kind: WebQuizRowKind;
+  options?: string[];
+};
 
 function rowKey(i: number): string {
   return `q${i}`;
+}
+
+function inferKind(o: Record<string, unknown>, hasOptions: boolean): WebQuizRowKind {
+  const t = String(o.type ?? "").toLowerCase().replaceAll("_", "");
+  if (t === "multiplechoice" || t === "mcq") {
+    return "multiple_choice";
+  }
+  if (t === "truefalse" || t === "true_false") {
+    return "true_false";
+  }
+  if (hasOptions) {
+    return "multiple_choice";
+  }
+  return "open";
 }
 
 export function extractQuizRows(quiz: Record<string, unknown>): WebQuizRow[] {
@@ -21,24 +46,35 @@ export function extractQuizRows(quiz: Record<string, unknown>): WebQuizRow[] {
 
   return raw.map((row, i) => {
     const o = row as Record<string, unknown>;
-    const text = String(
-      o.question ?? o.text ?? o.title ?? o.label ?? o.name ?? `سؤال ${i + 1}`,
+    const title = String(o.title ?? "");
+    const body = String(
+      o.question ?? o.text ?? o.title ?? o.label ?? o.name ?? (title ? "" : `سؤال ${i + 1}`),
     );
     const opts = o.options ?? o.choices ?? o.answers;
     const options = Array.isArray(opts)
       ? opts.map((x) => (typeof x === "string" ? x : String((x as { text?: string }).text ?? x)))
       : undefined;
+    const hasOpt = (options && options.length > 0) === true;
+    const kind = inferKind(o, hasOpt);
+    const key = o.id != null && String(o.id).length > 0 ? String(o.id) : rowKey(i);
+    const text = title && body ? `${title}\n${body}` : body || title;
     return {
-      key: rowKey(i),
+      key,
       text,
-      options: options && options.length > 0 ? options : undefined,
+      title,
+      body,
+      kind,
+      options: kind === "multiple_choice" && hasOpt && options ? options : undefined,
     };
   });
 }
 
-/** لعرض إجابات مُخزّنة (أسماء حقول شائعة). */
+/**
+ * لعرض إجابات مُخزّنة — مفاتيح = معرّف السؤال؛ صح/خطأ تُقارن كقيمة منطقية.
+ */
 export function readStoredAnswers(
   data: Record<string, unknown> | null,
+  questionKeys: string[],
 ): Record<string, string> | null {
   if (data == null) {
     return null;
@@ -51,8 +87,16 @@ export function readStoredAnswers(
     return null;
   }
   const out: Record<string, string> = {};
-  for (const k of Object.keys(a)) {
-    out[k] = String(a[k] ?? "");
+  for (const k of questionKeys) {
+    if (!(k in a)) {
+      continue;
+    }
+    const v = a[k];
+    if (typeof v === "boolean") {
+      out[k] = v ? "true" : "false";
+    } else {
+      out[k] = v != null ? String(v) : "";
+    }
   }
   return Object.keys(out).length > 0 ? out : null;
 }

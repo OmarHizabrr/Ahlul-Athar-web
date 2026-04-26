@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { DashboardLayout } from "../DashboardLayout";
 import { postsService } from "../../services/postsService";
 import type { UserRole } from "../../types";
+import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
 
 const postsLede: Record<UserRole, string> = {
@@ -64,7 +65,7 @@ export function PostsPage({ role }: { role: UserRole }) {
   if (!ready) {
     return (
       <DashboardLayout role={role} title="المنشورات" lede={postsLede[role]}>
-        <p className="muted">جاري التهيئة...</p>
+        <PageLoadHint text="جاري التهيئة..." />
       </DashboardLayout>
     );
   }
@@ -72,7 +73,7 @@ export function PostsPage({ role }: { role: UserRole }) {
   return (
     <DashboardLayout role={role} title="المنشورات" lede={postsLede[role]}>
       {role === "admin" && user ? (
-        <form className="course-form" onSubmit={onCreate}>
+        <form className="course-form card-elevated" onSubmit={onCreate}>
           <h3 className="form-section-title">إنشاء منشور</h3>
           <label>
             <span>العنوان</span>
@@ -101,8 +102,8 @@ export function PostsPage({ role }: { role: UserRole }) {
             />
             <span>نشر للطلاب (يظهر في التطبيق والويب)</span>
           </label>
-          <button className="primary-btn" type="submit" disabled={submitting}>
-            {submitting ? "جاري الحفظ..." : "نشر"}
+          <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
+            <ButtonBusyLabel busy={submitting}>نشر</ButtonBusyLabel>
           </button>
         </form>
       ) : null}
@@ -110,11 +111,15 @@ export function PostsPage({ role }: { role: UserRole }) {
       {message ? <p className={isError ? "message error" : "message success"}>{message}</p> : null}
 
       {loading ? (
-        <p className="muted">جاري التحميل...</p>
+        <PageLoadHint />
       ) : (
         <div className="course-list">
           {posts.length === 0 ? (
-            <p className="muted">لا توجد منشورات.</p>
+            <div className="empty-state-card" style={{ maxWidth: "100%" }}>
+              <p className="muted" style={{ margin: 0 }}>
+                لا توجد منشورات بعد.
+              </p>
+            </div>
           ) : (
             posts.map((p) => (
               <article className="course-item" key={p.id}>
@@ -130,6 +135,7 @@ export function PostsPage({ role }: { role: UserRole }) {
                       type="button"
                       className="ghost-btn"
                       disabled={submitting}
+                      aria-busy={submitting}
                       onClick={async () => {
                         setSubmitting(true);
                         try {
@@ -140,12 +146,15 @@ export function PostsPage({ role }: { role: UserRole }) {
                         }
                       }}
                     >
-                      {p.isPublished ? "إلغاء النشر" : "نشر"}
+                      <ButtonBusyLabel busy={submitting}>
+                        {p.isPublished ? "إلغاء النشر" : "نشر"}
+                      </ButtonBusyLabel>
                     </button>
                     <button
                       type="button"
                       className="ghost-btn"
                       disabled={submitting}
+                      aria-busy={submitting}
                       onClick={async () => {
                         if (!window.confirm("حذف المنشور؟")) {
                           return;
@@ -159,7 +168,7 @@ export function PostsPage({ role }: { role: UserRole }) {
                         }
                       }}
                     >
-                      حذف
+                      <ButtonBusyLabel busy={submitting}>حذف</ButtonBusyLabel>
                     </button>
                   </div>
                 ) : null}

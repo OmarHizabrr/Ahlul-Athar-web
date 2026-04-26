@@ -1,3 +1,5 @@
+import { ButtonBusyLabel } from "../../components/ButtonBusyLabel";
+
 type CourseActivationModalProps = {
   submitting: boolean;
   isLifetimeActivation: boolean;
@@ -61,8 +63,13 @@ export function CourseActivationModal({
           </label>
         ) : null}
         <div className="course-actions">
-          <button className="primary-btn" onClick={() => void onConfirm()} disabled={submitting}>
-            {submitting ? "جاري..." : "تأكيد القبول"}
+          <button
+            className="primary-btn"
+            onClick={() => void onConfirm()}
+            disabled={submitting}
+            aria-busy={submitting}
+          >
+            <ButtonBusyLabel busy={submitting}>تأكيد القبول</ButtonBusyLabel>
           </button>
           <button
             type="button"
@@ -73,8 +80,9 @@ export function CourseActivationModal({
               }
             }}
             disabled={submitting}
+            aria-busy={submitting}
           >
-            إلغاء
+            <ButtonBusyLabel busy={submitting}>إلغاء</ButtonBusyLabel>
           </button>
         </div>
       </div>

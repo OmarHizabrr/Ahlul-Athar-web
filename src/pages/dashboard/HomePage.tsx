@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { PageLoadHint } from "../../components/ButtonBusyLabel";
 import { useAuth } from "../../context/AuthContext";
 import { DashboardLayout } from "../DashboardLayout";
 import { coursesService } from "../../services/coursesService";
@@ -58,7 +59,7 @@ export function HomePage({ role }: { role: UserRole }) {
   if (!ready) {
     return (
       <DashboardLayout role={role} title="الرئيسية" lede="نظرة سريعة على النشاط والأرقام.">
-        <p className="muted">جاري التهيئة...</p>
+        <PageLoadHint text="جاري التهيئة..." />
       </DashboardLayout>
     );
   }
@@ -72,13 +73,13 @@ export function HomePage({ role }: { role: UserRole }) {
   return (
     <DashboardLayout role={role} title="الرئيسية" lede={lede}>
       {loading ? (
-        <p className="muted">جاري التحميل...</p>
+        <PageLoadHint />
       ) : (
         <>
           <p className="home-welcome">مرحباً، {displayName}.</p>
           {loadError ? <p className="message error">{loadError}</p> : null}
-          <div className="grid-2">
-            <div className="mini-card stat-tile">
+          <div className="grid-2 home-stats-grid">
+            <div className="card-stat stat-tile">
               <strong>الدورات في الكتالوج</strong>
               <span className="stat-num">{courseCount}</span>
               <Link to={`${base}/courses`} className="inline-link">
@@ -86,7 +87,7 @@ export function HomePage({ role }: { role: UserRole }) {
               </Link>
             </div>
             {role === "admin" ? (
-              <div className="mini-card stat-tile">
+              <div className="card-stat stat-tile">
                 <strong>طلبات معلّقة</strong>
                 <span className="stat-num">{pendingCount}</span>
                 <Link to={`${base}/courses`} className="inline-link">
@@ -94,7 +95,7 @@ export function HomePage({ role }: { role: UserRole }) {
                 </Link>
               </div>
             ) : (
-              <div className="mini-card stat-tile">
+              <div className="card-stat stat-tile">
                 <strong>مقرراتي</strong>
                 <span className="stat-num">{myCoursesCount}</span>
                 <Link to="/student/mycourses" className="inline-link">
@@ -102,14 +103,14 @@ export function HomePage({ role }: { role: UserRole }) {
                 </Link>
               </div>
             )}
-            <div className="mini-card stat-tile">
+            <div className="card-stat stat-tile">
               <strong>إشعارات غير مقروءة</strong>
               <span className="stat-num">{unread}</span>
               <Link to={`${base}/notifications`} className="inline-link">
                 عرض الإشعارات
               </Link>
             </div>
-            <div className="mini-card stat-tile stat-tile-wide">
+            <div className="card-stat stat-tile stat-tile-wide">
               <strong>آخر المنشورات</strong>
               {recentTitles.length === 0 ? (
                 <p className="muted small">لا توجد منشورات بعد.</p>

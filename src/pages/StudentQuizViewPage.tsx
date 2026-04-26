@@ -1,15 +1,20 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
+import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import {
   canStudentOpenLesson,
+  evaluateQuizSchedule,
   getQuizFileById,
+  getQuizQuestionsWithOptions,
   getStudentAnswerForQuiz,
   submitOrUpdateStudentQuiz,
+  webRowsToQuestionDefs,
+  type QuizQuestionDef,
 } from "../services/lessonAccessService";
 import { isStudentEnrolledInCourse } from "../services/myCoursesService";
 import { useAuth } from "../context/AuthContext";
+import { VideoIntroBlock } from "../components/VideoIntroBlock";
 import { extractQuizRows, readStoredAnswers, type WebQuizRow } from "../utils/quizFromFirestore";
-import { getYoutubeEmbedUrlFromWatchUrl } from "../utils/youtube";
 import { DashboardLayout } from "./DashboardLayout";
 
 function getAnswerStatus(ans: Record<string, unknown> | null): "none" | "pending" | "graded" {
@@ -17,6 +22,17 @@ function getAnswerStatus(ans: Record<string, unknown> | null): "none" | "pending
     return "none";
   }
   return String(ans.status ?? "") === "graded" ? "graded" : "pending";
+}
+
+function questionDefsToWebRows(defs: QuizQuestionDef[]): WebQuizRow[] {
+  return defs.map((d) => ({
+    key: d.id,
+    title: d.title,
+    body: d.body,
+    text: d.title && d.body ? `${d.title}\n${d.body}` : d.body || d.title,
+    kind: d.kind,
+    options: d.kind === "multiple_choice" && d.optionTexts.length > 0 ? d.optionTexts : undefined,
+  }));
 }
 
 function QuizTakerForm({
@@ -44,10 +60,43 @@ function QuizTakerForm({
       <ol className="quiz-questions">
         {rows.map((q, idx) => (
           <li key={q.key} className="quiz-question">
-            <p className="quiz-qtext">
-              {idx + 1}. {q.text}
-            </p>
-            {q.options && q.options.length > 0 ? (
+            <div className="quiz-qtext">
+              <span className="quiz-qnum">{idx + 1}.</span>
+              {q.title ? <span className="quiz-qtitle">{q.title}</span> : null}
+              {q.body ? (
+                <p className="quiz-qbody">
+                  {q.body}
+                </p>
+              ) : !q.title ? (
+                <p className="quiz-qbody">{q.text}</p>
+              ) : null}
+            </div>
+            {q.kind === "true_false" ? (
+              <div className="quiz-options" role="group" aria-label={q.text}>
+                <label className="quiz-opt-line">
+                  <input
+                    type="radio"
+                    name={q.key}
+                    value="true"
+                    checked={values[q.key] === "true"}
+                    onChange={() => onChange(q.key, "true")}
+                    disabled={readonly}
+                  />
+                  <span>صح</span>
+                </label>
+                <label className="quiz-opt-line">
+                  <input
+                    type="radio"
+                    name={q.key}
+                    value="false"
+                    checked={values[q.key] === "false"}
+                    onChange={() => onChange(q.key, "false")}
+                    disabled={readonly}
+                  />
+                  <span>خطأ</span>
+                </label>
+              </div>
+            ) : q.options && q.options.length > 0 ? (
               <div className="quiz-options" role="group" aria-label={q.text}>
                 {q.options.map((opt) => (
                   <label key={opt} className="quiz-opt-line">
@@ -78,8 +127,8 @@ function QuizTakerForm({
         ))}
       </ol>
       {readonly ? null : (
-        <button className="primary-btn" type="submit" disabled={submitting}>
-          {submitting ? "جاري الإرسال..." : submitLabel}
+        <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
+          <ButtonBusyLabel busy={submitting}>{submitLabel}</ButtonBusyLabel>
         </button>
       )}
     </form>
@@ -91,6 +140,8 @@ export function StudentQuizViewPage() {
   const { user, ready } = useAuth();
   const [quiz, setQuiz] = useState<Record<string, unknown> | null>(null);
   const [answer, setAnswer] = useState<Record<string, unknown> | null>(null);
+  const [questionDefs, setQuestionDefs] = useState<QuizQuestionDef[]>([]);
+  const [rows, setRows] = useState<WebQuizRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState("");
@@ -108,6 +159,8 @@ export function StudentQuizViewPage() {
       setErr("لست مسجّلاً في هذا المقرر.");
       setQuiz(null);
       setAnswer(null);
+      setRows([]);
+      setQuestionDefs([]);
       setLoading(false);
       return;
     }
@@ -116,6 +169,8 @@ export function StudentQuizViewPage() {
       setErr(acc.message ?? "لا يمكن الوصول إلى هذا الدرس.");
       setQuiz(null);
       setAnswer(null);
+      setRows([]);
+      setQuestionDefs([]);
       setLoading(false);
       return;
     }
@@ -124,10 +179,26 @@ export function StudentQuizViewPage() {
       setErr("الاختبار غير موجود.");
       setQuiz(null);
       setAnswer(null);
+      setRows([]);
+      setQuestionDefs([]);
     } else {
-      setQuiz(qd as Record<string, unknown>);
+      const asRecord = qd as Record<string, unknown>;
+      setQuiz(asRecord);
       const a = await getStudentAnswerForQuiz(quizId, user.uid);
       setAnswer(a);
+
+      const fromSub = await getQuizQuestionsWithOptions(quizId);
+      const legacy = extractQuizRows(asRecord);
+      if (fromSub.length > 0) {
+        setQuestionDefs(fromSub);
+        setRows(questionDefsToWebRows(fromSub));
+      } else if (legacy.length > 0) {
+        setRows(legacy);
+        setQuestionDefs(webRowsToQuestionDefs(legacy));
+      } else {
+        setRows([]);
+        setQuestionDefs([]);
+      }
     }
     setLoading(false);
   }, [user, courseId, lessonId, quizId]);
@@ -138,16 +209,32 @@ export function StudentQuizViewPage() {
     }
   }, [ready, user, load]);
 
-  const rows = useMemo(() => (quiz != null ? extractQuizRows(quiz) : []), [quiz]);
+  useEffect(() => {
+    const onQ = () => {
+      if (user) {
+        void load();
+      }
+    };
+    window.addEventListener("ah:quiz-updated", onQ);
+    return () => window.removeEventListener("ah:quiz-updated", onQ);
+  }, [user, load]);
+
   const status = getAnswerStatus(answer);
   const isGraded = status === "graded";
-  const hasStructuredQuestions = rows.length > 0;
+  const hasStructuredQuestions = questionDefs.length > 0;
+  const schedule = useMemo(
+    () => (quiz != null ? evaluateQuizSchedule(quiz) : { allowed: true as const }),
+    [quiz],
+  );
+  const scheduleBlocks = !schedule.allowed;
+  const formLocked = isGraded || scheduleBlocks;
 
   useEffect(() => {
     if (quiz == null) {
       return;
     }
-    const stored = readStoredAnswers(answer);
+    const keys = rows.map((r) => r.key);
+    const stored = readStoredAnswers(answer, keys);
     const next: Record<string, string> = {};
     for (const r of rows) {
       next[r.key] = stored?.[r.key] ?? "";
@@ -161,10 +248,18 @@ export function StudentQuizViewPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!user || isGraded || !hasStructuredQuestions) {
+    if (!user || formLocked || !hasStructuredQuestions) {
       return;
     }
     for (const r of rows) {
+      if (r.kind === "true_false") {
+        const v = values[r.key] ?? "";
+        if (v !== "true" && v !== "false") {
+          setFormErr("أكمل جميع الأسئلة قبل الإرسال.");
+          return;
+        }
+        continue;
+      }
       if (!(values[r.key] ?? "").toString().trim()) {
         setFormErr("أكمل جميع الأسئلة قبل الإرسال.");
         return;
@@ -174,7 +269,15 @@ export function StudentQuizViewPage() {
     setSubmitting(true);
     try {
       const docId = answer != null && String((answer as { id?: string }).id ?? "") ? String((answer as { id: string }).id) : null;
-      await submitOrUpdateStudentQuiz(quizId, user.uid, values, docId);
+      const name = user.displayName?.trim() || user.email?.trim() || "";
+      await submitOrUpdateStudentQuiz(
+        quizId,
+        user.uid,
+        name,
+        questionDefs,
+        values,
+        docId,
+      );
       await load();
       window.dispatchEvent(new CustomEvent("ah:quiz-updated"));
     } catch {
@@ -185,12 +288,12 @@ export function StudentQuizViewPage() {
   };
 
   const lede =
-    "إجاباتك تُحفظ في quiz_answers مع حالة submitted حتى يُقيّم المسؤول (graded) — كما في تطبيق الجوال.";
+    "تُحفظ الإجابات بحالة completed كما في تطبيق الجوال، ثم تُراجع (graded) لاحقاً.";
 
   if (!ready) {
     return (
       <DashboardLayout role="student" title="اختبار" lede={lede}>
-        <p className="muted">جاري التهيئة...</p>
+        <PageLoadHint text="جاري التهيئة..." />
       </DashboardLayout>
     );
   }
@@ -203,10 +306,20 @@ export function StudentQuizViewPage() {
     quiz?.title ?? (quiz as { name?: string } | null)?.name ?? (quiz as { quizTitle?: string } | null)?.quizTitle ?? "اختبار",
   );
   const desc = String(quiz?.description ?? (quiz as { body?: string } | null)?.body ?? "");
+  const durationMin = (() => {
+    const v = (quiz as { duration?: unknown } | null)?.duration;
+    if (typeof v === "number" && Number.isFinite(v) && v > 0) {
+      return v;
+    }
+    if (v != null && v !== "" && !Number.isNaN(Number(v))) {
+      const n = Number(v);
+      return n > 0 ? n : null;
+    }
+    return null;
+  })();
   const mediaUrl = String(
     (quiz as { videoUrl?: string; mediaUrl?: string } | null)?.videoUrl ?? (quiz as { mediaUrl?: string }).mediaUrl ?? "",
   );
-  const embed = mediaUrl ? getYoutubeEmbedUrlFromWatchUrl(mediaUrl) : null;
 
   return (
     <DashboardLayout role="student" title={title} lede={lede}>
@@ -216,7 +329,7 @@ export function StudentQuizViewPage() {
         </Link>
       </p>
       {loading ? (
-        <p className="muted">جاري التحميل...</p>
+        <PageLoadHint />
       ) : err ? (
         <p className="message error">{err}</p>
       ) : (
@@ -229,17 +342,14 @@ export function StudentQuizViewPage() {
                 ? "تم الإرسال — بانتظار التصحيح من الإدارة"
                 : "لم يُرسل بعد"}
           </p>
-          {desc.length > 0 ? <p className="quiz-desc">{desc}</p> : null}
-          {embed ? (
-            <div className="quiz-video-embed">
-              <iframe
-                title="مقطع الاختبار"
-                src={embed}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
-            </div>
+          {scheduleBlocks && schedule.messageAr ? <p className="message error">{schedule.messageAr}</p> : null}
+          {durationMin != null ? (
+            <p className="muted small quiz-quiz-duration">
+              المدة: {Math.round(durationMin)} د
+            </p>
           ) : null}
+          {desc.length > 0 ? <p className="quiz-desc">{desc}</p> : null}
+          {mediaUrl.trim() ? <VideoIntroBlock mediaUrl={mediaUrl} title="مقطع الاختبار" /> : null}
           {answer != null && (answer.score != null || answer.grade != null) ? (
             <p className="quiz-score">
               الدرجة: {String((answer as { score?: unknown }).score ?? (answer as { grade?: unknown }).grade)}
@@ -258,16 +368,16 @@ export function StudentQuizViewPage() {
                 onChange={onChange}
                 onSubmit={onSubmit}
                 submitting={submitting}
-                readonly={isGraded}
+                readonly={formLocked}
                 submitLabel={status === "pending" ? "تحديث الإجابات" : "إرسال الإجابات"}
               />
               {formErr ? <p className="message error">{formErr}</p> : null}
             </>
           ) : (
             <p className="muted small quiz-hint">
-              لا تتوفر «أسئلة» منظّمة في بيانات هذا الاختبار في Firestore. إن كان الاختبار يُبنى فقط داخل
-              تطبيق الجوال، فاستخدمه هناك؛ وإلا تابع مع الإدارة لإضافة مصفوفة <code>questions</code> في وثيقة
-              الاختبار ليظهر النموذج تلقائياً.
+              لا تتوفر أسئلة لهذا الاختبار في{" "}
+              <code>quiz_questions</code> ولا مصفوفة <code>questions</code> داخل وثيقة الاختبار. راجع
+              الإدارة أو أضف الأسئلة من لوحة التحكم / التطبيق.
             </p>
           )}
         </div>

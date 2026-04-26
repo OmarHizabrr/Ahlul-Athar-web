@@ -25,6 +25,9 @@ export function SplashPage() {
     <main className="center-page">
       <section className="card splash-card" aria-busy="true" aria-label="جاري التحميل">
         <p className="badge">أهل الأثر</p>
+        <div className="splash-page-spinner" aria-hidden>
+          <span className="btn-spinner" />
+        </div>
         <h1>جاري التهيئة...</h1>
         <p className="muted">مزامنة الحساب مع نفس بيانات تطبيق الجوال</p>
       </section>

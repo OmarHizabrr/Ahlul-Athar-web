@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
 import { useAuth } from "../../context/AuthContext";
 import { DashboardLayout } from "../DashboardLayout";
 import { authService } from "../../services/authService";
@@ -7,11 +9,17 @@ import type { UserRole } from "../../types";
 export function SettingsPage({ role }: { role: UserRole }) {
   const { user, ready } = useAuth();
   const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
   const base: "/admin" | "/student" = role === "admin" ? "/admin" : "/student";
 
   const logout = async () => {
-    await authService.logout();
-    navigate("/role-selector", { replace: true });
+    setLoggingOut(true);
+    try {
+      await authService.logout();
+      navigate("/role-selector", { replace: true });
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   if (!ready) {
@@ -21,7 +29,7 @@ export function SettingsPage({ role }: { role: UserRole }) {
         title="الإعدادات"
         lede="اختصارات للحساب والجلسة — تفاصيل الملف والخروج متاحة أيضاً من الشريط العلوي."
       >
-        <p className="muted">جاري التهيئة...</p>
+        <PageLoadHint text="جاري التهيئة..." />
       </DashboardLayout>
     );
   }
@@ -32,24 +40,32 @@ export function SettingsPage({ role }: { role: UserRole }) {
       title="الإعدادات"
       lede="اختصارات للحساب والجلسة — تفاصيل الملف والخروج متاحة أيضاً من الشريط العلوي."
     >
-      <ul className="settings-links">
-        <li>
-          <Link className="settings-link" to={`${base}/profile`}>
-            الملف الشخصي وتعديل الاسم والجوال والصورة
-          </Link>
-        </li>
-        <li>
-          <Link className="settings-link" to={`${base}/notifications`}>
-            الإشعارات
-          </Link>
-        </li>
-      </ul>
+      <div className="card-elevated settings-card">
+        <ul className="settings-links">
+          <li>
+            <Link className="settings-link" to={`${base}/profile`}>
+              الملف الشخصي وتعديل الاسم والجوال والصورة
+            </Link>
+          </li>
+          <li>
+            <Link className="settings-link" to={`${base}/notifications`}>
+              الإشعارات
+            </Link>
+          </li>
+        </ul>
+      </div>
       <div className="settings-meta">
         <p className="muted small">
           الحساب: {user?.email || "—"} · الدور: {role === "admin" ? "مسؤول" : "طالب"}
         </p>
-        <button type="button" className="ghost-btn settings-logout" onClick={() => void logout()}>
-          تسجيل الخروج
+        <button
+          type="button"
+          className="ghost-btn settings-logout"
+          onClick={() => void logout()}
+          disabled={loggingOut}
+          aria-busy={loggingOut}
+        >
+          <ButtonBusyLabel busy={loggingOut}>تسجيل الخروج</ButtonBusyLabel>
         </button>
       </div>
     </DashboardLayout>

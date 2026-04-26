@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
+import { LessonContentView } from "../components/LessonContentView";
 import { useAuth } from "../context/AuthContext";
 import {
   canStudentOpenLesson,
@@ -9,48 +11,15 @@ import {
 import { isStudentEnrolledInCourse } from "../services/myCoursesService";
 import { lessonsService } from "../services/lessonsService";
 import type { Lesson } from "../types";
-import { getYoutubeEmbedUrlFromWatchUrl } from "../utils/youtube";
 import { formatFirestoreTime } from "../utils/firestoreTime";
 import { DashboardLayout } from "./DashboardLayout";
 
-function LessonMedia({ lesson }: { lesson: Lesson }) {
-  if (lesson.contentType === "video" && lesson.videoUrl) {
-    const em = getYoutubeEmbedUrlFromWatchUrl(lesson.videoUrl);
-    return (
-      <div className="lesson-embed">
-        {em ? (
-          <div className="lesson-youtube-embed" style={{ width: "100%", maxWidth: 720 }}>
-            <iframe
-              title={lesson.title}
-              src={em}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          </div>
-        ) : null}
-        <a href={lesson.videoUrl} className="inline-link" target="_blank" rel="noopener noreferrer">
-          {em ? "فتح YouTube في تبويب جديد" : "فتح رابط الفيديو"}
-        </a>
-        <p className="muted small">روابط YouTube/Shorts تُعرض مُضمّنة تلقائياً عند الإمكان.</p>
-      </div>
-    );
-  }
-  if (lesson.pdfUrl) {
-    return (
-      <a href={lesson.pdfUrl} className="inline-link" target="_blank" rel="noopener noreferrer">
-        فتح الملف (PDF)
-      </a>
-    );
-  }
-  if (lesson.audioUrl) {
-    return (
-      <a href={lesson.audioUrl} className="inline-link" target="_blank" rel="noopener noreferrer">
-        فتح الملف الصوتي
-      </a>
-    );
-  }
-  return null;
-}
+const CONTENT_TYPE_LABEL: Record<string, string> = {
+  text: "نص",
+  video: "فيديو",
+  pdf: "PDF",
+  audio: "صوت",
+};
 
 export function StudentLessonViewPage() {
   const { courseId = "", lessonId = "" } = useParams();
@@ -58,66 +27,86 @@ export function StudentLessonViewPage() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [quizzes, setQuizzes] = useState<LessonQuizItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [err, setErr] = useState("");
 
-  const load = useCallback(async () => {
-    if (!user || !courseId || !lessonId) {
-      return;
-    }
-    setLoading(true);
-    setErr("");
-    const ok = await isStudentEnrolledInCourse(user.uid, courseId);
-    if (!ok) {
-      setErr("ليس لديك صلاحية لعرض دروس هذا المقرر.");
-      setLesson(null);
-      setQuizzes([]);
-      setLoading(false);
-      return;
-    }
-    const access = await canStudentOpenLesson(user.uid, courseId, lessonId);
-    if (!access.ok) {
-      setErr(access.message ?? "لا يمكن فتح هذا الدرس.");
-      setLesson(null);
-      setQuizzes([]);
-      setLoading(false);
-      return;
-    }
-    try {
-      const L = await lessonsService.getById(courseId, lessonId);
-      setLesson(L);
-      const qz = await getLessonQuizzesForStudent(user.uid, lessonId);
-      setQuizzes(qz);
-    } catch {
-      setErr("تعذر تحميل الدرس (صلاحيات أو الدرس غير موجود).");
-      setLesson(null);
-      setQuizzes([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, courseId, lessonId]);
+  const runLoad = useCallback(
+    async (mode: "initial" | "refresh") => {
+      if (!user || !courseId || !lessonId) {
+        return;
+      }
+      if (mode === "initial") {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
+      setErr("");
+      const ok = await isStudentEnrolledInCourse(user.uid, courseId);
+      if (!ok) {
+        setErr("ليس لديك صلاحية لعرض دروس هذا المقرر.");
+        setLesson(null);
+        setQuizzes([]);
+        if (mode === "initial") {
+          setLoading(false);
+        } else {
+          setRefreshing(false);
+        }
+        return;
+      }
+      const access = await canStudentOpenLesson(user.uid, courseId, lessonId);
+      if (!access.ok) {
+        setErr(access.message ?? "لا يمكن فتح هذا الدرس.");
+        setLesson(null);
+        setQuizzes([]);
+        if (mode === "initial") {
+          setLoading(false);
+        } else {
+          setRefreshing(false);
+        }
+        return;
+      }
+      try {
+        const L = await lessonsService.getById(courseId, lessonId);
+        setLesson(L);
+        const qz = await getLessonQuizzesForStudent(user.uid, lessonId);
+        setQuizzes(qz);
+      } catch {
+        setErr("تعذر تحميل الدرس (صلاحيات أو الدرس غير موجود).");
+        setLesson(null);
+        setQuizzes([]);
+      } finally {
+        if (mode === "initial") {
+          setLoading(false);
+        } else {
+          setRefreshing(false);
+        }
+      }
+    },
+    [user, courseId, lessonId],
+  );
 
   useEffect(() => {
     if (ready && user) {
-      void load();
+      void runLoad("initial");
     }
-  }, [ready, user, load]);
+  }, [ready, user, runLoad]);
 
   useEffect(() => {
     const onQuiz = () => {
       if (user) {
-        void load();
+        void runLoad("refresh");
       }
     };
     window.addEventListener("ah:quiz-updated", onQuiz);
     return () => window.removeEventListener("ah:quiz-updated", onQuiz);
-  }, [user, load]);
+  }, [user, runLoad]);
 
-  const lessonLede = "محتوى الدرس بعد التحقق من التسجيل في المقرر وقواعد فتح الدرس (مثل التطبيق).";
+  const lessonLede = "محتوى الدرس (نص، فيديو، PDF، صوت) كما في تطبيق الجوال — بعد التحقق من التسجيل وقواعد الفتح.";
 
   if (!ready) {
     return (
       <DashboardLayout role="student" title="درس" lede={lessonLede}>
-        <p className="muted">جاري التهيئة...</p>
+        <PageLoadHint text="جاري التهيئة..." />
       </DashboardLayout>
     );
   }
@@ -125,6 +114,9 @@ export function StudentLessonViewPage() {
   if (!user) {
     return null;
   }
+
+  const ct = lesson?.contentType?.trim();
+  const typeLabel = ct ? CONTENT_TYPE_LABEL[ct] ?? ct : null;
 
   return (
     <DashboardLayout role="student" title={lesson?.title ?? "درس"} lede={lessonLede}>
@@ -134,25 +126,38 @@ export function StudentLessonViewPage() {
         </Link>
       </p>
       {loading ? (
-        <p className="muted">جاري التحميل...</p>
+        <PageLoadHint />
       ) : err ? (
         <p className="message error">{err}</p>
       ) : !lesson ? (
-        <p className="muted">الدرس غير موجود.</p>
+        <div className="empty-state-card" style={{ maxWidth: "100%" }} role="status">
+          <p className="muted" style={{ margin: 0 }}>
+            الدرس غير موجود أو أُزيل.
+          </p>
+        </div>
       ) : (
         <>
+          <div className="toolbar" style={{ marginTop: "0.35rem" }}>
+            <button
+              type="button"
+              className="ghost-btn toolbar-btn"
+              onClick={() => void runLoad("refresh")}
+              disabled={refreshing}
+              aria-busy={refreshing}
+            >
+              <ButtonBusyLabel busy={refreshing}>تحديث الدرس</ButtonBusyLabel>
+            </button>
+          </div>
           {lesson.description ? <p className="muted lesson-lead">{lesson.description}</p> : null}
-          <p className="muted post-meta">
-            {formatFirestoreTime(lesson.createdAt)} · {lesson.createdByName || "—"}
-            {lesson.duration != null ? ` · ${lesson.duration} د` : ""}
-            {lesson.difficulty ? ` · ${lesson.difficulty}` : ""}
-          </p>
-          <LessonMedia lesson={lesson} />
-          {lesson.txtContent || lesson.content ? (
-            <div className="lesson-body">
-              <pre className="lesson-pre">{String(lesson.txtContent ?? lesson.content ?? "")}</pre>
-            </div>
-          ) : null}
+          <div className="lesson-meta-card">
+            <p className="muted post-meta" style={{ margin: 0 }}>
+              {formatFirestoreTime(lesson.createdAt)} · {lesson.createdByName || "—"}
+              {typeLabel ? ` · محتوى: ${typeLabel}` : ""}
+              {lesson.duration != null ? ` · ${lesson.duration} د` : ""}
+              {lesson.difficulty ? ` · ${lesson.difficulty}` : ""}
+            </p>
+          </div>
+          <LessonContentView lesson={lesson} />
           {quizzes.length > 0 ? (
             <div className="lesson-quiz-section">
               <h3 className="form-section-title">اختبارات الدرس</h3>
@@ -161,18 +166,18 @@ export function StudentLessonViewPage() {
                   <li key={q.quizFileId}>
                     <div className="lesson-quiz-row">
                       <span className="lesson-quiz-title">{q.title}</span>
-                      <span className="lesson-quiz-pill" data-st={q.status}>
+                      <span className="lesson-quiz-pill" data-st={q.status === "none" ? "none" : q.status}>
                         {q.status === "graded"
                           ? "مُتاح / مقيّم"
                           : q.status === "pending"
-                            ? "قيد التصحيح"
-                            : "لم يُرسل"}
+                            ? "مُرسل — بانتظار التصحيح"
+                            : "لم يُرسل بعد"}
                       </span>
                       <Link
                         className="ghost-btn"
                         to={`/student/course/${courseId}/lesson/${lessonId}/quiz/${q.quizFileId}`}
                       >
-                        التفاصيل
+                        فتح / التفاصيل
                       </Link>
                     </div>
                   </li>

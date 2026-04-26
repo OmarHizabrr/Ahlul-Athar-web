@@ -5,6 +5,7 @@ import { DashboardLayout } from "../DashboardLayout";
 import { notificationsService } from "../../services/notificationsService";
 import { usersService } from "../../services/usersService";
 import type { UserRole } from "../../types";
+import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
 
 export function NotificationsPage({ role }: { role: UserRole }) {
@@ -112,7 +113,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
         title="الإشعارات"
         lede="نفس مزامنة الإشعارات مع تطبيق الجوال. يُحدَّث العداد في الشريط عند تعليم القراءة."
       >
-        <p className="muted">جاري التهيئة...</p>
+        <PageLoadHint text="جاري التهيئة..." />
       </DashboardLayout>
     );
   }
@@ -124,7 +125,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       lede="نفس مزامنة الإشعارات مع تطبيق الجوال. يُحدَّث العداد في الشريط عند تعليم القراءة."
     >
       {role === "admin" && u ? (
-        <form className="course-form" onSubmit={onSend}>
+        <form className="course-form card-elevated" onSubmit={onSend}>
           <h3 className="form-section-title">إرسال إشعار لمستخدم</h3>
           <label>
             <span>المستلم</span>
@@ -170,8 +171,8 @@ export function NotificationsPage({ role }: { role: UserRole }) {
               rows={3}
             />
           </label>
-          <button className="primary-btn" type="submit" disabled={submitting}>
-            إرسال
+          <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
+            <ButtonBusyLabel busy={submitting}>إرسال</ButtonBusyLabel>
           </button>
         </form>
       ) : null}
@@ -181,16 +182,26 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       <div className="toolbar notif-toolbar">
         <p className="muted">الإشعارات الخاصة بك</p>
         {items.some((i) => !i.read) ? (
-          <button type="button" className="ghost-btn toolbar-btn" onClick={() => void onMarkAll()} disabled={submitting}>
-            تعليم الكل كمقروء
+          <button
+            type="button"
+            className="ghost-btn toolbar-btn"
+            onClick={() => void onMarkAll()}
+            disabled={submitting}
+            aria-busy={submitting}
+          >
+            <ButtonBusyLabel busy={submitting}>تعليم الكل كمقروء</ButtonBusyLabel>
           </button>
         ) : null}
       </div>
 
       {loading ? (
-        <p className="muted">جاري التحميل...</p>
+        <PageLoadHint />
       ) : items.length === 0 ? (
-        <p className="muted">لا توجد إشعارات.</p>
+        <div className="empty-state-card" style={{ maxWidth: "100%" }}>
+          <p className="muted" style={{ margin: 0 }}>
+            لا توجد إشعارات.
+          </p>
+        </div>
       ) : (
         <div className="course-list">
           {items.map((n) => (
@@ -205,8 +216,9 @@ export function NotificationsPage({ role }: { role: UserRole }) {
                     className="primary-btn"
                     onClick={() => void onMarkRead(n.id)}
                     disabled={submitting}
+                    aria-busy={submitting}
                   >
-                    تعليم كمقروء
+                    <ButtonBusyLabel busy={submitting}>تعليم كمقروء</ButtonBusyLabel>
                   </button>
                 </div>
               ) : null}

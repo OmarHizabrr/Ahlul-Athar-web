@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEv
 import { useAuth } from "../../context/AuthContext";
 import { authService } from "../../services/authService";
 import { userProfileService } from "../../services/userProfileService";
+import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
 import { DashboardLayout } from "../DashboardLayout";
 import type { UserFirestoreProfile, UserRole } from "../../types";
 
@@ -118,7 +119,7 @@ export function ProfilePage({ role }: { role: UserRole }) {
   if (!ready) {
     return (
       <DashboardLayout role={role} title="الملف الشخصي" lede={profileLede}>
-        <p className="muted">جاري التهيئة...</p>
+        <PageLoadHint text="جاري التهيئة..." />
       </DashboardLayout>
     );
   }
@@ -130,7 +131,7 @@ export function ProfilePage({ role }: { role: UserRole }) {
   return (
     <DashboardLayout role={role} title="الملف الشخصي" lede={profileLede}>
       {loading ? (
-        <p className="muted">جاري التحميل...</p>
+        <PageLoadHint />
       ) : (
         <div className="profile-page">
           <div className="profile-hero card-elevated">
@@ -160,8 +161,9 @@ export function ProfilePage({ role }: { role: UserRole }) {
                 className="ghost-btn profile-photo-btn"
                 disabled={photoUploading}
                 onClick={() => fileInputRef.current?.click()}
+                aria-busy={photoUploading}
               >
-                {photoUploading ? "جاري الرفع..." : "تغيير الصورة"}
+                <ButtonBusyLabel busy={photoUploading}>تغيير الصورة</ButtonBusyLabel>
               </button>
             </div>
             <div className="profile-hero-text">
@@ -175,7 +177,7 @@ export function ProfilePage({ role }: { role: UserRole }) {
             </div>
           </div>
 
-          <form className="course-form profile-form" onSubmit={onSave}>
+          <form className="course-form profile-form card-elevated" onSubmit={onSave}>
             <h3 className="form-section-title">تعديل البيانات</h3>
             <p className="muted small">المعرّف: {u.uid}</p>
             <label>
@@ -197,8 +199,8 @@ export function ProfilePage({ role }: { role: UserRole }) {
                 autoComplete="tel"
               />
             </label>
-            <button className="primary-btn" type="submit" disabled={saving}>
-              {saving ? "جاري الحفظ..." : "حفظ التعديلات"}
+            <button className="primary-btn" type="submit" disabled={saving} aria-busy={saving}>
+              <ButtonBusyLabel busy={saving}>حفظ التعديلات</ButtonBusyLabel>
             </button>
           </form>
         </div>

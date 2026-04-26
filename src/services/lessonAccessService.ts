@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import type { LessonWithAccess } from "../types";
+import type { WebQuizRow } from "../utils/quizFromFirestore";
 import { lessonsService } from "./lessonsService";
 
 const progressPath = (studentId: string, lessonId: string) =>
@@ -68,30 +69,255 @@ export async function getQuizFileById(
   return s.data();
 }
 
+function firestoreDate(v: unknown): Date | null {
+  if (v == null) {
+    return null;
+  }
+  if (v instanceof Object && "toDate" in v && typeof (v as { toDate: () => Date }).toDate === "function") {
+    return (v as { toDate: () => Date }).toDate();
+  }
+  return null;
+}
+
+function timeObjToParts(v: unknown): { hour: number; minute: number } | null {
+  if (v == null || typeof v !== "object") {
+    return null;
+  }
+  const o = v as { hour?: unknown; minute?: unknown };
+  const hour = Number(o.hour);
+  const minute = Number(o.minute);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
+    return null;
+  }
+  return { hour, minute };
+}
+
 /**
- * تسليم إجابات الطالب من الويب. الحالة `submitted` حتى يُعيّن المسؤول/التطبيق `graded` للنجاح.
+ * فترة الاختبار المجدولة (كما `quiz_file_solve_page` في Flutter).
+ */
+export function evaluateQuizSchedule(quiz: Record<string, unknown>): {
+  allowed: boolean;
+  messageAr?: string;
+} {
+  if (quiz.hasScheduledTime !== true) {
+    return { allowed: true };
+  }
+  const now = new Date();
+
+  let startDateTime: Date | null = null;
+  const sDate = firestoreDate(quiz.startDate);
+  if (sDate) {
+    const st = timeObjToParts(quiz.startTime);
+    if (st) {
+      startDateTime = new Date(
+        sDate.getFullYear(),
+        sDate.getMonth(),
+        sDate.getDate(),
+        st.hour,
+        st.minute,
+        0,
+        0,
+      );
+    } else {
+      startDateTime = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate(), 0, 0, 0, 0);
+    }
+  }
+
+  let endDateTime: Date | null = null;
+  const eDate = firestoreDate(quiz.endDate);
+  if (eDate) {
+    const et = timeObjToParts(quiz.endTime);
+    if (et) {
+      endDateTime = new Date(
+        eDate.getFullYear(),
+        eDate.getMonth(),
+        eDate.getDate(),
+        et.hour,
+        et.minute,
+        0,
+        0,
+      );
+    } else {
+      endDateTime = new Date(eDate.getFullYear(), eDate.getMonth(), eDate.getDate(), 23, 59, 59, 999);
+    }
+  }
+
+  const fmt = (d: Date) =>
+    `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} - ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+  if (startDateTime && now < startDateTime) {
+    let extra = "";
+    if (startDateTime) {
+      extra += `\nبداية النافذة: ${fmt(startDateTime)}`;
+    }
+    if (endDateTime) {
+      extra += `\nنهاية النافذة: ${fmt(endDateTime)}`;
+    }
+    return {
+      allowed: false,
+      messageAr: `لم يبدأ الاختبار بعد.${extra}`,
+    };
+  }
+  if (endDateTime && now > endDateTime) {
+    let extra = "";
+    if (startDateTime) {
+      extra += `\nبداية النافذة: ${fmt(startDateTime)}`;
+    }
+    if (endDateTime) {
+      extra += `\nنهاية النافذة: ${fmt(endDateTime)}`;
+    }
+    return {
+      allowed: false,
+      messageAr: `انتهت فترة الاختبار.${extra}`,
+    };
+  }
+  return { allowed: true };
+}
+
+export type QuizQuestionKind = "multiple_choice" | "true_false" | "open";
+
+export type QuizQuestionDef = {
+  id: string;
+  kind: QuizQuestionKind;
+  title: string;
+  body: string;
+  optionTexts: string[];
+};
+
+async function fetchOptionTextsForQuestion(questionId: string): Promise<string[]> {
+  const ocol = collection(db, "question_options", questionId, "question_options");
+  const osnap = await getDocs(ocol);
+  const opts = osnap.docs.map((od) => {
+    const odat = od.data();
+    const o = typeof odat.order === "number" ? odat.order : 0;
+    return { o, text: String(odat.text ?? "") };
+  });
+  opts.sort((a, b) => a.o - b.o || 0);
+  return opts.map((p) => p.text).filter((x) => x.length > 0);
+}
+
+/**
+ * `quiz_questions/{quizFileId}/quiz_questions` + `question_options` (مثل `getQuizFileQuestions` في Flutter).
+ * جلب خيارات MCQ بشكل متوازٍ؛ سؤال اختيار من متعدد بلا خيارات يُعامَل كسؤال مفتوح.
+ */
+export async function getQuizQuestionsWithOptions(quizFileId: string): Promise<QuizQuestionDef[]> {
+  const col = collection(db, "quiz_questions", quizFileId, "quiz_questions");
+  const snap = await getDocs(col);
+  type Row = { id: string; order: number; data: DocumentData };
+  const rows: Row[] = snap.docs.map((d) => {
+    const data = d.data();
+    const order = typeof data.order === "number" ? data.order : 0;
+    return { id: d.id, order, data };
+  });
+  rows.sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+
+  const mcqIds: string[] = [];
+  for (const { id, data } of rows) {
+    const t = String((data as { type?: string }).type ?? "open");
+    if (t === "multiple_choice") {
+      mcqIds.push(id);
+    }
+  }
+  const optionSets = await Promise.all(mcqIds.map((qid) => fetchOptionTextsForQuestion(qid)));
+  const optionsById = new Map<string, string[]>();
+  for (let i = 0; i < mcqIds.length; i++) {
+    const id = mcqIds[i]!;
+    optionsById.set(id, optionSets[i]!);
+  }
+
+  const out: QuizQuestionDef[] = [];
+  for (const { id, data } of rows) {
+    const t = String((data as { type?: string }).type ?? "open");
+    let kind: QuizQuestionKind =
+      t === "multiple_choice" ? "multiple_choice" : t === "true_false" ? "true_false" : "open";
+    const title = String((data as { title?: string }).title ?? "");
+    const body = String((data as { question?: string }).question ?? "");
+    let optionTexts: string[] = kind === "multiple_choice" ? (optionsById.get(id) ?? []) : [];
+    if (kind === "multiple_choice" && optionTexts.length === 0) {
+      kind = "open";
+    }
+    out.push({ id, kind, title, body, optionTexts });
+  }
+  return out;
+}
+
+/** لمسار `questions` داخل وثيقة الاختبار (ميراث) — يُسجَّل بمفاتيح q0 أو id إن وُجد. */
+export function webRowsToQuestionDefs(rows: WebQuizRow[]): QuizQuestionDef[] {
+  return rows.map((r) => {
+    let kind = r.kind;
+    const optionTexts = r.kind === "multiple_choice" ? (r.options ?? []) : [];
+    if (kind === "multiple_choice" && optionTexts.length === 0) {
+      kind = "open";
+    }
+    return {
+      id: r.key,
+      kind,
+      title: r.title,
+      body: r.body,
+      optionTexts: kind === "multiple_choice" ? optionTexts : [],
+    };
+  });
+}
+
+/**
+ * بُنية إجابات مثل Flutter: `answers` مفتاح = معرف السؤال؛ MCQ = نص الخيار؛ صح/خطأ = boolean؛ مفتوح = نص.
+ * الحالة `completed` حتى يُعيّن `graded` للتصحيح.
+ */
+export function buildStudentAnswersMap(
+  questions: QuizQuestionDef[],
+  stringValues: Record<string, string>,
+): Record<string, string | boolean> {
+  const answers: Record<string, string | boolean> = {};
+  for (const q of questions) {
+    const raw = (stringValues[q.id] ?? "").toString();
+    if (q.kind === "true_false") {
+      answers[q.id] = raw === "true";
+    } else {
+      answers[q.id] = raw;
+    }
+  }
+  return answers;
+}
+
+/**
+ * تسليم إجابات الطالب — نفس الحقول الأساسية لـ`addStudentAnswerToQuizFile` في Flutter.
  */
 export async function submitOrUpdateStudentQuiz(
   quizFileId: string,
   studentId: string,
-  answers: Record<string, string>,
+  studentName: string,
+  questions: QuizQuestionDef[],
+  stringValues: Record<string, string>,
   existingDocumentId: string | null,
 ): Promise<void> {
+  const answers = buildStudentAnswersMap(questions, stringValues);
+  const totalQuestions = questions.length;
+  const answeredCount = Object.keys(answers).filter((k) => {
+    const v = answers[k];
+    if (typeof v === "boolean") {
+      return true;
+    }
+    return (v as string).trim().length > 0;
+  }).length;
+
   const col = collection(db, "quiz_answers", quizFileId, "quiz_answers");
+  const payload: Record<string, unknown> = {
+    studentId,
+    studentName,
+    answers,
+    status: "completed",
+    totalQuestions,
+    answeredQuestions: answeredCount,
+    submittedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
   if (existingDocumentId) {
     const ref = doc(db, "quiz_answers", quizFileId, "quiz_answers", existingDocumentId);
-    await updateDoc(ref, {
-      studentId,
-      answers,
-      status: "submitted",
-      updatedAt: serverTimestamp(),
-    });
+    await updateDoc(ref, payload);
   } else {
     await addDoc(col, {
-      studentId,
-      answers,
-      status: "submitted",
-      submittedAt: serverTimestamp(),
+      ...payload,
       createdAt: serverTimestamp(),
     });
   }
@@ -113,21 +339,21 @@ export async function getLessonQuizzesForStudent(
   lessonId: string,
 ): Promise<LessonQuizItem[]> {
   const files = await listQuizFilesForLesson(lessonId);
-  const out: LessonQuizItem[] = [];
-  for (const f of files) {
-    const d = f.data;
-    const title = String(
-      d.title ?? d.name ?? d.quizTitle ?? (d as { label?: string }).label ?? "اختبار",
-    );
-    const ans = await getStudentAnswerForQuiz(f.id, studentId);
-    let status: LessonQuizItemStatus = "none";
-    if (ans) {
-      const s = String(ans.status ?? "");
-      status = s === "graded" ? "graded" : "pending";
-    }
-    out.push({ quizFileId: f.id, title, status });
-  }
-  return out;
+  return await Promise.all(
+    files.map(async (f) => {
+      const d = f.data;
+      const title = String(
+        d.title ?? d.name ?? d.quizTitle ?? (d as { label?: string }).label ?? "اختبار",
+      );
+      const ans = await getStudentAnswerForQuiz(f.id, studentId);
+      let status: LessonQuizItemStatus = "none";
+      if (ans) {
+        const s = String(ans.status ?? "");
+        status = s === "graded" ? "graded" : "pending";
+      }
+      return { quizFileId: f.id, title, status };
+    }),
+  );
 }
 
 /**
@@ -141,8 +367,8 @@ export async function hasStudentPassedLessonQuiz(
   if (files.length === 0) {
     return true;
   }
-  for (const f of files) {
-    const ans = await getStudentAnswerForQuiz(f.id, studentId);
+  const answers = await Promise.all(files.map((f) => getStudentAnswerForQuiz(f.id, studentId)));
+  for (const ans of answers) {
     if (ans == null || String(ans.status ?? "") !== "graded") {
       return false;
     }

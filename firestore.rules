@@ -1,4 +1,5 @@
-// انشر: firebase deploy --only firestore:rules,firestore:indexes
+// Web: ارفع لـ GitHub — Vercel ينشّر الواجهة (مشروع ahlul-athar-web). انظر vercel.json.
+// Firebase (قواعد فقط): npm run deploy:firebase  أو: firebase deploy --only firestore,storage
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -74,12 +75,36 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
-    // إجابات الاختبار — الاستعلام يرشّح بـ studentId
+    // أسئلة الاختبار — نفس مسار تطبيق Flutter: quiz_questions/{quizFileId}/quiz_questions
+    match /quiz_questions/{quizFileId}/quiz_questions/{questionId} {
+      allow read: if isAdmin() || signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // خيارات أسئلة الاختيار من متعدد
+    match /question_options/{questionId}/question_options/{optionId} {
+      allow read: if isAdmin() || signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // إجابات الاختبار — الطالب لا يجوز أن ينشئ/يحدّث بحالة graded (فقط completed/submitted)
     match /quiz_answers/{quizFileId}/quiz_answers/{answerId} {
       allow read: if isAdmin() ||
         (signedIn() && resource.data.studentId == request.auth.uid);
-      allow create, update: if isAdmin() ||
-        (signedIn() && request.resource.data.studentId == request.auth.uid);
+      allow create: if isAdmin() || (
+        signedIn() &&
+        request.resource.data.studentId == request.auth.uid &&
+        (!('status' in request.resource.data) ||
+         request.resource.data.status in ['completed', 'submitted'])
+      );
+      allow update: if isAdmin() || (
+        signedIn() &&
+        resource.data.studentId == request.auth.uid &&
+        request.resource.data.studentId == resource.data.studentId &&
+        (!('status' in request.resource.data) ||
+         request.resource.data.status in ['completed', 'submitted']) &&
+        (!('status' in resource.data) || resource.data.status in ['completed', 'submitted'])
+      );
       allow delete: if isAdmin();
     }
 

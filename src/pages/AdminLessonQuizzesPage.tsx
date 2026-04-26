@@ -1,0 +1,289 @@
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { coursesService } from "../services/coursesService";
+import {
+  adminCreateQuizFile,
+  adminDeleteQuizFile,
+  adminListQuizFiles,
+  type AdminQuizListItem,
+} from "../services/adminQuizService";
+import { lessonsService } from "../services/lessonsService";
+import type { Course, Lesson } from "../types";
+import { dispatchQuizUpdated } from "../utils/quizEvents";
+import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
+import { IoTrashOutline, IoListCircleOutline } from "react-icons/io5";
+import { DashboardLayout } from "./DashboardLayout";
+
+export function AdminLessonQuizzesPage() {
+  const { courseId = "", lessonId = "" } = useParams();
+  const { user, ready } = useAuth();
+  const [course, setCourse] = useState<Course | null>(null);
+  const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [quizzes, setQuizzes] = useState<AdminQuizListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [duration, setDuration] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [hasSched, setHasSched] = useState(false);
+  const [schedStart, setSchedStart] = useState("");
+  const [schedEnd, setSchedEnd] = useState("");
+
+  const load = useCallback(async () => {
+    if (!courseId || !lessonId) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const [c, L, list] = await Promise.all([
+        coursesService.getCourseById(courseId),
+        lessonsService.getById(courseId, lessonId),
+        adminListQuizFiles(lessonId),
+      ]);
+      setCourse(c);
+      setLesson(L);
+      setQuizzes(list);
+    } catch {
+      setMessage("تعذر تحميل بيانات الدرس أو الاختبارات.");
+      setIsError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [courseId, lessonId]);
+
+  useEffect(() => {
+    if (ready) {
+      void load();
+    }
+  }, [ready, load]);
+
+  const onCreate = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!user || !title.trim()) {
+      return;
+    }
+    setSubmitting(true);
+    setMessage("");
+    const d = duration.trim() ? Number(duration) : 0;
+    if (hasSched && (!schedStart.trim() || !schedEnd.trim())) {
+      setMessage("عند تفعيل الجدولة: حدّد تاريخي البداية والنهاية (مع الوقت).");
+      setIsError(true);
+      setSubmitting(false);
+      return;
+    }
+    try {
+      await adminCreateQuizFile(lessonId, user, {
+        title: title.trim(),
+        description: description.trim(),
+        duration: Number.isFinite(d) && d >= 0 ? d : 0,
+        videoUrl: videoUrl.trim(),
+        schedule: { hasScheduledTime: hasSched, start: schedStart, end: schedEnd },
+      });
+      setMessage("تم إنشاء الاختبار. يمكنك فتح «الأسئلة والتعديل» لإضافة الأسئلة.");
+      setIsError(false);
+      setTitle("");
+      setDescription("");
+      setDuration("");
+      setVideoUrl("");
+      setHasSched(false);
+      setSchedStart("");
+      setSchedEnd("");
+      await load();
+      dispatchQuizUpdated();
+    } catch (err) {
+      setMessage(
+        err instanceof Error && err.message === "invalid schedule"
+          ? "تعذر حفظ الجدولة. تحقق من التواريخ."
+          : "فشل إنشاء الاختبار. تحقق من القواعد وصلاحيات المشرف.",
+      );
+      setIsError(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const onDelete = async (quizFileId: string, quizTitle: string) => {
+    if (!window.confirm(`حذف الاختبار «${quizTitle}» وكل أسئلته وإجابات الطلاب؟`)) {
+      return;
+    }
+    setSubmitting(true);
+    setMessage("");
+    try {
+      await adminDeleteQuizFile(lessonId, quizFileId);
+      setMessage("تم حذف الاختبار.");
+      setIsError(false);
+      await load();
+      dispatchQuizUpdated();
+    } catch {
+      setMessage("فشل الحذف.");
+      setIsError(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const lede = "إنشاء وإدارة ملفات الاختبار لدرس (مسار Firestore: quiz_files كما في تطبيق الجوال).";
+
+  if (!ready) {
+    return (
+      <DashboardLayout role="admin" title="اختبارات الدرس" lede={lede}>
+        <PageLoadHint text="جاري التهيئة..." />
+      </DashboardLayout>
+    );
+  }
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <DashboardLayout
+      role="admin"
+      title={lesson ? `اختبارات: ${lesson.title}` : "اختبارات الدرس"}
+      lede={lede}
+    >
+      <p>
+        <Link to={`/admin/course/${courseId}/lessons`} className="inline-link">
+          ← العودة لدروس {course ? `«${course.title}»` : "المقرر"}
+        </Link>
+      </p>
+      {loading ? (
+        <PageLoadHint />
+      ) : !lesson ? (
+        <p className="message error">الدرس غير موجود.</p>
+      ) : (
+        <>
+          {message ? <p className={isError ? "message error" : "message success"}>{message}</p> : null}
+          <form className="course-form card-elevated" onSubmit={onCreate}>
+            <h3 className="form-section-title">إضافة اختبار جديد</h3>
+            <label>
+              <span>عنوان الاختبار</span>
+              <input
+                className="text-input"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                placeholder="مثال: اختبار الوحدة الأولى"
+              />
+            </label>
+            <label>
+              <span>وصف (اختياري)</span>
+              <textarea
+                className="text-input textarea"
+                rows={2}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="تعليمات للطالب"
+              />
+            </label>
+            <div className="form-row-2">
+              <label>
+                <span>المدة (دقائق)</span>
+                <input
+                  className="text-input"
+                  type="number"
+                  min={0}
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  placeholder="0"
+                />
+              </label>
+              <label>
+                <span>رابط فيديو (اختياري — YouTube)</span>
+                <input
+                  className="text-input"
+                  type="url"
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  placeholder="https://"
+                />
+              </label>
+            </div>
+            <label className="switch-line">
+              <input type="checkbox" checked={hasSched} onChange={(e) => setHasSched(e.target.checked)} />
+              <span>فترة زمنية للاختبار (نفس فحص النافذة عند حلول الطالب في الويب/التطبيق)</span>
+            </label>
+            {hasSched ? (
+              <div className="form-row-2">
+                <label>
+                  <span>بداية النافذة</span>
+                  <input
+                    className="text-input"
+                    type="datetime-local"
+                    value={schedStart}
+                    onChange={(e) => setSchedStart(e.target.value)}
+                    required={hasSched}
+                  />
+                </label>
+                <label>
+                  <span>نهاية النافذة</span>
+                  <input
+                    className="text-input"
+                    type="datetime-local"
+                    value={schedEnd}
+                    onChange={(e) => setSchedEnd(e.target.value)}
+                    required={hasSched}
+                  />
+                </label>
+              </div>
+            ) : null}
+            <button
+              className="primary-btn"
+              type="submit"
+              disabled={submitting || !title.trim()}
+              aria-busy={submitting}
+            >
+              <ButtonBusyLabel busy={submitting}>إنشاء اختبار</ButtonBusyLabel>
+            </button>
+          </form>
+
+          <h3 className="form-section-title" style={{ marginTop: "1.5rem" }}>
+            اختبارات هذا الدرس
+          </h3>
+          {quizzes.length === 0 ? (
+            <p className="muted">لا اختبارات بعد.</p>
+          ) : (
+            <div className="course-list">
+              {quizzes.map((q) => {
+                const t = String(
+                  q.data.title ?? q.data.name ?? q.data.quizTitle ?? (q.data as { label?: string }).label ?? "بدون عنوان",
+                );
+                const n = (q.data as { questionsCount?: number }).questionsCount;
+                return (
+                  <article className="course-item" key={q.id}>
+                    <h4 className="post-title">{t}</h4>
+                    <p className="muted post-meta small">
+                      معرّف المستند: {q.id} · أسئلة: {typeof n === "number" ? n : "—"}
+                    </p>
+                    <div className="course-actions lesson-admin-actions">
+                      <Link
+                        className="ghost-btn"
+                        to={`/admin/course/${courseId}/lessons/${lessonId}/quiz/${q.id}/edit`}
+                      >
+                        <IoListCircleOutline size={18} style={{ verticalAlign: "middle", marginLeft: "0.35rem" }} aria-hidden />
+                        الأسئلة والتعديل
+                      </Link>
+                      <button
+                        type="button"
+                        className="icon-tool-btn danger"
+                        onClick={() => void onDelete(q.id, t)}
+                        disabled={submitting}
+                        title="حذف"
+                      >
+                        <IoTrashOutline size={20} />
+                        <span className="icon-tool-label">حذف</span>
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </DashboardLayout>
+  );
+}

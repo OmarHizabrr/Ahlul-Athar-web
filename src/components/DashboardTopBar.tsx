@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IoChevronDown, IoNotificationsOutline } from "react-icons/io5";
 import { Link, useNavigate } from "react-router-dom";
+import { ButtonBusyLabel } from "./ButtonBusyLabel";
 import { useAuth } from "../context/AuthContext";
 import { authService } from "../services/authService";
 import { notificationsService } from "../services/notificationsService";
@@ -24,6 +25,7 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
   const base = role === "admin" ? "/admin" : "/student";
   const [unread, setUnread] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const refreshUnread = useCallback(async () => {
@@ -71,8 +73,13 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
 
   const onLogout = async () => {
     setMenuOpen(false);
-    await authService.logout();
-    navigate("/role-selector", { replace: true });
+    setLoggingOut(true);
+    try {
+      await authService.logout();
+      navigate("/role-selector", { replace: true });
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   if (!ready || !user) {
@@ -129,8 +136,15 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
               >
                 الإشعارات
               </Link>
-              <button type="button" className="user-dropdown-item danger" role="menuitem" onClick={() => void onLogout()}>
-                تسجيل الخروج
+              <button
+                type="button"
+                className="user-dropdown-item danger"
+                role="menuitem"
+                disabled={loggingOut}
+                aria-busy={loggingOut}
+                onClick={() => void onLogout()}
+              >
+                <ButtonBusyLabel busy={loggingOut}>تسجيل الخروج</ButtonBusyLabel>
               </button>
             </div>
           ) : null}

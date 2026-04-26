@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:firebase": "firebase deploy --only firestore,storage"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { PageLoadHint } from "../components/ButtonBusyLabel";
 import { useAuth } from "../context/AuthContext";
 
 export function RoleSelectorPage() {
@@ -11,6 +12,17 @@ export function RoleSelectorPage() {
       navigate(`/${user.role}`, { replace: true });
     }
   }, [ready, user, navigate]);
+
+  if (!ready) {
+    return (
+      <main className="center-page">
+        <section className="card">
+          <p className="badge">أهل الأثر</p>
+          <PageLoadHint text="جاري التهيئة..." />
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="center-page">

@@ -5,7 +5,8 @@ import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
 import { lessonsService } from "../services/lessonsService";
 import type { Course, Lesson } from "../types";
-import { IoPencil, IoTrashOutline } from "react-icons/io5";
+import { IoListCircleOutline, IoPencil, IoTrashOutline } from "react-icons/io5";
+import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { formatFirestoreTime } from "../utils/firestoreTime";
 import { DashboardLayout } from "./DashboardLayout";
 
@@ -208,7 +209,7 @@ export function AdminCourseLessonsPage() {
   if (!ready) {
     return (
       <DashboardLayout role="admin" title="دروس المقرر" lede={lessonsLede}>
-        <p className="muted">جاري التهيئة...</p>
+        <PageLoadHint text="جاري التهيئة..." />
       </DashboardLayout>
     );
   }
@@ -225,14 +226,14 @@ export function AdminCourseLessonsPage() {
         </Link>
       </p>
       {loading ? (
-        <p className="muted">جاري التحميل...</p>
+        <PageLoadHint />
       ) : !course ? (
         <p className="message error">المقرر غير موجود.</p>
       ) : (
         <>
           {message ? <p className={isError ? "message error" : "message success"}>{message}</p> : null}
           <p className="muted small">نفس مسار التطبيق: مجموعة lessons ثم مُعرّف المقرر ثم وثائق الدرس.</p>
-          <form className="course-form" onSubmit={onSubmit}>
+          <form className="course-form card-elevated" onSubmit={onSubmit}>
             <h3 className="form-section-title">{editingId ? "تعديل الدرس" : "إضافة درس"}</h3>
             {editingId ? (
               <p className="muted small">
@@ -351,12 +352,14 @@ export function AdminCourseLessonsPage() {
               <span>اختبار إجباري قبل الدرس التالي (hasMandatoryQuiz)</span>
             </label>
             <div className="form-actions-row">
-              <button className="primary-btn" type="submit" disabled={submitting}>
-                {submitting ? "جاري..." : editingId ? "حفظ التعديلات" : "حفظ الدرس"}
+              <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
+                <ButtonBusyLabel busy={submitting}>
+                  {editingId ? "حفظ التعديلات" : "حفظ الدرس"}
+                </ButtonBusyLabel>
               </button>
               {editingId ? (
-                <button type="button" className="ghost-btn" onClick={resetForm} disabled={submitting}>
-                  إلغاء التعديل
+                <button type="button" className="ghost-btn" onClick={resetForm} disabled={submitting} aria-busy={submitting}>
+                  <ButtonBusyLabel busy={submitting}>إلغاء التعديل</ButtonBusyLabel>
                 </button>
               ) : null}
             </div>
@@ -385,6 +388,15 @@ export function AdminCourseLessonsPage() {
                   </p>
                   <p className="muted">{L.description?.slice(0, 120) || "—"}</p>
                   <div className="course-actions lesson-admin-actions">
+                    <Link
+                      className="icon-tool-btn"
+                      to={`/admin/course/${courseId}/lessons/${L.id}/quizzes`}
+                      title="اختبارات الدرس"
+                      aria-label="اختبارات الدرس"
+                    >
+                      <IoListCircleOutline size={20} />
+                      <span className="icon-tool-label">اختبارات</span>
+                    </Link>
                     <button
                       type="button"
                       className="icon-tool-btn"

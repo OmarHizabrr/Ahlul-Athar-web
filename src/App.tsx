@@ -30,12 +30,21 @@ const StudentQuizViewPage = lazy(() =>
 const AdminCourseLessonsPage = lazy(() =>
   import("./pages/AdminCourseLessonsPage").then((m) => ({ default: m.AdminCourseLessonsPage })),
 );
+const AdminLessonQuizzesPage = lazy(() =>
+  import("./pages/AdminLessonQuizzesPage").then((m) => ({ default: m.AdminLessonQuizzesPage })),
+);
+const AdminQuizEditorPage = lazy(() =>
+  import("./pages/AdminQuizEditorPage").then((m) => ({ default: m.AdminQuizEditorPage })),
+);
 
 function AuthLoading() {
   return (
     <main className="center-page">
-      <section className="card splash-card">
+      <section className="card splash-card" aria-busy="true">
         <p className="badge">Ahlul Athar</p>
+        <div className="splash-page-spinner" aria-hidden>
+          <span className="btn-spinner" />
+        </div>
         <h1>جاري التهيئة...</h1>
         <p className="muted">مزامنة الجلسة مع السحابة</p>
       </section>
@@ -46,8 +55,11 @@ function AuthLoading() {
 function RouteLoading() {
   return (
     <main className="center-page">
-      <section className="card splash-card">
+      <section className="card splash-card" aria-busy="true">
         <p className="badge">Ahlul Athar</p>
+        <div className="splash-page-spinner" aria-hidden>
+          <span className="btn-spinner" />
+        </div>
         <h1>جاري فتح الصفحة...</h1>
       </section>
     </main>
@@ -97,6 +109,22 @@ function App() {
             element={
               <ProtectedRoute role="admin">
                 <AdminCourseLessonsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/course/:courseId/lessons/:lessonId/quizzes"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminLessonQuizzesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/course/:courseId/lessons/:lessonId/quiz/:quizId/edit"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminQuizEditorPage />
               </ProtectedRoute>
             }
           />

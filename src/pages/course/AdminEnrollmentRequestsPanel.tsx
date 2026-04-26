@@ -1,3 +1,4 @@
+import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
 import type { EnrollmentRequest } from "../../types";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
 import { emptyRequestsMessage, requestStatusLabel } from "./EnrollmentRequestHelpers";
@@ -23,6 +24,7 @@ export function AdminEnrollmentRequestsPanel({
   onOpenActivation,
   onRejectRequest,
 }: AdminEnrollmentRequestsPanelProps) {
+  const busy = submitting || requestsLoading;
   return (
     <section className="requests-panel">
       <div className="requests-header">
@@ -31,9 +33,10 @@ export function AdminEnrollmentRequestsPanel({
           type="button"
           className="ghost-btn toolbar-btn"
           onClick={() => void onRefresh()}
-          disabled={submitting}
+          disabled={busy}
+          aria-busy={busy}
         >
-          تحديث الطلبات
+          <ButtonBusyLabel busy={busy}>تحديث الطلبات</ButtonBusyLabel>
         </button>
       </div>
       <div className="request-filters">
@@ -50,16 +53,18 @@ export function AdminEnrollmentRequestsPanel({
             key={key}
             className={requestFilter === key ? "primary-btn" : "ghost-btn"}
             onClick={() => onRequestFilterChange(key)}
-            disabled={submitting}
+            disabled={busy}
             type="button"
           >
             {label}
           </button>
         ))}
       </div>
-      {requestsLoading ? <p className="muted">جاري تحميل الطلبات...</p> : null}
+      {requestsLoading ? <PageLoadHint text="جاري تحميل الطلبات..." /> : null}
       {!requestsLoading && requests.length === 0 ? (
-        <p className="muted">{emptyRequestsMessage(requestFilter)}</p>
+        <div className="empty-state-card" role="status">
+          <p className="muted">{emptyRequestsMessage(requestFilter)}</p>
+        </div>
       ) : (
         <div className="course-list">
           {requests.map((request) => (
@@ -83,18 +88,20 @@ export function AdminEnrollmentRequestsPanel({
                     <button
                       className="primary-btn"
                       onClick={() => onOpenActivation(request)}
-                      disabled={submitting}
+                      disabled={busy}
                       type="button"
+                      aria-busy={busy}
                     >
-                      قبول (تفعيل)
+                      <ButtonBusyLabel busy={submitting}>قبول (تفعيل)</ButtonBusyLabel>
                     </button>
                     <button
                       className="ghost-btn"
                       onClick={() => onRejectRequest(request.id)}
-                      disabled={submitting}
+                      disabled={busy}
                       type="button"
+                      aria-busy={busy}
                     >
-                      رفض
+                      <ButtonBusyLabel busy={submitting}>رفض</ButtonBusyLabel>
                     </button>
                   </>
                 ) : (

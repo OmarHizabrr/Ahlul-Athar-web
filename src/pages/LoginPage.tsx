@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { ButtonBusyLabel } from "../components/ButtonBusyLabel";
 import { FcGoogle } from "react-icons/fc";
 import { IoPhonePortraitOutline } from "react-icons/io5";
 import { authService } from "../services/authService";
@@ -66,9 +67,16 @@ export function LoginPage() {
         <h1>تسجيل الدخول — {roleText}</h1>
         <p className="muted">نفس بيانات التطبيق: Google أو رقم الجوال وكلمة المرور المرتبطة بالحساب.</p>
 
-        <button className="google-btn" onClick={onGoogleLogin} disabled={loadingGoogle || loadingPhone}>
+        <button
+          className="google-btn"
+          onClick={onGoogleLogin}
+          disabled={loadingGoogle || loadingPhone}
+          aria-busy={loadingGoogle}
+        >
           <FcGoogle size={24} />
-          <span>{loadingGoogle ? "جاري الدخول..." : "الدخول عبر Google"}</span>
+          <span>
+            <ButtonBusyLabel busy={loadingGoogle}>الدخول عبر Google</ButtonBusyLabel>
+          </span>
         </button>
 
         <div className="separator">
@@ -99,8 +107,13 @@ export function LoginPage() {
             required
           />
 
-          <button className="primary-btn" type="submit" disabled={loadingGoogle || loadingPhone}>
-            {loadingPhone ? "جاري الدخول..." : "الدخول برقم الهاتف وكلمة المرور"}
+          <button
+            className="primary-btn"
+            type="submit"
+            disabled={loadingGoogle || loadingPhone}
+            aria-busy={loadingPhone}
+          >
+            <ButtonBusyLabel busy={loadingPhone}>الدخول برقم الهاتف وكلمة المرور</ButtonBusyLabel>
           </button>
         </form>
 

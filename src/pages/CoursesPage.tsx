@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
 import type { Course, EnrollmentRequest, UserRole } from "../types";
+import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { AdminEnrollmentRequestsPanel } from "./course/AdminEnrollmentRequestsPanel";
 import { CourseActivationModal } from "./course/CourseActivationModal";
 import { DashboardLayout } from "./DashboardLayout";
@@ -228,7 +229,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
   if (!ready) {
     return (
       <DashboardLayout role={role} title="الدورات" lede={pageLede}>
-        <p className="muted">جاري التهيئة...</p>
+        <PageLoadHint text="جاري التهيئة..." />
       </DashboardLayout>
     );
   }
@@ -240,7 +241,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
   return (
     <DashboardLayout role={role} title="الدورات" lede={pageLede}>
       {role === "admin" ? (
-        <form className="course-form" onSubmit={onSubmit}>
+        <form className="course-form card-elevated" onSubmit={onSubmit}>
           <input
             value={form.title}
             onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
@@ -268,11 +269,13 @@ export function CoursesPage({ role }: { role: UserRole }) {
             />
             <span>نشطة</span>
           </label>
-          <button className="primary-btn" type="submit" disabled={submitting}>
-            {editingId ? "حفظ التعديلات" : "إنشاء دورة"}
+          <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
+            <ButtonBusyLabel busy={submitting}>
+              {editingId ? "حفظ التعديلات" : "إنشاء دورة"}
+            </ButtonBusyLabel>
           </button>
           {editingId ? (
-            <button type="button" className="ghost-btn" onClick={resetForm}>
+            <button type="button" className="ghost-btn" onClick={resetForm} disabled={submitting}>
               إلغاء التعديل
             </button>
           ) : null}
@@ -295,18 +298,25 @@ export function CoursesPage({ role }: { role: UserRole }) {
           type="button"
           className="ghost-btn toolbar-btn"
           onClick={() => void loadCourses()}
-          disabled={submitting}
+          disabled={loading || submitting}
+          aria-busy={loading}
         >
-          تحديث الدورات
+          <ButtonBusyLabel busy={loading}>تحديث الدورات</ButtonBusyLabel>
         </button>
       </div>
 
       {message ? <p className={isError ? "message error" : "message success"}>{message}</p> : null}
 
       {loading ? (
-        <p className="muted">جاري تحميل الدورات...</p>
+        <PageLoadHint text="جاري تحميل الدورات..." />
       ) : filtered.length === 0 ? (
-        <p className="muted">لا توجد دورات.</p>
+        <div className="empty-state-card" style={{ maxWidth: "100%" }}>
+          <p className="muted" style={{ margin: 0 }}>
+            {search.trim()
+              ? "لا نتائج تطابق البحث. جرّب كلمات أخرى أو امسح حقل البحث."
+              : "لا توجد مقررات في القائمة بعد."}
+          </p>
+        </div>
       ) : (
         <div className="course-list">
           {filtered.map((course) => (
@@ -328,11 +338,23 @@ export function CoursesPage({ role }: { role: UserRole }) {
                     >
                       دروس
                     </Link>
-                    <button className="ghost-btn" onClick={() => onEdit(course)} disabled={submitting} type="button">
-                      تعديل
+                    <button
+                      className="ghost-btn"
+                      onClick={() => onEdit(course)}
+                      disabled={submitting}
+                      type="button"
+                      aria-busy={submitting}
+                    >
+                      <ButtonBusyLabel busy={submitting}>تعديل</ButtonBusyLabel>
                     </button>
-                    <button className="ghost-btn" onClick={() => onDelete(course)} disabled={submitting} type="button">
-                      حذف
+                    <button
+                      className="ghost-btn"
+                      onClick={() => onDelete(course)}
+                      disabled={submitting}
+                      type="button"
+                      aria-busy={submitting}
+                    >
+                      <ButtonBusyLabel busy={submitting}>حذف</ButtonBusyLabel>
                     </button>
                   </>
                 ) : (
@@ -343,8 +365,14 @@ export function CoursesPage({ role }: { role: UserRole }) {
                     >
                       تفاصيل المقرر
                     </Link>
-                    <button className="primary-btn" onClick={() => onRequest(course)} disabled={submitting} type="button">
-                      طلب انضمام
+                    <button
+                      className="primary-btn"
+                      onClick={() => onRequest(course)}
+                      disabled={submitting}
+                      type="button"
+                      aria-busy={submitting}
+                    >
+                      <ButtonBusyLabel busy={submitting}>طلب انضمام</ButtonBusyLabel>
                     </button>
                   </>
                 )}
