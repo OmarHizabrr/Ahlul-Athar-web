@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactElement } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
+import { AdminPreviewProvider } from "./context/AdminPreviewContext";
 import { useAuth } from "./context/AuthContext";
 import type { UserRole } from "./types";
 
@@ -125,6 +126,36 @@ function App() {
             element={
               <ProtectedRoute role="admin">
                 <AdminQuizEditorPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/preview/course/:courseId"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminPreviewProvider>
+                  <StudentCourseViewPage />
+                </AdminPreviewProvider>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/preview/course/:courseId/lesson/:lessonId"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminPreviewProvider>
+                  <StudentLessonViewPage />
+                </AdminPreviewProvider>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/preview/course/:courseId/lesson/:lessonId/quiz/:quizId"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminPreviewProvider>
+                  <StudentQuizViewPage />
+                </AdminPreviewProvider>
               </ProtectedRoute>
             }
           />

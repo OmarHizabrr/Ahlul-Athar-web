@@ -7,6 +7,7 @@ import type { Course, EnrollmentRequest, UserRole } from "../types";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { AdminEnrollmentRequestsPanel } from "./course/AdminEnrollmentRequestsPanel";
 import { CourseActivationModal } from "./course/CourseActivationModal";
+import { IoEyeOutline } from "react-icons/io5";
 import { DashboardLayout } from "./DashboardLayout";
 
 type CourseForm = {
@@ -332,6 +333,15 @@ export function CoursesPage({ role }: { role: UserRole }) {
               <div className="course-actions">
                 {role === "admin" ? (
                   <>
+                    <Link
+                      to={`/admin/preview/course/${course.id}`}
+                      className="icon-tool-btn"
+                      title="معاينة واجهة الطالب (المقرر والدروس)"
+                      aria-label="معاينة المقرر كطالب"
+                    >
+                      <IoEyeOutline size={20} />
+                      <span className="icon-tool-label">معاينة</span>
+                    </Link>
                     <Link
                       to={`/admin/course/${course.id}/lessons`}
                       className="primary-btn"

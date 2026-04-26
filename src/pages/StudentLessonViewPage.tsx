@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { LessonContentView } from "../components/LessonContentView";
+import { useIsAdminPreview } from "../context/AdminPreviewContext";
 import { useAuth } from "../context/AuthContext";
 import {
   canStudentOpenLesson,
+  getLessonQuizzesForAdminPreview,
   getLessonQuizzesForStudent,
   type LessonQuizItem,
 } from "../services/lessonAccessService";
@@ -24,6 +26,7 @@ const CONTENT_TYPE_LABEL: Record<string, string> = {
 export function StudentLessonViewPage() {
   const { courseId = "", lessonId = "" } = useParams();
   const { user, ready } = useAuth();
+  const isAdminPreview = useIsAdminPreview();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [quizzes, setQuizzes] = useState<LessonQuizItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +44,25 @@ export function StudentLessonViewPage() {
         setRefreshing(true);
       }
       setErr("");
+      if (isAdminPreview) {
+        try {
+          const L = await lessonsService.getById(courseId, lessonId);
+          setLesson(L);
+          const qz = await getLessonQuizzesForAdminPreview(lessonId);
+          setQuizzes(qz);
+        } catch {
+          setErr("تعذر تحميل الدرس (صلاحيات أو الدرس غير موجود).");
+          setLesson(null);
+          setQuizzes([]);
+        } finally {
+          if (mode === "initial") {
+            setLoading(false);
+          } else {
+            setRefreshing(false);
+          }
+        }
+        return;
+      }
       const ok = await isStudentEnrolledInCourse(user.uid, courseId);
       if (!ok) {
         setErr("ليس لديك صلاحية لعرض دروس هذا المقرر.");
@@ -82,7 +104,7 @@ export function StudentLessonViewPage() {
         }
       }
     },
-    [user, courseId, lessonId],
+    [user, courseId, lessonId, isAdminPreview],
   );
 
   useEffect(() => {
@@ -101,9 +123,14 @@ export function StudentLessonViewPage() {
     return () => window.removeEventListener("ah:quiz-updated", onQuiz);
   }, [user, runLoad]);
 
+  const layoutRole = isAdminPreview ? "admin" : "student";
+  const courseListHref = isAdminPreview
+    ? `/admin/preview/course/${courseId}`
+    : `/student/course/${courseId}`;
+
   if (!ready) {
     return (
-      <DashboardLayout role="student" title="درس" lede={undefined}>
+      <DashboardLayout role={layoutRole} title="درس" lede={undefined}>
         <PageLoadHint text="جاري التهيئة..." />
       </DashboardLayout>
     );
@@ -115,12 +142,26 @@ export function StudentLessonViewPage() {
 
   return (
     <DashboardLayout
-      role="student"
-      title={lesson?.title ?? (loading ? "…" : "درس")}
-      lede={undefined}
+      role={layoutRole}
+      title={
+        isAdminPreview
+          ? lesson?.title
+            ? `معاينة: ${lesson.title}`
+            : "معاينة درس"
+          : (lesson?.title ?? (loading ? "…" : "درس"))
+      }
+      lede={isAdminPreview ? "معاينة واجهة الطالب (مشرف)." : undefined}
     >
+      {isAdminPreview ? (
+        <p className="admin-preview-banner" role="status">
+          <strong>معاينة واجهة الطالب</strong> —{" "}
+          <Link to={`/admin/course/${courseId}/lessons`} className="inline-link">
+            إدارة الدروس
+          </Link>
+        </p>
+      ) : null}
       <p className="lesson-back">
-        <Link to={`/student/course/${courseId}`} className="inline-link">
+        <Link to={courseListHref} className="inline-link">
           ← العودة لقائمة دروس المقرر
         </Link>
       </p>
@@ -163,6 +204,8 @@ function StudentLessonBody({
   onRefresh: () => void;
   refreshing: boolean;
 }) {
+  const isAdminPreview = useIsAdminPreview();
+  const viewRoot = isAdminPreview ? "/admin/preview" : "/student";
   const ct = lesson.contentType?.trim().toLowerCase() ?? "";
   const typeLabel = ct ? CONTENT_TYPE_LABEL[ct] ?? lesson.contentType : null;
 
@@ -240,7 +283,7 @@ function StudentLessonBody({
                   </span>
                   <Link
                     className="ghost-btn"
-                    to={`/student/course/${courseId}/lesson/${lessonId}/quiz/${q.quizFileId}`}
+                    to={`${viewRoot}/course/${courseId}/lesson/${lessonId}/quiz/${q.quizFileId}`}
                   >
                     فتح الاختبار
                   </Link>

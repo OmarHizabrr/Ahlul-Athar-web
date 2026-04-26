@@ -1908,6 +1908,25 @@ button:disabled {
   font-size: 0.88rem;
 }
 
+.admin-preview-banner {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  background: rgba(8, 47, 73, 0.45);
+  color: #e0f2fe;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.admin-lessons-back-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin: 0 0 0.5rem;
+}
+
 @media (max-width: 560px) {
   .icon-tool-label {
     display: none;

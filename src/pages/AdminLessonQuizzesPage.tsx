@@ -12,7 +12,7 @@ import { lessonsService } from "../services/lessonsService";
 import type { Course, Lesson } from "../types";
 import { dispatchQuizUpdated } from "../utils/quizEvents";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
-import { IoTrashOutline, IoListCircleOutline } from "react-icons/io5";
+import { IoEyeOutline, IoTrashOutline, IoListCircleOutline } from "react-icons/io5";
 import { DashboardLayout } from "./DashboardLayout";
 
 export function AdminLessonQuizzesPage() {
@@ -259,6 +259,14 @@ export function AdminLessonQuizzesPage() {
                       معرّف المستند: {q.id} · أسئلة: {typeof n === "number" ? n : "—"}
                     </p>
                     <div className="course-actions lesson-admin-actions">
+                      <Link
+                        className="ghost-btn"
+                        to={`/admin/preview/course/${courseId}/lesson/${lessonId}/quiz/${q.id}`}
+                        title="معاينة الاختبار كطالب"
+                      >
+                        <IoEyeOutline size={18} style={{ verticalAlign: "middle", marginLeft: "0.35rem" }} aria-hidden />
+                        معاينة
+                      </Link>
                       <Link
                         className="ghost-btn"
                         to={`/admin/course/${courseId}/lessons/${lessonId}/quiz/${q.id}/edit`}

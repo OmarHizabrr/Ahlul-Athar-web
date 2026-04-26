@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
+import { useIsAdminPreview } from "../context/AdminPreviewContext";
 import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
-import { getLessonsWithAccessForStudent } from "../services/lessonAccessService";
+import { getLessonsForAdminPreview, getLessonsWithAccessForStudent } from "../services/lessonAccessService";
 import { isStudentEnrolledInCourse } from "../services/myCoursesService";
 import type { Course, LessonWithAccess } from "../types";
 import { DashboardLayout } from "./DashboardLayout";
@@ -18,6 +19,7 @@ const CONTENT_TYPE_LABEL: Record<string, string> = {
 export function StudentCourseViewPage() {
   const { courseId = "" } = useParams();
   const { user, ready } = useAuth();
+  const isAdminPreview = useIsAdminPreview();
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<LessonWithAccess[]>([]);
   const [enrolled, setEnrolled] = useState(false);
@@ -39,13 +41,19 @@ export function StudentCourseViewPage() {
       try {
         const c = await coursesService.getCourseById(courseId);
         setCourse(c);
-        const e = await isStudentEnrolledInCourse(user.uid, courseId);
-        setEnrolled(e);
-        if (e) {
-          const L = await getLessonsWithAccessForStudent(user.uid, courseId);
+        if (isAdminPreview) {
+          setEnrolled(true);
+          const L = await getLessonsForAdminPreview(courseId);
           setLessons(L);
         } else {
-          setLessons([]);
+          const e = await isStudentEnrolledInCourse(user.uid, courseId);
+          setEnrolled(e);
+          if (e) {
+            const L = await getLessonsWithAccessForStudent(user.uid, courseId);
+            setLessons(L);
+          } else {
+            setLessons([]);
+          }
         }
       } catch {
         setMessage("تعذر التحميل.");
@@ -57,7 +65,7 @@ export function StudentCourseViewPage() {
         }
       }
     },
-    [user, courseId],
+    [user, courseId, isAdminPreview],
   );
 
   useEffect(() => {
@@ -76,11 +84,14 @@ export function StudentCourseViewPage() {
     return () => window.removeEventListener("ah:quiz-updated", onQuiz);
   }, [user, courseId, runLoad]);
 
-  const courseLede = "تفاصيل المقرر وقائمة الدروس مع القفل والتقدم — كما في تطبيق الجوال.";
+  const courseLede = isAdminPreview
+    ? "معاينة واجهة الطالب: الدروس كما تظهر بلا قيود تسجيل (للمشرف فقط)."
+    : "تفاصيل المقرر وقائمة الدروس مع القفل والتقدم — كما في تطبيق الجوال.";
+  const layoutRole = isAdminPreview ? "admin" : "student";
 
   if (!ready) {
     return (
-      <DashboardLayout role="student" title="مقرر" lede={courseLede}>
+      <DashboardLayout role={layoutRole} title="مقرر" lede={courseLede}>
         <PageLoadHint text="جاري التهيئة..." />
       </DashboardLayout>
     );
@@ -90,16 +101,29 @@ export function StudentCourseViewPage() {
     return null;
   }
 
-  const title = course?.title ?? "مقرر";
+  const title = isAdminPreview
+    ? course?.title
+      ? `معاينة: ${course.title}`
+      : "معاينة مقرر"
+    : (course?.title ?? "مقرر");
+  const viewRoot = isAdminPreview ? "/admin/preview" : "/student";
 
   return (
-    <DashboardLayout role="student" title={title} lede={courseLede}>
+    <DashboardLayout role={layoutRole} title={title} lede={courseLede}>
       {loading ? (
         <PageLoadHint />
       ) : !course ? (
         <p className="message error">المقرر غير موجود.</p>
       ) : (
         <>
+          {isAdminPreview ? (
+            <p className="admin-preview-banner" role="status">
+              <strong>معاينة واجهة الطالب</strong> — الروابط أدناه كما يراها طالب.{" "}
+              <Link to={`/admin/course/${courseId}/lessons`} className="inline-link">
+                العودة لإدارة الدروس
+              </Link>
+            </p>
+          ) : null}
           {message ? <p className="message error">{message}</p> : null}
           <div className="toolbar" style={{ marginBottom: "0.5rem" }}>
             <button
@@ -111,9 +135,15 @@ export function StudentCourseViewPage() {
             >
               <ButtonBusyLabel busy={refreshing}>تحديث المقرر</ButtonBusyLabel>
             </button>
-            <Link to="/student/mycourses" className="ghost-btn toolbar-btn">
-              مقرراتي
-            </Link>
+            {isAdminPreview ? (
+              <Link to={`/admin/course/${courseId}/lessons`} className="ghost-btn toolbar-btn">
+                إدارة الدروس
+              </Link>
+            ) : (
+              <Link to="/student/mycourses" className="ghost-btn toolbar-btn">
+                مقرراتي
+              </Link>
+            )}
           </div>
           <div className="card-elevated course-hero-surface">
             <p className="muted course-hero-lead">{course.description}</p>
@@ -165,7 +195,7 @@ export function StudentCourseViewPage() {
                       {row.isUnlocked ? (
                         <Link
                           className="primary-btn"
-                          to={`/student/course/${courseId}/lesson/${row.lesson.id}`}
+                          to={`${viewRoot}/course/${courseId}/lesson/${row.lesson.id}`}
                         >
                           فتح الدرس
                         </Link>

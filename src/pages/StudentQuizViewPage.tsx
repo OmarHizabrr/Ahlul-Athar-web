@@ -12,6 +12,7 @@ import {
   type QuizQuestionDef,
 } from "../services/lessonAccessService";
 import { isStudentEnrolledInCourse } from "../services/myCoursesService";
+import { useIsAdminPreview } from "../context/AdminPreviewContext";
 import { useAuth } from "../context/AuthContext";
 import { VideoIntroBlock } from "../components/VideoIntroBlock";
 import { extractQuizRows, readStoredAnswers, type WebQuizRow } from "../utils/quizFromFirestore";
@@ -138,6 +139,7 @@ function QuizTakerForm({
 export function StudentQuizViewPage() {
   const { courseId = "", lessonId = "", quizId = "" } = useParams();
   const { user, ready } = useAuth();
+  const isAdminPreview = useIsAdminPreview();
   const [quiz, setQuiz] = useState<Record<string, unknown> | null>(null);
   const [answer, setAnswer] = useState<Record<string, unknown> | null>(null);
   const [questionDefs, setQuestionDefs] = useState<QuizQuestionDef[]>([]);
@@ -154,25 +156,27 @@ export function StudentQuizViewPage() {
     }
     setLoading(true);
     setErr("");
-    const en = await isStudentEnrolledInCourse(user.uid, courseId);
-    if (!en) {
-      setErr("لست مسجّلاً في هذا المقرر.");
-      setQuiz(null);
-      setAnswer(null);
-      setRows([]);
-      setQuestionDefs([]);
-      setLoading(false);
-      return;
-    }
-    const acc = await canStudentOpenLesson(user.uid, courseId, lessonId);
-    if (!acc.ok) {
-      setErr(acc.message ?? "لا يمكن الوصول إلى هذا الدرس.");
-      setQuiz(null);
-      setAnswer(null);
-      setRows([]);
-      setQuestionDefs([]);
-      setLoading(false);
-      return;
+    if (!isAdminPreview) {
+      const en = await isStudentEnrolledInCourse(user.uid, courseId);
+      if (!en) {
+        setErr("لست مسجّلاً في هذا المقرر.");
+        setQuiz(null);
+        setAnswer(null);
+        setRows([]);
+        setQuestionDefs([]);
+        setLoading(false);
+        return;
+      }
+      const acc = await canStudentOpenLesson(user.uid, courseId, lessonId);
+      if (!acc.ok) {
+        setErr(acc.message ?? "لا يمكن الوصول إلى هذا الدرس.");
+        setQuiz(null);
+        setAnswer(null);
+        setRows([]);
+        setQuestionDefs([]);
+        setLoading(false);
+        return;
+      }
     }
     const qd = await getQuizFileById(lessonId, quizId);
     if (qd == null) {
@@ -184,7 +188,7 @@ export function StudentQuizViewPage() {
     } else {
       const asRecord = qd as Record<string, unknown>;
       setQuiz(asRecord);
-      const a = await getStudentAnswerForQuiz(quizId, user.uid);
+      const a = isAdminPreview ? null : await getStudentAnswerForQuiz(quizId, user.uid);
       setAnswer(a);
 
       const fromSub = await getQuizQuestionsWithOptions(quizId);
@@ -201,7 +205,7 @@ export function StudentQuizViewPage() {
       }
     }
     setLoading(false);
-  }, [user, courseId, lessonId, quizId]);
+  }, [user, courseId, lessonId, quizId, isAdminPreview]);
 
   useEffect(() => {
     if (ready && user) {
@@ -226,8 +230,8 @@ export function StudentQuizViewPage() {
     () => (quiz != null ? evaluateQuizSchedule(quiz) : { allowed: true as const }),
     [quiz],
   );
-  const scheduleBlocks = !schedule.allowed;
-  const formLocked = isGraded || scheduleBlocks;
+  const scheduleBlocks = !schedule.allowed && !isAdminPreview;
+  const formLocked = isAdminPreview || isGraded || scheduleBlocks;
 
   useEffect(() => {
     if (quiz == null) {
@@ -248,7 +252,7 @@ export function StudentQuizViewPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!user || formLocked || !hasStructuredQuestions) {
+    if (isAdminPreview || !user || formLocked || !hasStructuredQuestions) {
       return;
     }
     for (const r of rows) {
@@ -287,12 +291,17 @@ export function StudentQuizViewPage() {
     }
   };
 
-  const lede =
-    "تُحفظ الإجابات بحالة completed كما في تطبيق الجوال، ثم تُراجع (graded) لاحقاً.";
+  const lede = isAdminPreview
+    ? "معاينة اختبار الطالب: الإجابات للعرض فقط (لا يُرسل تسليم من وضع المشرف)."
+    : "تُحفظ الإجابات بحالة completed كما في تطبيق الجوال، ثم تُراجع (graded) لاحقاً.";
+  const layoutRole = isAdminPreview ? "admin" : "student";
+  const lessonPageHref = isAdminPreview
+    ? `/admin/preview/course/${courseId}/lesson/${lessonId}`
+    : `/student/course/${courseId}/lesson/${lessonId}`;
 
   if (!ready) {
     return (
-      <DashboardLayout role="student" title="اختبار" lede={lede}>
+      <DashboardLayout role={layoutRole} title="اختبار" lede={lede}>
         <PageLoadHint text="جاري التهيئة..." />
       </DashboardLayout>
     );
@@ -322,9 +331,17 @@ export function StudentQuizViewPage() {
   );
 
   return (
-    <DashboardLayout role="student" title={title} lede={lede}>
+    <DashboardLayout role={layoutRole} title={isAdminPreview ? `معاينة: ${title}` : title} lede={lede}>
+      {isAdminPreview ? (
+        <p className="admin-preview-banner" role="status">
+          <strong>معاينة واجهة الطالب</strong> — الإجابات للمراجعة البصرية فقط.{" "}
+          <Link to={`/admin/course/${courseId}/lessons/${lessonId}/quizzes`} className="inline-link">
+            تحرير الاختبار
+          </Link>
+        </p>
+      ) : null}
       <p>
-        <Link to={`/student/course/${courseId}/lesson/${lessonId}`} className="inline-link">
+        <Link to={lessonPageHref} className="inline-link">
           ← العودة لصفحة الدرس
         </Link>
       </p>

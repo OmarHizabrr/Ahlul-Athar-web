@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
 import { lessonsService } from "../services/lessonsService";
 import type { Course, Lesson } from "../types";
-import { IoListCircleOutline, IoPencil, IoTrashOutline } from "react-icons/io5";
+import { IoEyeOutline, IoListCircleOutline, IoPencil, IoTrashOutline } from "react-icons/io5";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { formatFirestoreTime } from "../utils/firestoreTime";
 import { DashboardLayout } from "./DashboardLayout";
@@ -220,10 +220,21 @@ export function AdminCourseLessonsPage() {
 
   return (
     <DashboardLayout role="admin" title={course ? `دروس: ${course.title}` : "دروس المقرر"} lede={lessonsLede}>
-      <p>
+      <p className="admin-lessons-back-row">
         <Link to="/admin/courses" className="inline-link">
           ← العودة لقائمة المقررات
         </Link>
+        {courseId ? (
+          <Link
+            to={`/admin/preview/course/${courseId}`}
+            className="icon-tool-btn admin-lessons-preview-course"
+            title="معاينة المقرر كما يرى الطالب"
+            aria-label="معاينة المقرر"
+          >
+            <IoEyeOutline size={20} />
+            <span className="icon-tool-label">معاينة المقرر</span>
+          </Link>
+        ) : null}
       </p>
       {loading ? (
         <PageLoadHint />
@@ -388,6 +399,15 @@ export function AdminCourseLessonsPage() {
                   </p>
                   <p className="muted">{L.description?.slice(0, 120) || "—"}</p>
                   <div className="course-actions lesson-admin-actions">
+                    <Link
+                      className="icon-tool-btn"
+                      to={`/admin/preview/course/${courseId}/lesson/${L.id}`}
+                      title="معاينة الدرس كطالب"
+                      aria-label="معاينة الدرس"
+                    >
+                      <IoEyeOutline size={20} />
+                      <span className="icon-tool-label">معاينة</span>
+                    </Link>
                     <Link
                       className="icon-tool-btn"
                       to={`/admin/course/${courseId}/lessons/${L.id}/quizzes`}

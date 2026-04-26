@@ -356,6 +356,18 @@ export async function getLessonQuizzesForStudent(
   );
 }
 
+/** قائمة اختبارات الدرس للمعاينة (مشرف) — بلا تسليم طالب. */
+export async function getLessonQuizzesForAdminPreview(lessonId: string): Promise<LessonQuizItem[]> {
+  const files = await listQuizFilesForLesson(lessonId);
+  return files.map((f) => {
+    const d = f.data;
+    const title = String(
+      d.title ?? d.name ?? d.quizTitle ?? (d as { label?: string }).label ?? "اختبار",
+    );
+    return { quizFileId: f.id, title, status: "none" as const };
+  });
+}
+
 /**
  * اجتاز الطالب جميع اختبارات الدرس (الحالة graded) أو لا يوجد اختبارات.
  */
@@ -417,6 +429,16 @@ export async function getLessonsWithAccessForStudent(
   }
 
   return out;
+}
+
+/** كطلاب يُرى المقرر بكل دروسه مفتوحة (معاينة مشرف). */
+export async function getLessonsForAdminPreview(courseId: string): Promise<LessonWithAccess[]> {
+  const raw = await lessonsService.listByCourseIdChronologicalAsc(courseId);
+  return raw.map((lesson) => ({
+    lesson,
+    isUnlocked: true,
+    blockHint: undefined,
+  }));
 }
 
 /**
