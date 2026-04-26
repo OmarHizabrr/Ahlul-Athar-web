@@ -1,6 +1,7 @@
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { updateProfile } from "firebase/auth";
-import { auth, db } from "../firebase";
+import { auth, db, storage } from "../firebase";
 import type { PlatformUser, UserFirestoreProfile, UserRole } from "../types";
 
 function mapUserDoc(uid: string, data: Record<string, unknown>, fallbackRole: UserRole): UserFirestoreProfile {
@@ -58,5 +59,29 @@ export const userProfileService = {
       phoneNumber: phoneNumber || null,
     };
     return next;
+  },
+
+  /**
+   * رفع صورة الملف الشخصي إلى Storage وتحديث Firestore ومصادقة Firebase (مثل سلوك التطبيق).
+   */
+  async uploadProfilePhoto(local: PlatformUser, file: File): Promise<PlatformUser> {
+    const ext = (() => {
+      const p = file.name.split(".").pop() || "jpg";
+      return p.length > 5 ? "jpg" : p;
+    })();
+    const path = `users/${local.uid}/profile_${Date.now()}.${ext}`;
+    const storageRef = ref(storage, path);
+    await uploadBytes(storageRef, file, { contentType: file.type || "image/jpeg" });
+    const url = await getDownloadURL(storageRef);
+    const userRef = doc(db, "users", local.uid);
+    await setDoc(
+      userRef,
+      { photoURL: url, lastUpdatedAt: serverTimestamp() },
+      { merge: true },
+    );
+    if (auth.currentUser) {
+      await updateProfile(auth.currentUser, { photoURL: url });
+    }
+    return { ...local, photoURL: url };
   },
 };

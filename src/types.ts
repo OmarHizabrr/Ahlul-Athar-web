@@ -54,7 +54,16 @@ export interface Lesson {
   difficulty?: string;
   createdAt: unknown;
   createdByName?: string;
+  /** يتطلب اجتياز اختبارات الدرس السابق (كما في Flutter). */
+  hasMandatoryQuiz?: boolean;
 }
+
+/** صف مُهيأ للواجهة: درس + هل مفتوح + سبب بسيط عند المنع. */
+export type LessonWithAccess = {
+  lesson: Lesson;
+  isUnlocked: boolean;
+  blockHint?: string;
+};
 
 /** منشور عام / إعلان — يظهر للطلاب عند isPublished. */
 export interface Post {

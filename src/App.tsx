@@ -14,6 +14,7 @@ const NotificationsPage = lazy(() =>
   import("./pages/dashboard/NotificationsPage").then((m) => ({ default: m.NotificationsPage })),
 );
 const ProfilePage = lazy(() => import("./pages/dashboard/ProfilePage").then((m) => ({ default: m.ProfilePage })));
+const SettingsPage = lazy(() => import("./pages/dashboard/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const StudentMyCoursesPage = lazy(() =>
   import("./pages/StudentMyCoursesPage").then((m) => ({ default: m.StudentMyCoursesPage })),
 );
@@ -121,6 +122,14 @@ function App() {
             }
           />
           <Route
+            path="/admin/settings"
+            element={
+              <ProtectedRoute role="admin">
+                <SettingsPage role="admin" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/student"
             element={
               <ProtectedRoute role="student">
@@ -181,6 +190,14 @@ function App() {
             element={
               <ProtectedRoute role="student">
                 <ProfilePage role="student" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/settings"
+            element={
+              <ProtectedRoute role="student">
+                <SettingsPage role="student" />
               </ProtectedRoute>
             }
           />

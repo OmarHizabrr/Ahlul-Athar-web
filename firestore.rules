@@ -61,6 +61,28 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // تقدم الطالب لكل درس (فتح/قفل) — lessonAccessService + Flutter
+    match /student_lesson_progress/{studentId}/student_lesson_progress/{lessonId} {
+      allow read: if isAdmin() || isOwnerUid(studentId);
+      allow create, update: if isAdmin() || isOwnerUid(studentId);
+      allow delete: if isAdmin();
+    }
+
+    // ملفات الاختبارات لكل درس (قراءة للمستخدم المسجّل — التحقق من المقرر في التطبيق)
+    match /quiz_files/{lessonId}/quiz_files/{fileId} {
+      allow read: if isAdmin() || signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // إجابات الاختبار — الاستعلام يرشّح بـ studentId
+    match /quiz_answers/{quizFileId}/quiz_answers/{answerId} {
+      allow read: if isAdmin() ||
+        (signedIn() && resource.data.studentId == request.auth.uid);
+      allow create, update: if isAdmin() ||
+        (signedIn() && request.resource.data.studentId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
     match /posts/{id} {
       // دعم isPublished أو published (ميراث بيانات)
       allow read: if isAdmin() ||

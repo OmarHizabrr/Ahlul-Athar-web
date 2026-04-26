@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { authService } from "../services/authService";
+import { Link } from "react-router-dom";
+import { DashboardTopBar } from "../components/DashboardTopBar";
 import type { UserRole } from "../types";
 
 interface DashboardLayoutProps {
@@ -10,13 +10,6 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ role, title, children }: DashboardLayoutProps) {
-  const navigate = useNavigate();
-
-  const logout = async () => {
-    await authService.logout();
-    navigate("/role-selector", { replace: true });
-  };
-
   const base = role === "admin" ? "/admin" : "/student";
 
   return (
@@ -30,19 +23,20 @@ export function DashboardLayout({ role, title, children }: DashboardLayoutProps)
           {role === "student" ? <Link to="/student/mycourses">مقرراتي</Link> : null}
           <Link to={`${base}/posts`}>المنشورات</Link>
           <Link to={`${base}/notifications`}>الإشعارات</Link>
-          <Link to={`${base}/profile`}>الملف الشخصي</Link>
+          <Link to={`${base}/settings`}>الإعدادات</Link>
         </nav>
-        <button className="ghost-btn" onClick={logout}>
-          تسجيل الخروج
-        </button>
+        <p className="muted small sidebar-hint">الملف والجلسة من الشريط العلوي</p>
       </aside>
 
-      <section className="content">
-        <div className="content-header">
-          <h1>{title}</h1>
-        </div>
-        {children}
-      </section>
+      <div className="dashboard-main">
+        <DashboardTopBar role={role} />
+        <section className="content">
+          <div className="content-header">
+            <h1>{title}</h1>
+          </div>
+          {children}
+        </section>
+      </div>
     </main>
   );
 }

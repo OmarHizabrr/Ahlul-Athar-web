@@ -28,6 +28,7 @@ export function AdminCourseLessonsPage() {
   const [description, setDescription] = useState("");
   const [content, setContent] = useState("");
   const [contentType, setContentType] = useState<string>("text");
+  const [hasMandatoryQuiz, setHasMandatoryQuiz] = useState(false);
 
   const load = useCallback(async () => {
     if (!courseId) {
@@ -66,10 +67,12 @@ export function AdminCourseLessonsPage() {
         description: description.trim(),
         content: content.trim(),
         contentType,
+        hasMandatoryQuiz,
       });
       setTitle("");
       setDescription("");
       setContent("");
+      setHasMandatoryQuiz(false);
       setMessage("تم إضافة الدرس وتحديث العدد في المقرر.");
       setIsError(false);
       await load();
@@ -165,6 +168,14 @@ export function AdminCourseLessonsPage() {
                 required
               />
             </label>
+            <label className="switch-line">
+              <input
+                type="checkbox"
+                checked={hasMandatoryQuiz}
+                onChange={(e) => setHasMandatoryQuiz(e.target.checked)}
+              />
+              <span>اختبار إجباري قبل الدرس التالي (hasMandatoryQuiz)</span>
+            </label>
             <button className="primary-btn" type="submit" disabled={submitting}>
               {submitting ? "جاري..." : "حفظ الدرس"}
             </button>
@@ -182,6 +193,7 @@ export function AdminCourseLessonsPage() {
                   <h4 className="post-title">{L.title}</h4>
                   <p className="muted post-meta">
                     {formatFirestoreTime(L.createdAt)} · {L.contentType || "نص"}
+                    {L.hasMandatoryQuiz ? " · إجباري للتالي" : ""}
                   </p>
                   <p className="muted">{L.description?.slice(0, 120) || "—"}</p>
                   <div className="course-actions">

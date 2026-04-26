@@ -47,6 +47,7 @@ function mapLesson(courseId: string, id: string, data: DocumentData): Lesson {
     difficulty: data.difficulty != null ? String(data.difficulty) : undefined,
     createdAt: data.createdAt,
     createdByName: data.createdByName != null ? String(data.createdByName) : undefined,
+    hasMandatoryQuiz: data.hasMandatoryQuiz === true,
   };
 }
 
@@ -65,6 +66,12 @@ export const lessonsService = {
     return docs.map((d) => mapLesson(courseId, d.id, d.data()));
   },
 
+  /** ترتيب من الأقدم للأحدث — كما `getCourseLessons` + sort في تطبيق Flutter. */
+  async listByCourseIdChronologicalAsc(courseId: string): Promise<Lesson[]> {
+    const all = await this.listByCourseId(courseId);
+    return all.slice().sort((a, b) => timeMillisFromUnknown(a.createdAt) - timeMillisFromUnknown(b.createdAt));
+  },
+
   async getById(courseId: string, lessonId: string): Promise<Lesson | null> {
     const ref = doc(db, "lessons", courseId, "lessons", lessonId);
     const s = await getDoc(ref);
@@ -77,7 +84,7 @@ export const lessonsService = {
   async createLesson(
     _user: PlatformUser,
     courseId: string,
-    payload: { title: string; description: string; content: string; contentType: string },
+    payload: { title: string; description: string; content: string; contentType: string; hasMandatoryQuiz?: boolean },
   ) {
     const col = lessonsForCourse(courseId);
     await addDoc(col, {
@@ -85,6 +92,7 @@ export const lessonsService = {
       description: payload.description,
       content: payload.content,
       contentType: payload.contentType,
+      hasMandatoryQuiz: payload.hasMandatoryQuiz === true,
       createdByName: _user.displayName ?? "Admin",
       createdBy: _user.uid,
       createdAt: serverTimestamp(),

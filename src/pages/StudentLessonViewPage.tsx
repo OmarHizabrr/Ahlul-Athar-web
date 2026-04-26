@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { canStudentOpenLesson } from "../services/lessonAccessService";
 import { isStudentEnrolledInCourse } from "../services/myCoursesService";
 import { lessonsService } from "../services/lessonsService";
 import type { Lesson } from "../types";
@@ -51,6 +52,13 @@ export function StudentLessonViewPage() {
     const ok = await isStudentEnrolledInCourse(user.uid, courseId);
     if (!ok) {
       setErr("ليس لديك صلاحية لعرض دروس هذا المقرر.");
+      setLesson(null);
+      setLoading(false);
+      return;
+    }
+    const access = await canStudentOpenLesson(user.uid, courseId, lessonId);
+    if (!access.ok) {
+      setErr(access.message ?? "لا يمكن فتح هذا الدرس.");
       setLesson(null);
       setLoading(false);
       return;

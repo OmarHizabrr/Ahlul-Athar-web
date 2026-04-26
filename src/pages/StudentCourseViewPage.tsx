@@ -2,16 +2,16 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
+import { getLessonsWithAccessForStudent } from "../services/lessonAccessService";
 import { isStudentEnrolledInCourse } from "../services/myCoursesService";
-import { lessonsService } from "../services/lessonsService";
-import type { Course, Lesson } from "../types";
+import type { Course, LessonWithAccess } from "../types";
 import { DashboardLayout } from "./DashboardLayout";
 
 export function StudentCourseViewPage() {
   const { courseId = "" } = useParams();
   const { user, ready } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [lessons, setLessons] = useState<LessonWithAccess[]>([]);
   const [enrolled, setEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -28,7 +28,7 @@ export function StudentCourseViewPage() {
       const e = await isStudentEnrolledInCourse(user.uid, courseId);
       setEnrolled(e);
       if (e) {
-        const L = await lessonsService.listByCourseId(courseId);
+        const L = await getLessonsWithAccessForStudent(user.uid, courseId);
         setLessons(L);
       } else {
         setLessons([]);
@@ -84,18 +84,33 @@ export function StudentCourseViewPage() {
           ) : (
             <div className="course-list">
               <h3 className="form-section-title">الدروس</h3>
-              {lessons.map((L) => (
-                <article className="course-item" key={L.id}>
-                  <h4 className="post-title">{L.title}</h4>
-                  {L.description ? <p className="muted">{L.description}</p> : null}
-                  <p className="muted post-meta">نوع المحتوى: {L.contentType || "نص"}</p>
+              {lessons.map((row) => (
+                <article
+                  className={`course-item ${row.isUnlocked ? "" : "lesson-locked-card"}`}
+                  key={row.lesson.id}
+                >
+                  <h4 className="post-title">{row.lesson.title}</h4>
+                  {row.lesson.hasMandatoryQuiz ? (
+                    <p className="muted small">يحتوي على اختبار إجباري (للدرس التالي)</p>
+                  ) : null}
+                  {row.lesson.description ? <p className="muted">{row.lesson.description}</p> : null}
+                  <p className="muted post-meta">نوع المحتوى: {row.lesson.contentType || "نص"}</p>
+                  {row.isUnlocked ? null : (
+                    <p className="message error lock-hint">{row.blockHint ?? "الدرس مقفل"}</p>
+                  )}
                   <div className="course-actions">
-                    <Link
-                      className="primary-btn"
-                      to={`/student/course/${courseId}/lesson/${L.id}`}
-                    >
-                      فتح الدرس
-                    </Link>
+                    {row.isUnlocked ? (
+                      <Link
+                        className="primary-btn"
+                        to={`/student/course/${courseId}/lesson/${row.lesson.id}`}
+                      >
+                        فتح الدرس
+                      </Link>
+                    ) : (
+                      <span className="ghost-btn lesson-locked-pill" aria-disabled>
+                        مقفل
+                      </span>
+                    )}
                   </div>
                 </article>
               ))}
