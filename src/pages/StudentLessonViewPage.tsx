@@ -9,17 +9,29 @@ import {
 import { isStudentEnrolledInCourse } from "../services/myCoursesService";
 import { lessonsService } from "../services/lessonsService";
 import type { Lesson } from "../types";
+import { getYoutubeEmbedUrlFromWatchUrl } from "../utils/youtube";
 import { formatFirestoreTime } from "../utils/firestoreTime";
 import { DashboardLayout } from "./DashboardLayout";
 
 function LessonMedia({ lesson }: { lesson: Lesson }) {
   if (lesson.contentType === "video" && lesson.videoUrl) {
+    const em = getYoutubeEmbedUrlFromWatchUrl(lesson.videoUrl);
     return (
       <div className="lesson-embed">
+        {em ? (
+          <div className="lesson-youtube-embed" style={{ width: "100%", maxWidth: 720 }}>
+            <iframe
+              title={lesson.title}
+              src={em}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        ) : null}
         <a href={lesson.videoUrl} className="inline-link" target="_blank" rel="noopener noreferrer">
-          فتح رابط الفيديو
+          {em ? "فتح YouTube في تبويب جديد" : "فتح رابط الفيديو"}
         </a>
-        <p className="muted small">يفتح رابط التخزين (YouTube/خارجي) — كما في التطبيق.</p>
+        <p className="muted small">روابط YouTube/Shorts تُعرض مُضمّنة تلقائياً عند الإمكان.</p>
       </div>
     );
   }
@@ -89,6 +101,16 @@ export function StudentLessonViewPage() {
       void load();
     }
   }, [ready, user, load]);
+
+  useEffect(() => {
+    const onQuiz = () => {
+      if (user) {
+        void load();
+      }
+    };
+    window.addEventListener("ah:quiz-updated", onQuiz);
+    return () => window.removeEventListener("ah:quiz-updated", onQuiz);
+  }, [user, load]);
 
   const lessonLede = "محتوى الدرس بعد التحقق من التسجيل في المقرر وقواعد فتح الدرس (مثل التطبيق).";
 

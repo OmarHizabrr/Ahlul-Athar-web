@@ -46,6 +46,16 @@ export function StudentCourseViewPage() {
     }
   }, [ready, user, courseId, load]);
 
+  useEffect(() => {
+    const onQuiz = () => {
+      if (user && courseId) {
+        void load();
+      }
+    };
+    window.addEventListener("ah:quiz-updated", onQuiz);
+    return () => window.removeEventListener("ah:quiz-updated", onQuiz);
+  }, [user, courseId, load]);
+
   const courseLede = "تفاصيل المقرر وقائمة الدروس مع القفل والتقدم كما في تطبيق الجوال.";
 
   if (!ready) {

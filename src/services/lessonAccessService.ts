@@ -1,10 +1,13 @@
 import {
+  addDoc,
   collection,
   doc,
   getDoc,
   getDocs,
   limit,
   query,
+  serverTimestamp,
+  updateDoc,
   where,
   type DocumentData,
 } from "firebase/firestore";
@@ -63,6 +66,35 @@ export async function getQuizFileById(
     return null;
   }
   return s.data();
+}
+
+/**
+ * تسليم إجابات الطالب من الويب. الحالة `submitted` حتى يُعيّن المسؤول/التطبيق `graded` للنجاح.
+ */
+export async function submitOrUpdateStudentQuiz(
+  quizFileId: string,
+  studentId: string,
+  answers: Record<string, string>,
+  existingDocumentId: string | null,
+): Promise<void> {
+  const col = collection(db, "quiz_answers", quizFileId, "quiz_answers");
+  if (existingDocumentId) {
+    const ref = doc(db, "quiz_answers", quizFileId, "quiz_answers", existingDocumentId);
+    await updateDoc(ref, {
+      studentId,
+      answers,
+      status: "submitted",
+      updatedAt: serverTimestamp(),
+    });
+  } else {
+    await addDoc(col, {
+      studentId,
+      answers,
+      status: "submitted",
+      submittedAt: serverTimestamp(),
+      createdAt: serverTimestamp(),
+    });
+  }
 }
 
 export type LessonQuizItemStatus = "none" | "pending" | "graded";

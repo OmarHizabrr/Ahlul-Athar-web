@@ -1119,6 +1119,65 @@ button:disabled {
   margin: 0.75rem 0 0;
 }
 
+.quiz-taker-form {
+  margin-top: 0.75rem;
+}
+
+.quiz-questions {
+  margin: 0.5rem 0 0;
+  padding: 0 0.2rem 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.quiz-question {
+  list-style: decimal;
+}
+
+.quiz-qtext {
+  margin: 0 0 0.4rem;
+  color: #e2e8f0;
+  line-height: 1.5;
+}
+
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-start;
+}
+
+.quiz-opt-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.quiz-video-embed,
+.lesson-youtube-embed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+  margin: 0.5rem 0;
+  border: 1px solid #334155;
+}
+
+.quiz-video-embed iframe,
+.lesson-youtube-embed iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 .form-actions-row {
   display: flex;
   flex-wrap: wrap;
