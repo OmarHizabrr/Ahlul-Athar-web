@@ -63,9 +63,14 @@ export function DashboardLayout({ role, title, lede, children }: DashboardLayout
             الدورات
           </Link>
           {role === "student" ? (
-            <Link to="/student/mycourses" onClick={() => setNavOpen(false)}>
-              مقرراتي
-            </Link>
+            <>
+              <Link to="/student/mycourses" onClick={() => setNavOpen(false)}>
+                مقرراتي
+              </Link>
+              <Link to="/student/enrollment-requests" onClick={() => setNavOpen(false)}>
+                طلباتي
+              </Link>
+            </>
           ) : null}
           <Link to={`${base}/posts`} onClick={() => setNavOpen(false)}>
             المنشورات

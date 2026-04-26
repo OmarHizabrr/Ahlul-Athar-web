@@ -84,22 +84,40 @@ export function StudentMyCoursesPage() {
       ) : (
         <div className="course-list">
           {rows.map((c) => (
-            <article className="course-item" key={c.courseId}>
-              <h3>{c.courseTitle || "مقرر"}</h3>
-              <p className="muted">{c.courseDescription?.slice(0, 200) || "—"}</p>
-              <div className="course-meta" style={{ marginTop: "0.5rem" }}>
-                <span className="meta-pill meta-pill--muted" title="تاريخ التسجيل">
-                  مسجّل: {formatFirestoreTime(c.enrolledAt)}
-                </span>
-                <span className={c.isActivated ? "meta-pill meta-pill--ok" : "meta-pill meta-pill--muted"}>
-                  {c.isActivated ? "مفعّل" : "غير مفعّل"}
-                </span>
-                {c.isLifetime ? <span className="meta-pill meta-pill--info">تفعيل دائم</span> : null}
-              </div>
-              <div className="course-actions">
-                <Link to={`/student/course/${c.courseId}`} className="primary-btn">
-                  فتح المقرر والدروس
-                </Link>
+            <article
+              className={`course-item mycourse-card${c.courseImageURL ? " mycourse-card--cover" : ""}`}
+              key={c.courseId}
+            >
+              {c.courseImageURL ? (
+                <div className="mycourse-cover">
+                  <img src={c.courseImageURL} alt="" className="mycourse-cover-img" loading="lazy" />
+                </div>
+              ) : null}
+              <div className="mycourse-card-body">
+                <h3>{c.courseTitle || "مقرر"}</h3>
+                <p className="muted">{c.courseDescription?.slice(0, 200) || "—"}</p>
+                <div className="course-meta" style={{ marginTop: "0.5rem" }}>
+                  <span className="meta-pill meta-pill--muted" title="تاريخ التسجيل">
+                    مسجّل: {formatFirestoreTime(c.enrolledAt)}
+                  </span>
+                  <span className={c.isActivated ? "meta-pill meta-pill--ok" : "meta-pill meta-pill--muted"}>
+                    {c.isActivated ? "مفعّل" : "غير مفعّل"}
+                  </span>
+                  {c.isLifetime ? <span className="meta-pill meta-pill--info">تفعيل دائم</span> : null}
+                  {c.lessonCount != null ? (
+                    <span className="meta-pill meta-pill--muted">{c.lessonCount} درس</span>
+                  ) : null}
+                  {c.isActiveOnCatalog === false ? (
+                    <span className="meta-pill meta-pill--warn" title="قد لا يظهر في الكتالوج العام">
+                      المقرر موقف في الكتالوج
+                    </span>
+                  ) : null}
+                </div>
+                <div className="course-actions">
+                  <Link to={`/student/course/${c.courseId}`} className="primary-btn">
+                    فتح المقرر والدروس
+                  </Link>
+                </div>
               </div>
             </article>
           ))}

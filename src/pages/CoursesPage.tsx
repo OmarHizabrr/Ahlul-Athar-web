@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
+import { myCoursesService } from "../services/myCoursesService";
 import type { Course, EnrollmentRequest, UserRole } from "../types";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { AdminEnrollmentRequestsPanel } from "./course/AdminEnrollmentRequestsPanel";
@@ -41,6 +42,32 @@ export function CoursesPage({ role }: { role: UserRole }) {
   const [activationTarget, setActivationTarget] = useState<EnrollmentRequest | null>(null);
   const [isLifetimeActivation, setIsLifetimeActivation] = useState(true);
   const [activationDays, setActivationDays] = useState(30);
+  const [enrolledIds, setEnrolledIds] = useState<Set<string>>(() => new Set());
+  const [latestReqByCourse, setLatestReqByCourse] = useState<Map<string, EnrollmentRequest>>(
+    () => new Map(),
+  );
+
+  const loadStudentCourseContext = useCallback(async () => {
+    if (!user || role !== "student") {
+      return;
+    }
+    try {
+      const [mine, reqs] = await Promise.all([
+        myCoursesService.listForStudent(user.uid),
+        coursesService.listStudentEnrollmentRequests(user.uid),
+      ]);
+      setEnrolledIds(new Set(mine.map((m) => m.courseId)));
+      const m = new Map<string, EnrollmentRequest>();
+      for (const r of reqs) {
+        if (!m.has(r.targetId)) {
+          m.set(r.targetId, r);
+        }
+      }
+      setLatestReqByCourse(m);
+    } catch {
+      // تبقى البطاقات قابلة للاستخدام بدون تلميحات الطلب
+    }
+  }, [user, role]);
 
   const loadCourses = async () => {
     setLoading(true);
@@ -58,6 +85,12 @@ export function CoursesPage({ role }: { role: UserRole }) {
   useEffect(() => {
     void loadCourses();
   }, [role]);
+
+  useEffect(() => {
+    if (role === "student" && user) {
+      void loadStudentCourseContext();
+    }
+  }, [role, user, loadStudentCourseContext]);
 
   const loadRequests = async () => {
     if (role !== "admin") {
@@ -153,11 +186,18 @@ export function CoursesPage({ role }: { role: UserRole }) {
     if (!user) {
       return;
     }
+    const pending = latestReqByCourse.get(course.id);
+    if (pending?.status === "pending") {
+      setMessage("لديك طلب قيد المراجعة لهذا المقرر.");
+      setIsError(true);
+      return;
+    }
     setSubmitting(true);
     try {
       await coursesService.requestEnrollment(user, course);
       setMessage("تم إرسال طلب الانضمام للإدارة.");
       setIsError(false);
+      await loadStudentCourseContext();
     } catch {
       setMessage("فشل إرسال طلب الانضمام.");
       setIsError(true);
@@ -291,9 +331,14 @@ export function CoursesPage({ role }: { role: UserRole }) {
           placeholder="بحث بالدورات..."
         />
         {role === "student" ? (
-          <Link to="/student/mycourses" className="ghost-btn toolbar-btn">
-            مقرراتي
-          </Link>
+          <>
+            <Link to="/student/mycourses" className="ghost-btn toolbar-btn">
+              مقرراتي
+            </Link>
+            <Link to="/student/enrollment-requests" className="ghost-btn toolbar-btn">
+              طلباتي
+            </Link>
+          </>
         ) : null}
         <button
           type="button"
@@ -368,23 +413,13 @@ export function CoursesPage({ role }: { role: UserRole }) {
                     </button>
                   </>
                 ) : (
-                  <>
-                    <Link
-                      to={`/student/course/${course.id}`}
-                      className="ghost-btn"
-                    >
-                      تفاصيل المقرر
-                    </Link>
-                    <button
-                      className="primary-btn"
-                      onClick={() => onRequest(course)}
-                      disabled={submitting}
-                      type="button"
-                      aria-busy={submitting}
-                    >
-                      <ButtonBusyLabel busy={submitting}>طلب انضمام</ButtonBusyLabel>
-                    </button>
-                  </>
+                  <StudentCourseRowActions
+                    course={course}
+                    enrolled={enrolledIds.has(course.id)}
+                    req={latestReqByCourse.get(course.id)}
+                    submitting={submitting}
+                    onRequest={() => void onRequest(course)}
+                  />
                 )}
               </div>
             </article>
@@ -420,5 +455,83 @@ export function CoursesPage({ role }: { role: UserRole }) {
         />
       ) : null}
     </DashboardLayout>
+  );
+}
+
+function StudentCourseRowActions({
+  course,
+  enrolled,
+  req,
+  submitting,
+  onRequest,
+}: {
+  course: Course;
+  enrolled: boolean;
+  req: EnrollmentRequest | undefined;
+  submitting: boolean;
+  onRequest: () => void;
+}) {
+  const openCourse = `/student/course/${course.id}`;
+  if (enrolled) {
+    return (
+      <>
+        <Link to={openCourse} className="primary-btn">
+          فتح المقرر
+        </Link>
+        <span className="meta-pill meta-pill--ok" title="ضمن مقرراتك">
+          مسجّل
+        </span>
+      </>
+    );
+  }
+  if (req?.status === "pending") {
+    return (
+      <span className="ghost-btn course-waiting-pill" aria-disabled>
+        الطلب قيد المراجعة
+      </span>
+    );
+  }
+  if (req?.status === "approved") {
+    return (
+      <Link to={openCourse} className="primary-btn">
+        فتح المقرر
+      </Link>
+    );
+  }
+  if (req?.status === "rejected" || req?.status === "expired") {
+    return (
+      <>
+        <Link to="/student/enrollment-requests" className="ghost-btn">
+          سجل الطلبات
+        </Link>
+        <button
+          type="button"
+          className="primary-btn"
+          onClick={onRequest}
+          disabled={submitting}
+          aria-busy={submitting}
+        >
+          <ButtonBusyLabel busy={submitting}>
+            {req.status === "rejected" ? "إعادة طلب الانضمام" : "طلب انضمام"}
+          </ButtonBusyLabel>
+        </button>
+      </>
+    );
+  }
+  return (
+    <>
+      <Link to={openCourse} className="ghost-btn">
+        تفاصيل المقرر
+      </Link>
+      <button
+        type="button"
+        className="primary-btn"
+        onClick={onRequest}
+        disabled={submitting}
+        aria-busy={submitting}
+      >
+        <ButtonBusyLabel busy={submitting}>طلب انضمام</ButtonBusyLabel>
+      </button>
+    </>
   );
 }

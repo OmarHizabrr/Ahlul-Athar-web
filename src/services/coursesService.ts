@@ -275,4 +275,31 @@ export const coursesService = {
       updatedAt: serverTimestamp(),
     });
   },
+
+  /**
+   * كل طلبات انضمام الطالب للمقررات — الأحدث أولاً (مثل سجل «طلباتي» في التطبيق).
+   * عند فشل ترتيب مركب، جلب أوسع ثم ترتيب محلي.
+   */
+  async listStudentEnrollmentRequests(studentId: string): Promise<EnrollmentRequest[]> {
+    try {
+      const q = query(
+        enrollmentRequestsCollection,
+        where("studentId", "==", studentId),
+        where("requestType", "==", "course"),
+        orderBy("requestedAt", "desc"),
+      );
+      return (await getDocs(q)).docs.map((d) => mapEnrollmentRequest(d));
+    } catch {
+      const q2 = query(enrollmentRequestsCollection, where("studentId", "==", studentId));
+      const raw = (await getDocs(q2)).docs
+        .map((d) => mapEnrollmentRequest(d))
+        .filter((r) => r.requestType === "course");
+      raw.sort(
+        (a, b) =>
+          timeMillisFromUnknown(b.requestedAt ?? b.processedAt) -
+          timeMillisFromUnknown(a.requestedAt ?? a.processedAt),
+      );
+      return raw;
+    }
+  },
 };

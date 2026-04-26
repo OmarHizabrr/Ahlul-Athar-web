@@ -19,6 +19,9 @@ const SettingsPage = lazy(() => import("./pages/dashboard/SettingsPage").then((m
 const StudentMyCoursesPage = lazy(() =>
   import("./pages/StudentMyCoursesPage").then((m) => ({ default: m.StudentMyCoursesPage })),
 );
+const StudentEnrollmentRequestsPage = lazy(() =>
+  import("./pages/StudentEnrollmentRequestsPage").then((m) => ({ default: m.StudentEnrollmentRequestsPage })),
+);
 const StudentCourseViewPage = lazy(() =>
   import("./pages/StudentCourseViewPage").then((m) => ({ default: m.StudentCourseViewPage })),
 );
@@ -212,6 +215,14 @@ function App() {
             element={
               <ProtectedRoute role="student">
                 <StudentMyCoursesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/enrollment-requests"
+            element={
+              <ProtectedRoute role="student">
+                <StudentEnrollmentRequestsPage />
               </ProtectedRoute>
             }
           />

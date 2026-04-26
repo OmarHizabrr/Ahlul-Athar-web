@@ -17,6 +17,7 @@ export function HomePage({ role }: { role: UserRole }) {
   const [unread, setUnread] = useState(0);
   const [recentTitles, setRecentTitles] = useState<string[]>([]);
   const [myCoursesCount, setMyCoursesCount] = useState(0);
+  const [pendingEnrollmentCount, setPendingEnrollmentCount] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const base = role === "admin" ? "/admin" : "/student";
 
@@ -32,10 +33,17 @@ export function HomePage({ role }: { role: UserRole }) {
       if (role === "admin") {
         const pending = await coursesService.listCourseEnrollmentRequests("pending");
         setPendingCount(pending.length);
+        setPendingEnrollmentCount(0);
       } else {
         setPendingCount(0);
         const mine = await myCoursesService.listForStudent(user.uid);
         setMyCoursesCount(mine.length);
+        try {
+          const myReqs = await coursesService.listStudentEnrollmentRequests(user.uid);
+          setPendingEnrollmentCount(myReqs.filter((r) => r.status === "pending").length);
+        } catch {
+          setPendingEnrollmentCount(0);
+        }
       }
       const u = await notificationsService.countUnread(user.uid);
       setUnread(u);
@@ -68,7 +76,7 @@ export function HomePage({ role }: { role: UserRole }) {
   const lede =
     role === "admin"
       ? "لوحة المسؤول: الدورات، الطلبات، والمنشورات."
-      : "لوحة الطالب: المقررات المسجّل بها، الدورات، والإشعارات.";
+      : "لوحة الطالب: مقرراتي، طلبات الانضمام، كتالوج الدورات، والإشعارات — كما في تطبيق الجوال.";
 
   return (
     <DashboardLayout role={role} title="الرئيسية" lede={lede}>
@@ -103,6 +111,15 @@ export function HomePage({ role }: { role: UserRole }) {
                 </Link>
               </div>
             )}
+            {role === "student" ? (
+              <div className="card-stat stat-tile">
+                <strong>طلبات انضمام معلّقة</strong>
+                <span className="stat-num">{pendingEnrollmentCount}</span>
+                <Link to="/student/enrollment-requests" className="inline-link">
+                  سجل «طلباتي»
+                </Link>
+              </div>
+            ) : null}
             <div className="card-stat stat-tile">
               <strong>إشعارات غير مقروءة</strong>
               <span className="stat-num">{unread}</span>

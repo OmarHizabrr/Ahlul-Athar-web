@@ -48,6 +48,30 @@ export function SettingsPage({ role }: { role: UserRole }) {
             </Link>
           </li>
           <li>
+            <Link className="settings-link" to={`${base}/courses`}>
+              الدورات والكتالوج
+            </Link>
+          </li>
+          {role === "student" ? (
+            <li>
+              <Link className="settings-link" to="/student/mycourses">
+                مقرراتي المسجّل بها
+              </Link>
+            </li>
+          ) : null}
+          {role === "student" ? (
+            <li>
+              <Link className="settings-link" to="/student/enrollment-requests">
+                طلبات انضمامي
+              </Link>
+            </li>
+          ) : null}
+          <li>
+            <Link className="settings-link" to={`${base}/posts`}>
+              المنشورات
+            </Link>
+          </li>
+          <li>
             <Link className="settings-link" to={`${base}/notifications`}>
               الإشعارات
             </Link>
