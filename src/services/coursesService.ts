@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   increment,
   orderBy,
@@ -84,8 +85,11 @@ export const coursesService = {
     );
   },
 
-  async listPendingEnrollmentRequests() {
-    const q = query(enrollmentRequestsCollection, where("status", "==", "pending"), orderBy("createdAt", "desc"));
+  async listEnrollmentRequests(status: EnrollmentRequest["status"] | "all" = "pending") {
+    const q =
+      status === "all"
+        ? query(enrollmentRequestsCollection, orderBy("createdAt", "desc"))
+        : query(enrollmentRequestsCollection, where("status", "==", status), orderBy("createdAt", "desc"));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => {
       const data = d.data();
@@ -96,8 +100,10 @@ export const coursesService = {
         studentEmail: String(data.studentEmail ?? ""),
         targetId: String(data.targetId ?? ""),
         targetName: String(data.targetName ?? ""),
-        status: "pending",
+        status: (data.status ?? "pending") as EnrollmentRequest["status"],
         reason: String(data.reason ?? ""),
+        createdAt: data.createdAt,
+        reviewedAt: data.reviewedAt,
       } as EnrollmentRequest;
     });
   },
@@ -106,6 +112,7 @@ export const coursesService = {
     const requestRef = doc(db, "enrollmentRequests", request.id);
     const enrollmentRef = doc(db, "mycourses", `${request.studentId}_${request.targetId}`);
     const courseRef = doc(db, "courses", request.targetId);
+    const existingEnrollment = await getDoc(enrollmentRef);
 
     await setDoc(
       enrollmentRef,
@@ -125,7 +132,9 @@ export const coursesService = {
       reviewedAt: serverTimestamp(),
     });
 
-    await updateDoc(courseRef, { studentCount: increment(1), updatedAt: serverTimestamp() });
+    if (!existingEnrollment.exists()) {
+      await updateDoc(courseRef, { studentCount: increment(1), updatedAt: serverTimestamp() });
+    }
   },
 
   async rejectEnrollmentRequest(requestId: string) {

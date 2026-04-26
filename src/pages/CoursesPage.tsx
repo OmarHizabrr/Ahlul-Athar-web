@@ -30,6 +30,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
   const [isError, setIsError] = useState(false);
   const [requests, setRequests] = useState<EnrollmentRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
+  const [requestFilter, setRequestFilter] = useState<"all" | EnrollmentRequest["status"]>("pending");
 
   const user = authService.getLocalUser();
 
@@ -56,7 +57,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
     }
     setRequestsLoading(true);
     try {
-      const data = await coursesService.listPendingEnrollmentRequests();
+      const data = await coursesService.listEnrollmentRequests(requestFilter);
       setRequests(data);
     } catch {
       setMessage("تعذر تحميل طلبات الانضمام.");
@@ -68,7 +69,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
 
   useEffect(() => {
     void loadRequests();
-  }, [role]);
+  }, [role, requestFilter]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -278,6 +279,36 @@ export function CoursesPage({ role }: { role: UserRole }) {
       {role === "admin" ? (
         <section className="requests-panel">
           <h3>طلبات الانضمام للدورات</h3>
+          <div className="request-filters">
+            <button
+              className={requestFilter === "pending" ? "primary-btn" : "ghost-btn"}
+              onClick={() => setRequestFilter("pending")}
+              disabled={submitting}
+            >
+              معلقة
+            </button>
+            <button
+              className={requestFilter === "approved" ? "primary-btn" : "ghost-btn"}
+              onClick={() => setRequestFilter("approved")}
+              disabled={submitting}
+            >
+              مقبولة
+            </button>
+            <button
+              className={requestFilter === "rejected" ? "primary-btn" : "ghost-btn"}
+              onClick={() => setRequestFilter("rejected")}
+              disabled={submitting}
+            >
+              مرفوضة
+            </button>
+            <button
+              className={requestFilter === "all" ? "primary-btn" : "ghost-btn"}
+              onClick={() => setRequestFilter("all")}
+              disabled={submitting}
+            >
+              الكل
+            </button>
+          </div>
           {requestsLoading ? <p className="muted">جاري تحميل الطلبات...</p> : null}
           {!requestsLoading && requests.length === 0 ? (
             <p className="muted">لا توجد طلبات معلقة.</p>
@@ -290,13 +321,20 @@ export function CoursesPage({ role }: { role: UserRole }) {
                     الطالب: {request.studentName || "غير معروف"} ({request.studentEmail || "بدون بريد"})
                   </p>
                   <p className="muted">السبب: {request.reason || "—"}</p>
+                  <p className="muted">الحالة: {request.status}</p>
                   <div className="course-actions">
-                    <button className="primary-btn" onClick={() => onApproveRequest(request)} disabled={submitting}>
-                      قبول
-                    </button>
-                    <button className="ghost-btn" onClick={() => onRejectRequest(request.id)} disabled={submitting}>
-                      رفض
-                    </button>
+                    {request.status === "pending" ? (
+                      <>
+                        <button className="primary-btn" onClick={() => onApproveRequest(request)} disabled={submitting}>
+                          قبول
+                        </button>
+                        <button className="ghost-btn" onClick={() => onRejectRequest(request.id)} disabled={submitting}>
+                          رفض
+                        </button>
+                      </>
+                    ) : (
+                      <span className="muted">هذا الطلب تمت مراجعته بالفعل.</span>
+                    )}
                   </div>
                 </article>
               ))}

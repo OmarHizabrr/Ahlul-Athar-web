@@ -30,4 +30,6 @@ export interface EnrollmentRequest {
   targetName: string;
   status: "pending" | "approved" | "rejected";
   reason: string;
+  createdAt?: unknown;
+  reviewedAt?: unknown;
 }
