@@ -84,6 +84,11 @@ export const authService = {
     }
   },
 
+  /** بعد تحديث بيانات الملف في Firestore أو في ذاكرة التطبيق. */
+  persistLocalUser(user: PlatformUser) {
+    saveLocalUser(user);
+  },
+
   async logout() {
     await signOut(auth);
     localStorage.removeItem(STORAGE_KEY);

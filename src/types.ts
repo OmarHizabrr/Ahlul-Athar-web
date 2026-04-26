@@ -21,6 +21,38 @@ export interface Course {
   lessonCount: number;
 }
 
+/** منشور عام / إعلان — يظهر للطلاب عند isPublished. */
+export interface Post {
+  id: string;
+  title: string;
+  body: string;
+  authorId: string;
+  authorName: string;
+  isPublished: boolean;
+  createdAt: unknown;
+  updatedAt: unknown;
+}
+
+/** إشعار مرتبط بمستخدم — يطابق نمط تخزين شائع (user + عنوان + نص + مقروء). */
+export interface UserNotification {
+  id: string;
+  userId: string;
+  title: string;
+  body: string;
+  read: boolean;
+  createdAt: unknown;
+}
+
+export interface UserFirestoreProfile {
+  uid: string;
+  displayName: string;
+  email: string;
+  phoneNumber: string;
+  photoURL: string;
+  role: UserRole;
+  profileCompleted: boolean;
+}
+
 export interface EnrollmentRequest {
   id: string;
   studentId: string;
