@@ -1,15 +1,30 @@
 import type { ReactElement } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 import { LoginPage } from "./pages/LoginPage.tsx";
 import { RoleSelectorPage } from "./pages/RoleSelectorPage.tsx";
 import { HomePage, NotificationsPage, PostsPage, ProfilePage } from "./pages/SharedPages.tsx";
 import { SplashPage } from "./pages/SplashPage.tsx";
 import { CoursesPage } from "./pages/CoursesPage.tsx";
-import { authService } from "./services/authService";
 import type { UserRole } from "./types";
 
+function AuthLoading() {
+  return (
+    <main className="center-page">
+      <section className="card splash-card">
+        <p className="badge">Ahlul Athar</p>
+        <h1>جاري التهيئة...</h1>
+        <p className="muted">مزامنة الجلسة مع السحابة</p>
+      </section>
+    </main>
+  );
+}
+
 function ProtectedRoute({ role, children }: { role: UserRole; children: ReactElement }) {
-  const user = authService.getLocalUser();
+  const { ready, user } = useAuth();
+  if (!ready) {
+    return <AuthLoading />;
+  }
   if (!user) {
     return <Navigate to="/role-selector" replace />;
   }

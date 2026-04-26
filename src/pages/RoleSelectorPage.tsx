@@ -1,7 +1,16 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export function RoleSelectorPage() {
   const navigate = useNavigate();
+  const { ready, user } = useAuth();
+
+  useEffect(() => {
+    if (ready && user) {
+      navigate(`/${user.role}`, { replace: true });
+    }
+  }, [ready, user, navigate]);
 
   return (
     <main className="center-page">

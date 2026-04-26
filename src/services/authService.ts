@@ -8,11 +8,14 @@ import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import type { PlatformUser, UserRole } from "../types";
 
-const STORAGE_KEY = "almosawa_user";
+export const AUTH_LOCAL_KEY = "almosawa_user";
+const STORAGE_KEY = AUTH_LOCAL_KEY;
 
-const phoneToEmailAlias = (phone: string) => {
+const PHONE_EMAIL_DOMAINS = ["ahlul-athar.app", "almosawa.app"] as const;
+
+const phoneToEmailAliases = (phone: string) => {
   const normalized = phone.replace(/[^\d]/g, "");
-  return `${normalized}@almosawa.app`;
+  return PHONE_EMAIL_DOMAINS.map((d) => `${normalized}@${d}`);
 };
 
 const mapFirebaseUser = (role: UserRole): PlatformUser => ({
@@ -63,12 +66,20 @@ export const authService = {
   },
 
   async signInWithPhoneAndPassword(role: UserRole, phone: string, password: string) {
-    const alias = phoneToEmailAlias(phone);
-    await signInWithEmailAndPassword(auth, alias, password);
-    const mapped = mapFirebaseUser(role);
-    await createOrUpdateUserDoc(mapped);
-    saveLocalUser(mapped);
-    return mapped;
+    const emails = phoneToEmailAliases(phone);
+    let last: unknown;
+    for (const email of emails) {
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        const mapped = mapFirebaseUser(role);
+        await createOrUpdateUserDoc(mapped);
+        saveLocalUser(mapped);
+        return mapped;
+      } catch (e) {
+        last = e;
+      }
+    }
+    throw last;
   },
 
   getLocalUser(): PlatformUser | null {

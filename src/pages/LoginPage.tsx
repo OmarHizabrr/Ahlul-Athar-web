@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { FcGoogle } from "react-icons/fc";
 import { IoPhonePortraitOutline } from "react-icons/io5";
 import { authService } from "../services/authService";
@@ -9,6 +10,7 @@ import type { UserRole } from "../types";
 export function LoginPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { ready, user: sessionUser } = useAuth();
   const role = (searchParams.get("role") === "admin" ? "admin" : "student") as UserRole;
   const roleText = useMemo(() => (role === "admin" ? "مسؤول" : "طالب"), [role]);
 
@@ -23,6 +25,12 @@ export function LoginPage() {
     setMessage(text);
     setIsError(error);
   };
+
+  useEffect(() => {
+    if (ready && sessionUser) {
+      navigate(`/${sessionUser.role}`, { replace: true });
+    }
+  }, [ready, sessionUser, navigate]);
 
   const onGoogleLogin = async () => {
     setLoadingGoogle(true);

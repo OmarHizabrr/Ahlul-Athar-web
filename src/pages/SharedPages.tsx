@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { DashboardLayout } from "./DashboardLayout";
 import { authService } from "../services/authService";
 import { coursesService } from "../services/coursesService";
@@ -451,7 +452,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
 // ——— الملف الشخصي ———
 
 export function ProfilePage({ role }: { role: UserRole }) {
-  const u = authService.getLocalUser();
+  const { user: u, ready, syncUserFromStorage } = useAuth();
   const [profile, setProfile] = useState<UserFirestoreProfile | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -461,7 +462,7 @@ export function ProfilePage({ role }: { role: UserRole }) {
   const [isError, setIsError] = useState(false);
 
   useEffect(() => {
-    if (!u) {
+    if (!ready || !u) {
       return;
     }
     void (async () => {
@@ -478,7 +479,15 @@ export function ProfilePage({ role }: { role: UserRole }) {
         setLoading(false);
       }
     })();
-  }, [u]);
+  }, [ready, u]);
+
+  if (!ready) {
+    return (
+      <DashboardLayout role={role} title="الملف الشخصي">
+        <p className="muted">جاري التهيئة...</p>
+      </DashboardLayout>
+    );
+  }
 
   if (!u) {
     return null;
@@ -491,6 +500,7 @@ export function ProfilePage({ role }: { role: UserRole }) {
     try {
       const next = await userProfileService.updateProfile(u, { displayName, phoneNumber });
       authService.persistLocalUser(next);
+      syncUserFromStorage();
       setMessage("تم حفظ التعديلات.");
       setIsError(false);
     } catch {
