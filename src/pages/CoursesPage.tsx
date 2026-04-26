@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { DashboardLayout } from "./DashboardLayout";
-import { authService } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
 import type { Course, EnrollmentRequest, UserRole } from "../types";
-import { formatFirestoreTime } from "../utils/firestoreTime";
+import { AdminEnrollmentRequestsPanel } from "./course/AdminEnrollmentRequestsPanel";
+import { CourseActivationModal } from "./course/CourseActivationModal";
+import { DashboardLayout } from "./DashboardLayout";
 
 type CourseForm = {
   title: string;
@@ -20,39 +21,8 @@ const initialForm: CourseForm = {
   isActive: true,
 };
 
-function requestStatusLabel(status: EnrollmentRequest["status"]): string {
-  switch (status) {
-    case "pending":
-      return "معلّق";
-    case "approved":
-      return "مقبول";
-    case "rejected":
-      return "مرفوض";
-    case "expired":
-      return "منتهي الصلاحية";
-    default:
-      return status;
-  }
-}
-
-function emptyRequestsMessage(filter: "all" | EnrollmentRequest["status"]): string {
-  switch (filter) {
-    case "pending":
-      return "لا توجد طلبات معلّقة.";
-    case "approved":
-      return "لا توجد طلبات مقبولة في هذا العرض.";
-    case "rejected":
-      return "لا توجد طلبات مرفوضة في هذا العرض.";
-    case "expired":
-      return "لا توجد طلبات منتهية في هذا العرض.";
-    case "all":
-      return "لا توجد أي طلبات انضمام حتى الآن.";
-    default:
-      return "لا توجد طلبات.";
-  }
-}
-
 export function CoursesPage({ role }: { role: UserRole }) {
+  const { user, ready } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -68,8 +38,6 @@ export function CoursesPage({ role }: { role: UserRole }) {
   const [activationTarget, setActivationTarget] = useState<EnrollmentRequest | null>(null);
   const [isLifetimeActivation, setIsLifetimeActivation] = useState(true);
   const [activationDays, setActivationDays] = useState(30);
-
-  const user = authService.getLocalUser();
 
   const loadCourses = async () => {
     setLoading(true);
@@ -195,8 +163,8 @@ export function CoursesPage({ role }: { role: UserRole }) {
     }
   };
 
-  const openActivationDialog = (request: EnrollmentRequest) => {
-    setActivationTarget(request);
+  const openActivationDialog = (req: EnrollmentRequest) => {
+    setActivationTarget(req);
     setIsLifetimeActivation(true);
     setActivationDays(30);
     setActivationOpen(true);
@@ -250,6 +218,18 @@ export function CoursesPage({ role }: { role: UserRole }) {
       setSubmitting(false);
     }
   };
+
+  if (!ready) {
+    return (
+      <DashboardLayout role={role} title="الدورات">
+        <p className="muted">جاري التهيئة...</p>
+      </DashboardLayout>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <DashboardLayout role={role} title="الدورات">
@@ -331,15 +311,15 @@ export function CoursesPage({ role }: { role: UserRole }) {
               <div className="course-actions">
                 {role === "admin" ? (
                   <>
-                    <button className="ghost-btn" onClick={() => onEdit(course)} disabled={submitting}>
+                    <button className="ghost-btn" onClick={() => onEdit(course)} disabled={submitting} type="button">
                       تعديل
                     </button>
-                    <button className="ghost-btn" onClick={() => onDelete(course)} disabled={submitting}>
+                    <button className="ghost-btn" onClick={() => onDelete(course)} disabled={submitting} type="button">
                       حذف
                     </button>
                   </>
                 ) : (
-                  <button className="primary-btn" onClick={() => onRequest(course)} disabled={submitting}>
+                  <button className="primary-btn" onClick={() => onRequest(course)} disabled={submitting} type="button">
                     طلب انضمام
                   </button>
                 )}
@@ -350,166 +330,31 @@ export function CoursesPage({ role }: { role: UserRole }) {
       )}
 
       {role === "admin" ? (
-        <section className="requests-panel">
-          <div className="requests-header">
-            <h3>طلبات الانضمام للدورات</h3>
-            <button
-              type="button"
-              className="ghost-btn toolbar-btn"
-              onClick={() => void loadRequests()}
-              disabled={submitting}
-            >
-              تحديث الطلبات
-            </button>
-          </div>
-          <div className="request-filters">
-            <button
-              className={requestFilter === "pending" ? "primary-btn" : "ghost-btn"}
-              onClick={() => setRequestFilter("pending")}
-              disabled={submitting}
-            >
-              معلّقة
-            </button>
-            <button
-              className={requestFilter === "approved" ? "primary-btn" : "ghost-btn"}
-              onClick={() => setRequestFilter("approved")}
-              disabled={submitting}
-            >
-              مقبولة
-            </button>
-            <button
-              className={requestFilter === "rejected" ? "primary-btn" : "ghost-btn"}
-              onClick={() => setRequestFilter("rejected")}
-              disabled={submitting}
-            >
-              مرفوضة
-            </button>
-            <button
-              className={requestFilter === "expired" ? "primary-btn" : "ghost-btn"}
-              onClick={() => setRequestFilter("expired")}
-              disabled={submitting}
-            >
-              منتهية
-            </button>
-            <button
-              className={requestFilter === "all" ? "primary-btn" : "ghost-btn"}
-              onClick={() => setRequestFilter("all")}
-              disabled={submitting}
-            >
-              الكل
-            </button>
-          </div>
-          {requestsLoading ? <p className="muted">جاري تحميل الطلبات...</p> : null}
-          {!requestsLoading && requests.length === 0 ? (
-            <p className="muted">{emptyRequestsMessage(requestFilter)}</p>
-          ) : (
-            <div className="course-list">
-              {requests.map((request) => (
-                <article className="course-item" key={request.id}>
-                  <h3>{request.targetName}</h3>
-                  <p className="muted">
-                    الطالب: {request.studentName || "غير معروف"} ({request.studentEmail || "بدون بريد"})
-                  </p>
-                  <p className="muted">السبب: {request.reason || "—"}</p>
-                  {request.adminNotes ? (
-                    <p className="muted">ملاحظات الإدارة: {request.adminNotes}</p>
-                  ) : null}
-                  <p className="muted">
-                    الحالة: <strong>{requestStatusLabel(request.status)}</strong>
-                  </p>
-                  <p className="muted">تاريخ الطلب: {formatFirestoreTime(request.requestedAt)}</p>
-                  {request.processedAt != null ? (
-                    <p className="muted">تاريخ المعالجة: {formatFirestoreTime(request.processedAt)}</p>
-                  ) : null}
-                  <div className="course-actions">
-                    {request.status === "pending" ? (
-                      <>
-                        <button
-                          className="primary-btn"
-                          onClick={() => openActivationDialog(request)}
-                          disabled={submitting}
-                        >
-                          قبول (تفعيل)
-                        </button>
-                        <button className="ghost-btn" onClick={() => onRejectRequest(request.id)} disabled={submitting}>
-                          رفض
-                        </button>
-                      </>
-                    ) : (
-                      <span className="muted">تمت معالجة الطلب. عرض &quot;معلّقة&quot; للطلبات الجديدة.</span>
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+        <AdminEnrollmentRequestsPanel
+          requestFilter={requestFilter}
+          onRequestFilterChange={setRequestFilter}
+          requests={requests}
+          requestsLoading={requestsLoading}
+          submitting={submitting}
+          onRefresh={loadRequests}
+          onOpenActivation={openActivationDialog}
+          onRejectRequest={(id) => void onRejectRequest(id)}
+        />
       ) : null}
 
       {activationOpen && activationTarget ? (
-        <div
-          className="modal-overlay"
-          role="presentation"
-          onClick={() => {
-            if (!submitting) {
-              setActivationOpen(false);
-              setActivationTarget(null);
-            }
+        <CourseActivationModal
+          submitting={submitting}
+          isLifetimeActivation={isLifetimeActivation}
+          onLifetimeChange={setIsLifetimeActivation}
+          activationDays={activationDays}
+          onDaysChange={setActivationDays}
+          onConfirm={confirmActivation}
+          onClose={() => {
+            setActivationOpen(false);
+            setActivationTarget(null);
           }}
-        >
-          <div
-            className="modal-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="activation-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h4 id="activation-title">فترة تفعيل الدورة</h4>
-            <p className="muted small-print">
-              نفس منطق تطبيق Flutter: اختر &quot;مدى الحياة&quot; أو عدد الأيام قبل انتهاء التفعيل.
-            </p>
-            <label className="switch-line">
-              <input
-                type="checkbox"
-                checked={isLifetimeActivation}
-                onChange={(e) => setIsLifetimeActivation(e.target.checked)}
-                disabled={submitting}
-              />
-              <span>تفعيل مدى الحياة (بدون انتهاء)</span>
-            </label>
-            {!isLifetimeActivation ? (
-              <label className="field-block">
-                <span>عدد أيام التفعيل</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={3650}
-                  value={activationDays}
-                  onChange={(e) => setActivationDays(Number.parseInt(e.target.value, 10) || 1)}
-                  disabled={submitting}
-                />
-              </label>
-            ) : null}
-            <div className="course-actions">
-              <button className="primary-btn" onClick={() => void confirmActivation()} disabled={submitting}>
-                {submitting ? "جاري..." : "تأكيد القبول"}
-              </button>
-              <button
-                type="button"
-                className="ghost-btn"
-                onClick={() => {
-                  if (!submitting) {
-                    setActivationOpen(false);
-                    setActivationTarget(null);
-                  }
-                }}
-                disabled={submitting}
-              >
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
+        />
       ) : null}
     </DashboardLayout>
   );

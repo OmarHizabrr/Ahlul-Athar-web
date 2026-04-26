@@ -1,12 +1,18 @@
-import type { ReactElement } from "react";
+import { lazy, Suspense, type ReactElement } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
-import { LoginPage } from "./pages/LoginPage.tsx";
-import { RoleSelectorPage } from "./pages/RoleSelectorPage.tsx";
-import { HomePage, NotificationsPage, PostsPage, ProfilePage } from "./pages/SharedPages.tsx";
-import { SplashPage } from "./pages/SplashPage.tsx";
-import { CoursesPage } from "./pages/CoursesPage.tsx";
 import type { UserRole } from "./types";
+
+const SplashPage = lazy(() => import("./pages/SplashPage").then((m) => ({ default: m.SplashPage })));
+const RoleSelectorPage = lazy(() => import("./pages/RoleSelectorPage").then((m) => ({ default: m.RoleSelectorPage })));
+const LoginPage = lazy(() => import("./pages/LoginPage").then((m) => ({ default: m.LoginPage })));
+const HomePage = lazy(() => import("./pages/dashboard/HomePage").then((m) => ({ default: m.HomePage })));
+const CoursesPage = lazy(() => import("./pages/CoursesPage").then((m) => ({ default: m.CoursesPage })));
+const PostsPage = lazy(() => import("./pages/dashboard/PostsPage").then((m) => ({ default: m.PostsPage })));
+const NotificationsPage = lazy(() =>
+  import("./pages/dashboard/NotificationsPage").then((m) => ({ default: m.NotificationsPage })),
+);
+const ProfilePage = lazy(() => import("./pages/dashboard/ProfilePage").then((m) => ({ default: m.ProfilePage })));
 
 function AuthLoading() {
   return (
@@ -15,6 +21,17 @@ function AuthLoading() {
         <p className="badge">Ahlul Athar</p>
         <h1>جاري التهيئة...</h1>
         <p className="muted">مزامنة الجلسة مع السحابة</p>
+      </section>
+    </main>
+  );
+}
+
+function RouteLoading() {
+  return (
+    <main className="center-page">
+      <section className="card splash-card">
+        <p className="badge">Ahlul Athar</p>
+        <h1>جاري فتح الصفحة...</h1>
       </section>
     </main>
   );
@@ -36,6 +53,7 @@ function ProtectedRoute({ role, children }: { role: UserRole; children: ReactEle
 
 function App() {
   return (
+    <Suspense fallback={<RouteLoading />}>
     <Routes>
       <Route path="/" element={<SplashPage />} />
       <Route path="/role-selector" element={<RoleSelectorPage />} />
@@ -122,6 +140,7 @@ function App() {
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   );
 }
 
