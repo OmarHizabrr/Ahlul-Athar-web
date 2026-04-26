@@ -24,6 +24,9 @@ const StudentCourseViewPage = lazy(() =>
 const StudentLessonViewPage = lazy(() =>
   import("./pages/StudentLessonViewPage").then((m) => ({ default: m.StudentLessonViewPage })),
 );
+const StudentQuizViewPage = lazy(() =>
+  import("./pages/StudentQuizViewPage").then((m) => ({ default: m.StudentQuizViewPage })),
+);
 const AdminCourseLessonsPage = lazy(() =>
   import("./pages/AdminCourseLessonsPage").then((m) => ({ default: m.AdminCourseLessonsPage })),
 );
@@ -166,6 +169,14 @@ function App() {
             element={
               <ProtectedRoute role="student">
                 <StudentLessonViewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/course/:courseId/lesson/:lessonId/quiz/:quizId"
+            element={
+              <ProtectedRoute role="student">
+                <StudentQuizViewPage />
               </ProtectedRoute>
             }
           />

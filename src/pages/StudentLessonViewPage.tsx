@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { canStudentOpenLesson } from "../services/lessonAccessService";
+import {
+  canStudentOpenLesson,
+  getLessonQuizzesForStudent,
+  type LessonQuizItem,
+} from "../services/lessonAccessService";
 import { isStudentEnrolledInCourse } from "../services/myCoursesService";
 import { lessonsService } from "../services/lessonsService";
 import type { Lesson } from "../types";
@@ -40,6 +44,7 @@ export function StudentLessonViewPage() {
   const { courseId = "", lessonId = "" } = useParams();
   const { user, ready } = useAuth();
   const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [quizzes, setQuizzes] = useState<LessonQuizItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
@@ -53,6 +58,7 @@ export function StudentLessonViewPage() {
     if (!ok) {
       setErr("ليس لديك صلاحية لعرض دروس هذا المقرر.");
       setLesson(null);
+      setQuizzes([]);
       setLoading(false);
       return;
     }
@@ -60,15 +66,19 @@ export function StudentLessonViewPage() {
     if (!access.ok) {
       setErr(access.message ?? "لا يمكن فتح هذا الدرس.");
       setLesson(null);
+      setQuizzes([]);
       setLoading(false);
       return;
     }
     try {
       const L = await lessonsService.getById(courseId, lessonId);
       setLesson(L);
+      const qz = await getLessonQuizzesForStudent(user.uid, lessonId);
+      setQuizzes(qz);
     } catch {
       setErr("تعذر تحميل الدرس (صلاحيات أو الدرس غير موجود).");
       setLesson(null);
+      setQuizzes([]);
     } finally {
       setLoading(false);
     }
@@ -119,6 +129,33 @@ export function StudentLessonViewPage() {
           {lesson.txtContent || lesson.content ? (
             <div className="lesson-body">
               <pre className="lesson-pre">{String(lesson.txtContent ?? lesson.content ?? "")}</pre>
+            </div>
+          ) : null}
+          {quizzes.length > 0 ? (
+            <div className="lesson-quiz-section">
+              <h3 className="form-section-title">اختبارات الدرس</h3>
+              <ul className="lesson-quiz-list">
+                {quizzes.map((q) => (
+                  <li key={q.quizFileId}>
+                    <div className="lesson-quiz-row">
+                      <span className="lesson-quiz-title">{q.title}</span>
+                      <span className="lesson-quiz-pill" data-st={q.status}>
+                        {q.status === "graded"
+                          ? "مُتاح / مقيّم"
+                          : q.status === "pending"
+                            ? "قيد التصحيح"
+                            : "لم يُرسل"}
+                      </span>
+                      <Link
+                        className="ghost-btn"
+                        to={`/student/course/${courseId}/lesson/${lessonId}/quiz/${q.quizFileId}`}
+                      >
+                        التفاصيل
+                      </Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
         </>

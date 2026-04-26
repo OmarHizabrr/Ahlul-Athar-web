@@ -956,4 +956,172 @@ button:disabled {
   .request-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(288px, 90vw);
+    height: 100%;
+    min-height: 100dvh;
+    z-index: 200;
+    margin: 0;
+    border-radius: 0 0 0 12px;
+    transform: translateX(100%);
+    transition: transform 0.2s ease;
+    overflow-y: auto;
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.35);
+  }
+
+  .dashboard-page--nav-open .sidebar {
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+.mobile-topbar {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 0.35rem 0.2rem 0.5rem 0.35rem;
+  border-bottom: 1px solid #334155;
+  margin: 0 0 0.35rem;
+}
+
+.mobile-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  background: #0b1120;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.mobile-menu-btn:hover {
+  border-color: #475569;
+}
+
+.sidebar-top {
+  display: none;
+  justify-content: flex-end;
+  margin-bottom: 0.4rem;
+}
+
+.sidebar-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.sidebar-close-btn:hover {
+  color: #e2e8f0;
+  background: #0b1120;
+}
+
+.lesson-quiz-section {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #334155;
+}
+
+.lesson-quiz-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lesson-quiz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: #0b1120;
+}
+
+.lesson-quiz-title {
+  flex: 1 1 8rem;
+  min-width: 0;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+}
+
+.lesson-quiz-pill {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  font-weight: 600;
+  border: 1px solid #334155;
+  color: #94a3b8;
+}
+
+.lesson-quiz-pill[data-st="graded"] {
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(22, 163, 74, 0.15);
+}
+
+.lesson-quiz-pill[data-st="pending"] {
+  color: #fde68a;
+  border-color: rgba(245, 158, 11, 0.25);
+  background: rgba(180, 83, 9, 0.15);
+}
+
+.quiz-view-card {
+  margin-top: 0.5rem;
+  padding: 1rem;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  background: #0b1120;
+}
+
+.quiz-desc {
+  margin: 0.5rem 0 0;
+  color: #cbd5e1;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.quiz-score {
+  margin: 0.5rem 0 0;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.quiz-hint {
+  margin: 0.75rem 0 0;
+}
+
+/* يظهر شريط القائمة/زر الإغلاق على الموبايل فقط (يتجاوز display:none الافتراضي) */
+@media (max-width: 900px) {
+  .mobile-topbar {
+    display: flex;
+  }
+
+  .sidebar-top {
+    display: flex;
+  }
 }

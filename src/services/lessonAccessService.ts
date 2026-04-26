@@ -36,7 +36,7 @@ async function listQuizFilesForLesson(lessonId: string): Promise<{ id: string; d
 /**
  * `quiz_answers/{quizFileId}/quiz_answers` — إجابة الطلب الحالية (كما getStudentAnswerForQuizFile).
  */
-async function getStudentAnswerForQuiz(
+export async function getStudentAnswerForQuiz(
   quizFileId: string,
   studentId: string,
 ): Promise<Record<string, unknown> | null> {
@@ -48,6 +48,54 @@ async function getStudentAnswerForQuiz(
     return null;
   }
   return { id: d.id, ...d.data() } as Record<string, unknown>;
+}
+
+/**
+ * بيانات ملف اختبار درس (مستند `quiz_files/{lessonId}/quiz_files/{id}`).
+ */
+export async function getQuizFileById(
+  lessonId: string,
+  quizFileId: string,
+): Promise<DocumentData | null> {
+  const r = doc(db, "quiz_files", lessonId, "quiz_files", quizFileId);
+  const s = await getDoc(r);
+  if (!s.exists()) {
+    return null;
+  }
+  return s.data();
+}
+
+export type LessonQuizItemStatus = "none" | "pending" | "graded";
+
+export type LessonQuizItem = {
+  quizFileId: string;
+  title: string;
+  status: LessonQuizItemStatus;
+};
+
+/**
+ * اختبارات الدرس وحالة إجابة الطالب (للواجهة).
+ */
+export async function getLessonQuizzesForStudent(
+  studentId: string,
+  lessonId: string,
+): Promise<LessonQuizItem[]> {
+  const files = await listQuizFilesForLesson(lessonId);
+  const out: LessonQuizItem[] = [];
+  for (const f of files) {
+    const d = f.data;
+    const title = String(
+      d.title ?? d.name ?? d.quizTitle ?? (d as { label?: string }).label ?? "اختبار",
+    );
+    const ans = await getStudentAnswerForQuiz(f.id, studentId);
+    let status: LessonQuizItemStatus = "none";
+    if (ans) {
+      const s = String(ans.status ?? "");
+      status = s === "graded" ? "graded" : "pending";
+    }
+    out.push({ quizFileId: f.id, title, status });
+  }
+  return out;
 }
 
 /**
