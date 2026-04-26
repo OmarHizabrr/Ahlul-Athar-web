@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageLoadHint } from "../../components/ButtonBusyLabel";
+import { AlertMessage, ShortcutNav, StatTile, WelcomeHeading } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { DashboardLayout } from "../DashboardLayout";
 import { coursesService } from "../../services/coursesService";
@@ -8,6 +9,21 @@ import { myCoursesService } from "../../services/myCoursesService";
 import { notificationsService } from "../../services/notificationsService";
 import { postsService } from "../../services/postsService";
 import type { UserRole } from "../../types";
+
+const SHORTCUTS_ADMIN = [
+  { to: "/admin/courses", label: "الدورات" },
+  { to: "/admin/posts", label: "المنشورات" },
+  { to: "/admin/notifications", label: "الإشعارات" },
+  { to: "/admin/settings", label: "الإعدادات" },
+] as const;
+
+const SHORTCUTS_STUDENT = [
+  { to: "/student/mycourses", label: "مقرراتي" },
+  { to: "/student/enrollment-requests", label: "طلباتي" },
+  { to: "/student/courses", label: "الدورات" },
+  { to: "/student/posts", label: "المنشورات" },
+  { to: "/student/notifications", label: "الإشعارات" },
+] as const;
 
 export function HomePage({ role }: { role: UserRole }) {
   const { user, ready } = useAuth();
@@ -84,69 +100,69 @@ export function HomePage({ role }: { role: UserRole }) {
         <PageLoadHint />
       ) : (
         <>
-          <p className="home-welcome">مرحباً، {displayName}.</p>
-          <nav className="home-shortcuts" aria-label="اختصارات سريعة">
-            {role === "admin" ? (
-              <>
-                <Link to="/admin/courses">الدورات</Link>
-                <Link to="/admin/posts">المنشورات</Link>
-                <Link to="/admin/notifications">الإشعارات</Link>
-                <Link to="/admin/settings">الإعدادات</Link>
-              </>
-            ) : (
-              <>
-                <Link to="/student/mycourses">مقرراتي</Link>
-                <Link to="/student/enrollment-requests">طلباتي</Link>
-                <Link to="/student/courses">الدورات</Link>
-                <Link to="/student/posts">المنشورات</Link>
-                <Link to="/student/notifications">الإشعارات</Link>
-              </>
-            )}
-          </nav>
-          {loadError ? <p className="message error">{loadError}</p> : null}
+          <WelcomeHeading>مرحباً، {displayName}.</WelcomeHeading>
+          <ShortcutNav items={role === "admin" ? [...SHORTCUTS_ADMIN] : [...SHORTCUTS_STUDENT]} />
+          {loadError ? <AlertMessage kind="error">{loadError}</AlertMessage> : null}
           <div className="grid-2 home-stats-grid">
-            <div className="card-stat stat-tile">
-              <strong>الدورات في الكتالوج</strong>
-              <span className="stat-num">{courseCount}</span>
-              <Link to={`${base}/courses`} className="inline-link">
-                الانتقال للدورات
-              </Link>
-            </div>
-            {role === "admin" ? (
-              <div className="card-stat stat-tile">
-                <strong>طلبات معلّقة</strong>
-                <span className="stat-num">{pendingCount}</span>
+            <StatTile
+              title="الدورات في الكتالوج"
+              highlight={courseCount}
+              action={
                 <Link to={`${base}/courses`} className="inline-link">
-                  معالجة من صفحة الدورات
+                  الانتقال للدورات
                 </Link>
-              </div>
+              }
+            />
+            {role === "admin" ? (
+              <StatTile
+                title="طلبات معلّقة"
+                highlight={pendingCount}
+                action={
+                  <Link to={`${base}/courses`} className="inline-link">
+                    معالجة من صفحة الدورات
+                  </Link>
+                }
+              />
             ) : (
-              <div className="card-stat stat-tile">
-                <strong>مقرراتي</strong>
-                <span className="stat-num">{myCoursesCount}</span>
-                <Link to="/student/mycourses" className="inline-link">
-                  فتح مقرراتي
-                </Link>
-              </div>
+              <StatTile
+                title="مقرراتي"
+                highlight={myCoursesCount}
+                action={
+                  <Link to="/student/mycourses" className="inline-link">
+                    فتح مقرراتي
+                  </Link>
+                }
+              />
             )}
             {role === "student" ? (
-              <div className="card-stat stat-tile">
-                <strong>طلبات انضمام معلّقة</strong>
-                <span className="stat-num">{pendingEnrollmentCount}</span>
-                <Link to="/student/enrollment-requests" className="inline-link">
-                  سجل «طلباتي»
-                </Link>
-              </div>
+              <StatTile
+                title="طلبات انضمام معلّقة"
+                highlight={pendingEnrollmentCount}
+                action={
+                  <Link to="/student/enrollment-requests" className="inline-link">
+                    سجل «طلباتي»
+                  </Link>
+                }
+              />
             ) : null}
-            <div className="card-stat stat-tile">
-              <strong>إشعارات غير مقروءة</strong>
-              <span className="stat-num">{unread}</span>
-              <Link to={`${base}/notifications`} className="inline-link">
-                عرض الإشعارات
-              </Link>
-            </div>
-            <div className="card-stat stat-tile stat-tile-wide">
-              <strong>آخر المنشورات</strong>
+            <StatTile
+              title="إشعارات غير مقروءة"
+              highlight={unread}
+              action={
+                <Link to={`${base}/notifications`} className="inline-link">
+                  عرض الإشعارات
+                </Link>
+              }
+            />
+            <StatTile
+              title="آخر المنشورات"
+              wide
+              action={
+                <Link to={`${base}/posts`} className="inline-link">
+                  كل المنشورات
+                </Link>
+              }
+            >
               {recentTitles.length === 0 ? (
                 <p className="muted small">لا توجد منشورات بعد.</p>
               ) : (
@@ -156,10 +172,7 @@ export function HomePage({ role }: { role: UserRole }) {
                   ))}
                 </ul>
               )}
-              <Link to={`${base}/posts`} className="inline-link">
-                كل المنشورات
-              </Link>
-            </div>
+            </StatTile>
           </div>
         </>
       )}

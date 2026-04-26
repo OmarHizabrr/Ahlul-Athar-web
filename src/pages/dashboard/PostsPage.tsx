@@ -5,6 +5,7 @@ import { DashboardLayout } from "../DashboardLayout";
 import { postsService } from "../../services/postsService";
 import type { Post, UserRole } from "../../types";
 import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
+import { AlertMessage, ContentList, ContentListItem, EmptyState, FormPanel, SectionTitle } from "../../components/ui";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
 
 const postsLede: Record<UserRole, string> = {
@@ -99,8 +100,8 @@ export function PostsPage({ role }: { role: UserRole }) {
   return (
     <DashboardLayout role={role} title="المنشورات" lede={postsLede[role]}>
       {role === "admin" && user ? (
-        <form className="course-form card-elevated" onSubmit={onSubmit}>
-          <h3 className="form-section-title">{editingId ? "تعديل منشور" : "إنشاء منشور"}</h3>
+        <FormPanel onSubmit={onSubmit}>
+          <SectionTitle as="h3">{editingId ? "تعديل منشور" : "إنشاء منشور"}</SectionTitle>
           {editingId ? (
             <p className="muted small">
               تعديل المنشور الحالي.{" "}
@@ -146,24 +147,20 @@ export function PostsPage({ role }: { role: UserRole }) {
               </button>
             ) : null}
           </div>
-        </form>
+        </FormPanel>
       ) : null}
 
-      {message ? <p className={isError ? "message error" : "message success"}>{message}</p> : null}
+      {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
 
       {loading ? (
         <PageLoadHint />
       ) : (
-        <div className="course-list">
+        <ContentList>
           {posts.length === 0 ? (
-            <div className="empty-state-card" style={{ maxWidth: "100%" }}>
-              <p className="muted" style={{ margin: 0 }}>
-                لا توجد منشورات بعد.
-              </p>
-            </div>
+            <EmptyState message="لا توجد منشورات بعد." />
           ) : (
             posts.map((p) => (
-              <article className="course-item" key={p.id}>
+              <ContentListItem key={p.id}>
                 <h2 className="post-title">{p.title}</h2>
                 <p className="muted post-meta">
                   {p.authorName} · {formatFirestoreTime(p.createdAt)}
@@ -227,10 +224,10 @@ export function PostsPage({ role }: { role: UserRole }) {
                     </button>
                   </div>
                 ) : null}
-              </article>
+              </ContentListItem>
             ))
           )}
-        </div>
+        </ContentList>
       )}
     </DashboardLayout>
   );

@@ -7,6 +7,7 @@ import { lessonsService } from "../services/lessonsService";
 import type { Course, Lesson } from "../types";
 import { IoEyeOutline, IoListCircleOutline, IoPencil, IoTrashOutline } from "react-icons/io5";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
+import { AlertMessage, ContentList, ContentListItem, FormPanel, SectionTitle } from "../components/ui";
 import { formatFirestoreTime } from "../utils/firestoreTime";
 import { DashboardLayout } from "./DashboardLayout";
 
@@ -242,10 +243,10 @@ export function AdminCourseLessonsPage() {
         <p className="message error">المقرر غير موجود.</p>
       ) : (
         <>
-          {message ? <p className={isError ? "message error" : "message success"}>{message}</p> : null}
+          {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
           <p className="muted small">نفس مسار التطبيق: مجموعة lessons ثم مُعرّف المقرر ثم وثائق الدرس.</p>
-          <form className="course-form card-elevated" onSubmit={onSubmit}>
-            <h3 className="form-section-title">{editingId ? "تعديل الدرس" : "إضافة درس"}</h3>
+          <FormPanel onSubmit={onSubmit}>
+            <SectionTitle as="h3">{editingId ? "تعديل الدرس" : "إضافة درس"}</SectionTitle>
             {editingId ? (
               <p className="muted small">
                 تعديل الدرس الحالي.{" "}
@@ -374,17 +375,17 @@ export function AdminCourseLessonsPage() {
                 </button>
               ) : null}
             </div>
-          </form>
+          </FormPanel>
 
-          <h3 className="form-section-title" style={{ marginTop: "1rem" }}>
+          <SectionTitle as="h3" className="form-section-title--spaced">
             الدروس الحالية
-          </h3>
+          </SectionTitle>
           {lessons.length === 0 ? (
             <p className="muted">لا دروس.</p>
           ) : (
-            <div className="course-list">
+            <ContentList>
               {lessons.map((L) => (
-                <article className="course-item" key={L.id}>
+                <ContentListItem key={L.id}>
                   <h4 className="post-title">{L.title}</h4>
                   <p className="muted post-meta">
                     {formatFirestoreTime(L.createdAt)} · {L.contentType || "نص"}
@@ -440,9 +441,9 @@ export function AdminCourseLessonsPage() {
                       <span className="icon-tool-label">حذف</span>
                     </button>
                   </div>
-                </article>
+                </ContentListItem>
               ))}
-            </div>
+            </ContentList>
           )}
         </>
       )}

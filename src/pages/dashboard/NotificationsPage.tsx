@@ -6,6 +6,16 @@ import { notificationsService } from "../../services/notificationsService";
 import { usersService } from "../../services/usersService";
 import type { UserRole } from "../../types";
 import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
+import {
+  AlertMessage,
+  ContentList,
+  ContentListItem,
+  EmptyState,
+  FormPanel,
+  PageToolbar,
+  SectionTitle,
+} from "../../components/ui";
+import { cn } from "../../utils/cn";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
 
 export function NotificationsPage({ role }: { role: UserRole }) {
@@ -125,8 +135,8 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       lede="نفس مزامنة الإشعارات مع تطبيق الجوال. يُحدَّث العداد في الشريط عند تعليم القراءة."
     >
       {role === "admin" && u ? (
-        <form className="course-form card-elevated" onSubmit={onSend}>
-          <h3 className="form-section-title">إرسال إشعار لمستخدم</h3>
+        <FormPanel onSubmit={onSend}>
+          <SectionTitle as="h3">إرسال إشعار لمستخدم</SectionTitle>
           <label>
             <span>المستلم</span>
             {usersPick.length > 0 ? (
@@ -174,12 +184,12 @@ export function NotificationsPage({ role }: { role: UserRole }) {
           <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
             <ButtonBusyLabel busy={submitting}>إرسال</ButtonBusyLabel>
           </button>
-        </form>
+        </FormPanel>
       ) : null}
 
-      {message ? <p className={isError ? "message error" : "message success"}>{message}</p> : null}
+      {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
 
-      <div className="toolbar notif-toolbar">
+      <PageToolbar className="notif-toolbar">
         <p className="muted">الإشعارات الخاصة بك</p>
         {items.some((i) => !i.read) ? (
           <button
@@ -192,20 +202,19 @@ export function NotificationsPage({ role }: { role: UserRole }) {
             <ButtonBusyLabel busy={submitting}>تعليم الكل كمقروء</ButtonBusyLabel>
           </button>
         ) : null}
-      </div>
+      </PageToolbar>
 
       {loading ? (
         <PageLoadHint />
       ) : items.length === 0 ? (
-        <div className="empty-state-card" style={{ maxWidth: "100%" }}>
-          <p className="muted" style={{ margin: 0 }}>
-            لا توجد إشعارات.
-          </p>
-        </div>
+        <EmptyState message="لا توجد إشعارات." />
       ) : (
-        <div className="course-list">
+        <ContentList>
           {items.map((n) => (
-            <article className={`course-item notif-item ${n.read ? "read" : "unread"}`} key={n.id}>
+            <ContentListItem
+              key={n.id}
+              className={cn("notif-item", n.read ? "read" : "unread")}
+            >
               <h2 className="post-title">{n.title}</h2>
               <p className="muted post-meta">{formatFirestoreTime(n.createdAt)}</p>
               <p className="post-body">{n.body}</p>
@@ -222,9 +231,9 @@ export function NotificationsPage({ role }: { role: UserRole }) {
                   </button>
                 </div>
               ) : null}
-            </article>
+            </ContentListItem>
           ))}
-        </div>
+        </ContentList>
       )}
     </DashboardLayout>
   );

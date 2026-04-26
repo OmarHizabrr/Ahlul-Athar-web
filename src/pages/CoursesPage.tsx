@@ -6,6 +6,14 @@ import { coursesService } from "../services/coursesService";
 import { myCoursesService } from "../services/myCoursesService";
 import type { Course, EnrollmentRequest, UserRole } from "../types";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
+import {
+  AlertMessage,
+  ContentList,
+  ContentListItem,
+  EmptyState,
+  FormPanel,
+  PageToolbar,
+} from "../components/ui";
 import { AdminEnrollmentRequestsPanel } from "./course/AdminEnrollmentRequestsPanel";
 import { CourseActivationModal } from "./course/CourseActivationModal";
 import { IoEyeOutline } from "react-icons/io5";
@@ -282,7 +290,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
   return (
     <DashboardLayout role={role} title="الدورات" lede={pageLede}>
       {role === "admin" ? (
-        <form className="course-form card-elevated" onSubmit={onSubmit}>
+        <FormPanel onSubmit={onSubmit}>
           <input
             value={form.title}
             onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
@@ -320,10 +328,10 @@ export function CoursesPage({ role }: { role: UserRole }) {
               إلغاء التعديل
             </button>
           ) : null}
-        </form>
+        </FormPanel>
       ) : null}
 
-      <div className="toolbar">
+      <PageToolbar>
         <input
           className="course-search"
           value={search}
@@ -349,24 +357,24 @@ export function CoursesPage({ role }: { role: UserRole }) {
         >
           <ButtonBusyLabel busy={loading}>تحديث الدورات</ButtonBusyLabel>
         </button>
-      </div>
+      </PageToolbar>
 
-      {message ? <p className={isError ? "message error" : "message success"}>{message}</p> : null}
+      {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
 
       {loading ? (
         <PageLoadHint text="جاري تحميل الدورات..." />
       ) : filtered.length === 0 ? (
-        <div className="empty-state-card" style={{ maxWidth: "100%" }}>
-          <p className="muted" style={{ margin: 0 }}>
-            {search.trim()
+        <EmptyState
+          message={
+            search.trim()
               ? "لا نتائج تطابق البحث. جرّب كلمات أخرى أو امسح حقل البحث."
-              : "لا توجد مقررات في القائمة بعد."}
-          </p>
-        </div>
+              : "لا توجد مقررات في القائمة بعد."
+          }
+        />
       ) : (
-        <div className="course-list">
+        <ContentList>
           {filtered.map((course) => (
-            <article className="course-item" key={course.id}>
+            <ContentListItem key={course.id}>
               <h3>{course.title}</h3>
               <p className="muted">{course.description}</p>
               <div className="course-meta">
@@ -422,9 +430,9 @@ export function CoursesPage({ role }: { role: UserRole }) {
                   />
                 )}
               </div>
-            </article>
+            </ContentListItem>
           ))}
-        </div>
+        </ContentList>
       )}
 
       {role === "admin" ? (

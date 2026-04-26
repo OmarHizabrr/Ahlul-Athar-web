@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
+import { AlertMessage, ContentList, ContentListItem, EmptyState, PageToolbar } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
 import { myCoursesService } from "../services/myCoursesService";
@@ -78,7 +79,7 @@ export function StudentEnrollmentRequestsPage() {
       title="طلباتي"
       lede="تتبّع حالة طلبات الانضمام للمقررات — نفس سجل «طلباتي» / الدورات في تطبيق الجوال."
     >
-      <div className="toolbar">
+      <PageToolbar>
         <button
           type="button"
           className="ghost-btn toolbar-btn"
@@ -94,22 +95,18 @@ export function StudentEnrollmentRequestsPage() {
         <Link to="/student/mycourses" className="ghost-btn toolbar-btn">
           مقرراتي
         </Link>
-      </div>
-      {message ? <p className="message error">{message}</p> : null}
+      </PageToolbar>
+      {message ? <AlertMessage kind="error">{message}</AlertMessage> : null}
       {loading ? (
         <PageLoadHint />
       ) : rows.length === 0 ? (
-        <div className="empty-state-card" style={{ maxWidth: "100%" }}>
-          <p className="muted" style={{ margin: 0 }}>
-            لا توجد طلبات انضمام حتى الآن. تصفح «الدورات» واطلب الانضمام للمقررات المتاحة.
-          </p>
-        </div>
+        <EmptyState message='لا توجد طلبات انضمام حتى الآن. تصفح «الدورات» واطلب الانضمام للمقررات المتاحة.' />
       ) : (
-        <div className="course-list">
+        <ContentList>
           {rows.map((r) => {
             const inMy = enrolled.has(r.targetId);
             return (
-              <article className="course-item enrollment-req-item" key={r.id}>
+              <ContentListItem key={r.id} className="enrollment-req-item">
                 <h3 className="post-title">{r.targetName || "مقرر"}</h3>
                 <p className="muted post-meta small">
                   طُلب في {formatFirestoreTime(r.requestedAt)}
@@ -143,10 +140,10 @@ export function StudentEnrollmentRequestsPage() {
                     </Link>
                   ) : null}
                 </div>
-              </article>
+              </ContentListItem>
             );
           })}
-        </div>
+        </ContentList>
       )}
     </DashboardLayout>
   );

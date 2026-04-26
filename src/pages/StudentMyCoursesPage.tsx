@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
+import { AlertMessage, ContentList, ContentListItem, EmptyState, PageToolbar } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
+import { cn } from "../utils/cn";
 import { DashboardLayout } from "./DashboardLayout";
 import { myCoursesService } from "../services/myCoursesService";
 import type { MyCourseEntry } from "../types";
@@ -53,7 +55,7 @@ export function StudentMyCoursesPage() {
       title="مقرراتي"
       lede="الدورات التي وافقت الإدارة على انضمامك إليها — يطابق تبويب «دوراتي» في تطبيق الجوال."
     >
-      <div className="toolbar">
+      <PageToolbar>
         <button
           type="button"
           className="ghost-btn toolbar-btn"
@@ -66,27 +68,26 @@ export function StudentMyCoursesPage() {
         <Link to="/student/courses" className="ghost-btn toolbar-btn">
           تصفح الكتالوج
         </Link>
-      </div>
-      {message ? <p className="message error">{message}</p> : null}
+      </PageToolbar>
+      {message ? <AlertMessage kind="error">{message}</AlertMessage> : null}
       {loading ? (
         <PageLoadHint />
       ) : rows.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-card">
-            <p className="muted">لا يوجد مقررات مسجّل بها بعد.</p>
+          <EmptyState message="لا يوجد مقررات مسجّل بها بعد.">
             <p className="empty-state-actions">
               <Link to="/student/courses" className="primary-btn">
                 الذهاب لصفحة الدورات وطلب الانضمام
               </Link>
             </p>
-          </div>
+          </EmptyState>
         </div>
       ) : (
-        <div className="course-list">
+        <ContentList>
           {rows.map((c) => (
-            <article
-              className={`course-item mycourse-card${c.courseImageURL ? " mycourse-card--cover" : ""}`}
+            <ContentListItem
               key={c.courseId}
+              className={cn("mycourse-card", c.courseImageURL && "mycourse-card--cover")}
             >
               {c.courseImageURL ? (
                 <div className="mycourse-cover">
@@ -119,9 +120,9 @@ export function StudentMyCoursesPage() {
                   </Link>
                 </div>
               </div>
-            </article>
+            </ContentListItem>
           ))}
-        </div>
+        </ContentList>
       )}
     </DashboardLayout>
   );

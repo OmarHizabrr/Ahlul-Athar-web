@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
+import { Panel } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { DashboardLayout } from "../DashboardLayout";
 import { authService } from "../../services/authService";
@@ -40,7 +41,7 @@ export function SettingsPage({ role }: { role: UserRole }) {
       title="الإعدادات"
       lede="اختصارات للحساب والجلسة — تفاصيل الملف والخروج متاحة أيضاً من الشريط العلوي."
     >
-      <div className="card-elevated settings-card">
+      <Panel className="settings-card">
         <ul className="settings-links">
           <li>
             <Link className="settings-link" to={`${base}/profile`}>
@@ -77,7 +78,7 @@ export function SettingsPage({ role }: { role: UserRole }) {
             </Link>
           </li>
         </ul>
-      </div>
+      </Panel>
       <div className="settings-meta">
         <p className="muted small">
           الحساب: {user?.email || "—"} · الدور: {role === "admin" ? "مسؤول" : "طالب"}

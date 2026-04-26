@@ -4,6 +4,23 @@
   background: #020617;
   line-height: 1.4;
   font-weight: 400;
+
+  /* توكنات واجهة موحّدة (مكوّنات ui) */
+  --ah-radius-sm: 10px;
+  --ah-radius-md: 14px;
+  --ah-radius-lg: 20px;
+  --ah-border: rgba(51, 65, 85, 0.88);
+  --ah-border-subtle: rgba(71, 85, 105, 0.65);
+  --ah-surface-0: #020617;
+  --ah-surface-1: #0b1120;
+  --ah-surface-2: rgba(15, 23, 42, 0.55);
+  --ah-text: #e2e8f0;
+  --ah-muted: #94a3b8;
+  --ah-accent: #93c5fd;
+  --ah-accent-2: #7dd3fc;
+  --ah-info-bg: rgba(8, 47, 73, 0.35);
+  --ah-info-fg: #bae6fd;
+  --ah-info-border: rgba(56, 189, 248, 0.35);
 }
 
 * {
@@ -756,7 +773,8 @@ input:focus {
   max-width: 28rem;
 }
 
-.empty-state-card .muted {
+.empty-state-card .muted,
+.empty-state-card__text {
   margin: 0 0 0.75rem;
 }
 
@@ -799,6 +817,11 @@ input:focus {
   margin: 0 0 0.25rem;
   font-size: 1.05rem;
   color: #e2e8f0;
+}
+
+.form-section-title--spaced {
+  margin-top: 1rem !important;
+  margin-bottom: 0.35rem;
 }
 
 .course-form label span,
@@ -1130,6 +1153,12 @@ input:focus {
 .message.error {
   background: rgba(220, 38, 38, 0.16);
   color: #fecaca;
+}
+
+.message.info {
+  color: var(--ah-info-fg);
+  background: var(--ah-info-bg);
+  border: 1px solid var(--ah-info-border);
 }
 
 .message.error.error-detail {
