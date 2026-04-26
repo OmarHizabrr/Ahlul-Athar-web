@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
 import { lessonsService } from "../services/lessonsService";
 import type { Course, Lesson } from "../types";
+import { IoPencil, IoTrashOutline } from "react-icons/io5";
 import { formatFirestoreTime } from "../utils/firestoreTime";
 import { DashboardLayout } from "./DashboardLayout";
 
@@ -29,6 +30,29 @@ export function AdminCourseLessonsPage() {
   const [content, setContent] = useState("");
   const [contentType, setContentType] = useState<string>("text");
   const [hasMandatoryQuiz, setHasMandatoryQuiz] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const resetForm = () => {
+    setEditingId(null);
+    setTitle("");
+    setDescription("");
+    setContent("");
+    setContentType("text");
+    setHasMandatoryQuiz(false);
+  };
+
+  const startEdit = (L: Lesson) => {
+    setEditingId(L.id);
+    setTitle(L.title);
+    setDescription(L.description ?? "");
+    setContent(String(L.txtContent ?? L.content ?? ""));
+    setContentType(L.contentType || "text");
+    setHasMandatoryQuiz(L.hasMandatoryQuiz === true);
+    setMessage("");
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
 
   const load = useCallback(async () => {
     if (!courseId) {
@@ -54,7 +78,7 @@ export function AdminCourseLessonsPage() {
     }
   }, [ready, load]);
 
-  const onCreate = async (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!user) {
       return;
@@ -62,22 +86,33 @@ export function AdminCourseLessonsPage() {
     setSubmitting(true);
     setMessage("");
     try {
-      await lessonsService.createLesson(user, courseId, {
-        title: title.trim(),
-        description: description.trim(),
-        content: content.trim(),
-        contentType,
-        hasMandatoryQuiz,
-      });
-      setTitle("");
-      setDescription("");
-      setContent("");
-      setHasMandatoryQuiz(false);
-      setMessage("تم إضافة الدرس وتحديث العدد في المقرر.");
+      if (editingId) {
+        await lessonsService.updateLesson(courseId, editingId, {
+          title: title.trim(),
+          description: description.trim(),
+          content: content.trim(),
+          contentType,
+          hasMandatoryQuiz,
+        });
+        setMessage("تم حفظ تعديلات الدرس.");
+      } else {
+        await lessonsService.createLesson(user, courseId, {
+          title: title.trim(),
+          description: description.trim(),
+          content: content.trim(),
+          contentType,
+          hasMandatoryQuiz,
+        });
+        setMessage("تم إضافة الدرس وتحديث العدد في المقرر.");
+        resetForm();
+      }
       setIsError(false);
+      if (editingId) {
+        resetForm();
+      }
       await load();
     } catch {
-      setMessage("فشلت الإضافة. تحقق من القواعد.");
+      setMessage(editingId ? "فشل حفظ التعديل. تحقق من القواعد." : "فشلت الإضافة. تحقق من القواعد.");
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -132,8 +167,16 @@ export function AdminCourseLessonsPage() {
         <>
           {message ? <p className={isError ? "message error" : "message success"}>{message}</p> : null}
           <p className="muted small">نفس مسار التطبيق: مجموعة lessons ثم مُعرّف المقرر ثم وثائق الدرس.</p>
-          <form className="course-form" onSubmit={onCreate}>
-            <h3 className="form-section-title">إضافة درس</h3>
+          <form className="course-form" onSubmit={onSubmit}>
+            <h3 className="form-section-title">{editingId ? "تعديل الدرس" : "إضافة درس"}</h3>
+            {editingId ? (
+              <p className="muted small">
+                تعديل الدرس الحالي.{" "}
+                <button type="button" className="link-btn" onClick={resetForm} disabled={submitting}>
+                  إلغاء والعودة لإضافة درس جديد
+                </button>
+              </p>
+            ) : null}
             <label>
               <span>عنوان الدرس</span>
               <input className="text-input" value={title} onChange={(e) => setTitle(e.target.value)} required />
@@ -179,9 +222,16 @@ export function AdminCourseLessonsPage() {
               />
               <span>اختبار إجباري قبل الدرس التالي (hasMandatoryQuiz)</span>
             </label>
-            <button className="primary-btn" type="submit" disabled={submitting}>
-              {submitting ? "جاري..." : "حفظ الدرس"}
-            </button>
+            <div className="form-actions-row">
+              <button className="primary-btn" type="submit" disabled={submitting}>
+                {submitting ? "جاري..." : editingId ? "حفظ التعديلات" : "حفظ الدرس"}
+              </button>
+              {editingId ? (
+                <button type="button" className="ghost-btn" onClick={resetForm} disabled={submitting}>
+                  إلغاء التعديل
+                </button>
+              ) : null}
+            </div>
           </form>
 
           <h3 className="form-section-title" style={{ marginTop: "1rem" }}>
@@ -199,14 +249,28 @@ export function AdminCourseLessonsPage() {
                     {L.hasMandatoryQuiz ? " · إجباري للتالي" : ""}
                   </p>
                   <p className="muted">{L.description?.slice(0, 120) || "—"}</p>
-                  <div className="course-actions">
+                  <div className="course-actions lesson-admin-actions">
                     <button
                       type="button"
-                      className="ghost-btn"
+                      className="icon-tool-btn"
+                      onClick={() => startEdit(L)}
+                      disabled={submitting}
+                      title="تعديل الدرس"
+                      aria-label="تعديل الدرس"
+                    >
+                      <IoPencil size={20} />
+                      <span className="icon-tool-label">تعديل</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-tool-btn danger"
                       onClick={() => void onDelete(L)}
                       disabled={submitting}
+                      title="حذف الدرس"
+                      aria-label="حذف الدرس"
                     >
-                      حذف
+                      <IoTrashOutline size={20} />
+                      <span className="icon-tool-label">حذف</span>
                     </button>
                   </div>
                 </article>

@@ -102,6 +102,24 @@ export const lessonsService = {
     await updateDoc(courseRef, { lessonCount: increment(1), updatedAt: serverTimestamp() });
   },
 
+  async updateLesson(
+    courseId: string,
+    lessonId: string,
+    payload: { title: string; description: string; content: string; contentType: string; hasMandatoryQuiz?: boolean },
+  ) {
+    const lessonRef = doc(db, "lessons", courseId, "lessons", lessonId);
+    await updateDoc(lessonRef, {
+      title: payload.title,
+      description: payload.description,
+      content: payload.content,
+      contentType: payload.contentType,
+      hasMandatoryQuiz: payload.hasMandatoryQuiz === true,
+      updatedAt: serverTimestamp(),
+    });
+    const courseRef = doc(db, "courses", courseId);
+    await updateDoc(courseRef, { updatedAt: serverTimestamp() });
+  },
+
   async deleteLesson(courseId: string, lessonId: string) {
     const lessonRef = doc(db, "lessons", courseId, "lessons", lessonId);
     await deleteDoc(lessonRef);
