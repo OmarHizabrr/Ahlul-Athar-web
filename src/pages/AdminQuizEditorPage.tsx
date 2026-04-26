@@ -23,6 +23,7 @@ import { quizDocumentToScheduleFormStrings } from "../utils/quizScheduleFields";
 import { IoPencil, IoTrashOutline } from "react-icons/io5";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { VideoIntroBlock } from "../components/VideoIntroBlock";
+import { AlertMessage, EmptyState, FormPanel, Panel, SectionTitle } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
 
 const KINDS: { v: QuizQuestionKind; label: string }[] = [
@@ -315,12 +316,12 @@ export function AdminQuizEditorPage() {
       {loading ? (
         <PageLoadHint />
       ) : !quiz ? (
-        <p className="message error">{message || "الاختبار غير موجود."}</p>
+        <AlertMessage kind="error">{message || "الاختبار غير موجود."}</AlertMessage>
       ) : (
         <>
-          {message ? <p className={isError ? "message error" : "message success"}>{message}</p> : null}
-          <form className="course-form card-elevated" onSubmit={onSaveMeta}>
-            <h3 className="form-section-title">بيانات الاختبار</h3>
+          {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
+          <FormPanel onSubmit={onSaveMeta}>
+            <SectionTitle as="h3">بيانات الاختبار</SectionTitle>
             <label>
               <span>العنوان</span>
               <input
@@ -362,12 +363,12 @@ export function AdminQuizEditorPage() {
               </label>
             </div>
             {metaVideo.trim() ? (
-              <div className="admin-quiz-video-preview card-elevated">
+              <Panel className="admin-quiz-video-preview">
                 <p className="muted small" style={{ margin: "0 0 0.5rem" }}>
                   معاينة الفيديو (نفس الظهور لدى الطالب):
                 </p>
                 <VideoIntroBlock mediaUrl={metaVideo} title="معاينة فيديو الاختبار" compact />
-              </div>
+              </Panel>
             ) : null}
             <label className="switch-line">
               <input
@@ -404,13 +405,13 @@ export function AdminQuizEditorPage() {
             <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
               <ButtonBusyLabel busy={submitting}>حفظ بيانات الاختبار</ButtonBusyLabel>
             </button>
-          </form>
+          </FormPanel>
 
-          <h3 className="form-section-title" style={{ marginTop: "1.5rem" }}>
+          <SectionTitle as="h3" className="form-section-title--spaced-15">
             الأسئلة
-          </h3>
+          </SectionTitle>
           {questions.length === 0 ? (
-            <p className="muted">لا أسئلة بعد. أضف سؤالاً أدناه.</p>
+            <EmptyState message="لا أسئلة بعد. أضف سؤالاً أدناه." />
           ) : (
             <ul className="admin-quiz-question-list">
               {questions.map((Q) => {
@@ -450,8 +451,8 @@ export function AdminQuizEditorPage() {
             </ul>
           )}
 
-          <form className="course-form card-elevated" onSubmit={onSaveQuestion} style={{ marginTop: "1rem" }}>
-            <h3 className="form-section-title">{editingId ? "تعديل سؤال" : "سؤال جديد"}</h3>
+          <FormPanel onSubmit={onSaveQuestion} style={{ marginTop: "1rem" }}>
+            <SectionTitle as="h3">{editingId ? "تعديل سؤال" : "سؤال جديد"}</SectionTitle>
             {editingId ? (
               <p className="muted small">
                 <button type="button" className="link-btn" onClick={resetQuestionForm} disabled={submitting}>
@@ -507,17 +508,17 @@ export function AdminQuizEditorPage() {
                 </ButtonBusyLabel>
               </button>
             </div>
-          </form>
+          </FormPanel>
 
-          <h3 className="form-section-title" style={{ marginTop: "1.75rem" }}>
+          <SectionTitle as="h3" className="form-section-title--spaced-175">
             إجابات الطلاب والتصحيح
-          </h3>
+          </SectionTitle>
           <p className="muted small">
             باعتماد حالة <strong>graded</strong> يُحتسب اجتياز الاختبار لفتح الدرس التالي عند تفعيل «اختبار
             إجباري».
           </p>
           {submissions.length === 0 ? (
-            <p className="muted">لا إجابات مُرسلة بعد.</p>
+            <EmptyState message="لا إجابات مُرسلة بعد." />
           ) : (
             <ul className="admin-submissions-list">
               {submissions.map((S) => {

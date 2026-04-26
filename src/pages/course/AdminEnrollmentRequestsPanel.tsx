@@ -1,4 +1,13 @@
 import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
+import {
+  ContentList,
+  ContentListItem,
+  CoverImage,
+  cn,
+  EmptyState,
+  PageToolbar,
+  SectionTitle,
+} from "../../components/ui";
 import type { EnrollmentRequest } from "../../types";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
 import { emptyRequestsMessage, requestStatusLabel } from "./EnrollmentRequestHelpers";
@@ -28,16 +37,18 @@ export function AdminEnrollmentRequestsPanel({
   return (
     <section className="requests-panel">
       <div className="requests-header">
-        <h3>طلبات الانضمام للدورات</h3>
-        <button
-          type="button"
-          className="ghost-btn toolbar-btn"
-          onClick={() => void onRefresh()}
-          disabled={busy}
-          aria-busy={busy}
-        >
-          <ButtonBusyLabel busy={busy}>تحديث الطلبات</ButtonBusyLabel>
-        </button>
+        <SectionTitle as="h3">طلبات الانضمام للدورات</SectionTitle>
+        <PageToolbar>
+          <button
+            type="button"
+            className="ghost-btn toolbar-btn"
+            onClick={() => void onRefresh()}
+            disabled={busy}
+            aria-busy={busy}
+          >
+            <ButtonBusyLabel busy={busy}>تحديث الطلبات</ButtonBusyLabel>
+          </button>
+        </PageToolbar>
       </div>
       <div className="request-filters">
         {(
@@ -62,13 +73,26 @@ export function AdminEnrollmentRequestsPanel({
       </div>
       {requestsLoading ? <PageLoadHint text="جاري تحميل الطلبات..." /> : null}
       {!requestsLoading && requests.length === 0 ? (
-        <div className="empty-state-card" role="status">
-          <p className="muted">{emptyRequestsMessage(requestFilter)}</p>
-        </div>
+        <EmptyState message={emptyRequestsMessage(requestFilter)} />
       ) : (
-        <div className="course-list">
-          {requests.map((request) => (
-            <article className="course-item" key={request.id}>
+        <ContentList>
+          {requests.map((request) => {
+            const hasThumb = Boolean(request.targetImageURL?.trim());
+            return (
+            <ContentListItem
+              as="article"
+              key={request.id}
+              className={cn(hasThumb && "enrollment-req-item--row")}
+            >
+              {hasThumb ? (
+                <CoverImage
+                  variant="thumb"
+                  src={request.targetImageURL}
+                  alt={request.targetName}
+                  className="enrollment-req-thumb"
+                />
+              ) : null}
+              <div className="enrollment-req-item__body">
               <h3>{request.targetName}</h3>
               <p className="muted">
                 الطالب: {request.studentName || "غير معروف"} ({request.studentEmail || "بدون بريد"})
@@ -108,9 +132,11 @@ export function AdminEnrollmentRequestsPanel({
                   <span className="muted">تمت معالجة الطلب. عرض &quot;معلّقة&quot; للطلبات الجديدة.</span>
                 )}
               </div>
-            </article>
-          ))}
-        </div>
+              </div>
+            </ContentListItem>
+            );
+          })}
+        </ContentList>
       )}
     </section>
   );

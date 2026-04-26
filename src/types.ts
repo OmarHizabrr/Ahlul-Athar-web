@@ -19,6 +19,8 @@ export interface Course {
   createdByName: string;
   studentCount: number;
   lessonCount: number;
+  /** غلاف المقرر من Firestore (أسماء الحقول تُوحّد عند الجلب) — مثل تطبيق الجوال. */
+  imageUrl?: string;
 }
 
 /** صف `Mycourses/{uid}/Mycourses/{courseId}` كما في تطبيق Flutter. */

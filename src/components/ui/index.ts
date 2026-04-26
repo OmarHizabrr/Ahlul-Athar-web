@@ -1,6 +1,8 @@
 export { cn } from "../../utils/cn";
 export { AlertMessage, type AlertKind } from "./AlertMessage";
+export { Avatar } from "./Avatar";
 export { ContentList, ContentListItem } from "./ContentList";
+export { CoverImage, type CoverImageVariant } from "./CoverImage";
 export { EmptyState } from "./EmptyState";
 export { FormPanel, Panel } from "./Panel";
 export { PageToolbar } from "./PageToolbar";

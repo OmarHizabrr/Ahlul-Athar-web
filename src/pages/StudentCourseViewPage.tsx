@@ -1,6 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
+import {
+  AlertMessage,
+  ContentList,
+  ContentListItem,
+  CoverImage,
+  EmptyState,
+  PageToolbar,
+  Panel,
+  SectionTitle,
+  cn,
+} from "../components/ui";
 import { useIsAdminPreview } from "../context/AdminPreviewContext";
 import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
@@ -107,13 +118,16 @@ export function StudentCourseViewPage() {
       : "معاينة مقرر"
     : (course?.title ?? "مقرر");
   const viewRoot = isAdminPreview ? "/admin/preview" : "/student";
+  const courseCoverUrl = course?.imageUrl?.trim() ?? "";
 
   return (
     <DashboardLayout role={layoutRole} title={title} lede={courseLede}>
       {loading ? (
         <PageLoadHint />
       ) : !course ? (
-        <p className="message error">المقرر غير موجود.</p>
+        <AlertMessage kind="error" role="alert">
+          المقرر غير موجود.
+        </AlertMessage>
       ) : (
         <>
           {isAdminPreview ? (
@@ -124,8 +138,8 @@ export function StudentCourseViewPage() {
               </Link>
             </p>
           ) : null}
-          {message ? <p className="message error">{message}</p> : null}
-          <div className="toolbar" style={{ marginBottom: "0.5rem" }}>
+          {message ? <AlertMessage kind="error">{message}</AlertMessage> : null}
+          <PageToolbar className="course-view-toolbar">
             <button
               type="button"
               className="ghost-btn toolbar-btn"
@@ -144,36 +158,61 @@ export function StudentCourseViewPage() {
                 مقرراتي
               </Link>
             )}
-          </div>
-          <div className="card-elevated course-hero-surface">
-            <p className="muted course-hero-lead">{course.description}</p>
-            <div className="course-meta lesson-course-meta">
-              <span>{course.lessonCount} درس</span>
-              <span>{course.studentCount} طالب</span>
-              <span>{course.isActive ? "نشط في الكتالوج" : "موقف"}</span>
-            </div>
-          </div>
+          </PageToolbar>
+          <Panel
+            className={cn("course-hero-surface", courseCoverUrl && "course-hero-surface--flush")}
+          >
+            {courseCoverUrl ? (
+              <>
+                <CoverImage variant="hero" src={courseCoverUrl} alt={course.title} />
+                <div className="course-hero-surface__inner">
+                  <p className="muted course-hero-lead">{course.description}</p>
+                  <div className="course-meta lesson-course-meta">
+                    <span>{course.lessonCount} درس</span>
+                    <span>{course.studentCount} طالب</span>
+                    <span>{course.isActive ? "نشط في الكتالوج" : "موقف"}</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="muted course-hero-lead">{course.description}</p>
+                <div className="course-meta lesson-course-meta">
+                  <span>{course.lessonCount} درس</span>
+                  <span>{course.studentCount} طالب</span>
+                  <span>{course.isActive ? "نشط في الكتالوج" : "موقف"}</span>
+                </div>
+              </>
+            )}
+          </Panel>
           {!enrolled ? (
-            <p className="message error">
-              أنت لست مسجّلاً في هذا المقرر. أرسل طلب انضمام من «الدورات» ثم بعد قبول الإدارة ستظهر الدروس هنا.
-            </p>
+            <AlertMessage kind="error" role="alert">
+              أنت لست مسجّلاً في هذا المقرر. أرسل طلب انضمام من «الدورات» ثم بعد قبول الإدارة ستظهر الدروس
+              هنا.
+            </AlertMessage>
           ) : lessons.length === 0 ? (
-            <div className="empty-state-card" style={{ maxWidth: "100%" }} role="status">
-              <p className="muted" style={{ margin: 0 }}>
-                لا توجد دروس مضافة لهذا المقرر بعد.
-              </p>
-            </div>
+            <EmptyState message="لا توجد دروس مضافة لهذا المقرر بعد." />
           ) : (
-            <div className="course-list">
-              <h3 className="form-section-title">الدروس</h3>
+            <ContentList>
+              <SectionTitle as="h3" className="content-list-section-title">
+                الدروس
+              </SectionTitle>
               {lessons.map((row, idx) => {
                 const t = row.lesson.contentType?.trim();
                 const tlab = t ? CONTENT_TYPE_LABEL[t] ?? t : "—";
                 return (
-                  <article
-                    className={`course-item ${row.isUnlocked ? "" : "course-item--locked lesson-locked-card"}`}
+                  <ContentListItem
                     key={row.lesson.id}
+                    className={cn(
+                      !row.isUnlocked && "course-item--locked",
+                      !row.isUnlocked && "lesson-locked-card",
+                    )}
                   >
+                    <div className="lesson-list-row">
+                      {row.lesson.imageUrl ? (
+                        <CoverImage variant="thumb" src={row.lesson.imageUrl} alt="" />
+                      ) : null}
+                      <div className="lesson-list-row__main">
                     <h4 className="post-title">
                       <span className="lesson-index-pill" aria-hidden>
                         {idx + 1}
@@ -190,7 +229,11 @@ export function StudentCourseViewPage() {
                       {row.lesson.pdfUrl ? " · PDF" : ""}
                       {row.lesson.audioUrl ? " · صوت" : ""}
                     </p>
-                    {row.isUnlocked ? null : <p className="message error lock-hint">{row.blockHint ?? "الدرس مقفل"}</p>}
+                    {row.isUnlocked ? null : (
+                      <AlertMessage kind="error" className="lock-hint">
+                        {row.blockHint ?? "الدرس مقفل"}
+                      </AlertMessage>
+                    )}
                     <div className="course-actions">
                       {row.isUnlocked ? (
                         <Link
@@ -205,10 +248,12 @@ export function StudentCourseViewPage() {
                         </span>
                       )}
                     </div>
-                  </article>
+                      </div>
+                    </div>
+                  </ContentListItem>
                 );
               })}
-            </div>
+            </ContentList>
           )}
         </>
       )}

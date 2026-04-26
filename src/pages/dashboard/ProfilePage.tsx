@@ -3,20 +3,9 @@ import { useAuth } from "../../context/AuthContext";
 import { authService } from "../../services/authService";
 import { userProfileService } from "../../services/userProfileService";
 import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
+import { AlertMessage, Avatar, FormPanel, Panel, SectionTitle } from "../../components/ui";
 import { DashboardLayout } from "../DashboardLayout";
 import type { UserFirestoreProfile, UserRole } from "../../types";
-
-function displayInitials(displayName: string, email: string) {
-  const s = (displayName || email || "?").trim();
-  if (!s) {
-    return "?";
-  }
-  const parts = s.split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return (parts[0]!.charAt(0) + parts[1]!.charAt(0)).toUpperCase();
-  }
-  return s.charAt(0)!.toUpperCase();
-}
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
@@ -134,21 +123,17 @@ export function ProfilePage({ role }: { role: UserRole }) {
         <PageLoadHint />
       ) : (
         <div className="profile-page">
-          <div className="profile-hero card-elevated">
+          <Panel className="profile-hero">
             <div className="profile-avatar-block">
-              {effectivePhoto ? (
-                <img
-                  className="profile-avatar-lg"
-                  src={effectivePhoto}
-                  alt={showName}
-                  width={112}
-                  height={112}
-                />
-              ) : (
-                <div className="profile-avatar-fallback-lg" aria-hidden>
-                  {displayInitials(displayName, emailDisplay === "—" ? "" : emailDisplay)}
-                </div>
-              )}
+              <Avatar
+                photoURL={effectivePhoto}
+                displayName={displayName}
+                email={emailDisplay === "—" ? "" : emailDisplay}
+                alt={showName}
+                imageClassName="profile-avatar-lg"
+                fallbackClassName="profile-avatar-fallback-lg"
+                size={112}
+              />
               <input
                 ref={fileInputRef}
                 type="file"
@@ -175,10 +160,10 @@ export function ProfilePage({ role }: { role: UserRole }) {
                 <span className="profile-badge-incomplete">يُنصح بإكمال البيانات</span>
               )}
             </div>
-          </div>
+          </Panel>
 
-          <form className="course-form profile-form card-elevated" onSubmit={onSave}>
-            <h3 className="form-section-title">تعديل البيانات</h3>
+          <FormPanel className="profile-form" onSubmit={onSave}>
+            <SectionTitle as="h3">تعديل البيانات</SectionTitle>
             <p className="muted small">المعرّف: {u.uid}</p>
             <label>
               <span>الاسم الظاهر</span>
@@ -202,10 +187,10 @@ export function ProfilePage({ role }: { role: UserRole }) {
             <button className="primary-btn" type="submit" disabled={saving} aria-busy={saving}>
               <ButtonBusyLabel busy={saving}>حفظ التعديلات</ButtonBusyLabel>
             </button>
-          </form>
+          </FormPanel>
         </div>
       )}
-      {message ? <p className={isError ? "message error" : "message success"}>{message}</p> : null}
+      {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
     </DashboardLayout>
   );
 }

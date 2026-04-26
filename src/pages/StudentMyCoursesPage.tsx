@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
-import { AlertMessage, ContentList, ContentListItem, EmptyState, PageToolbar } from "../components/ui";
+import {
+  AlertMessage,
+  ContentList,
+  ContentListItem,
+  CoverImage,
+  EmptyState,
+  PageToolbar,
+} from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { cn } from "../utils/cn";
 import { DashboardLayout } from "./DashboardLayout";
@@ -73,15 +80,13 @@ export function StudentMyCoursesPage() {
       {loading ? (
         <PageLoadHint />
       ) : rows.length === 0 ? (
-        <div className="empty-state">
-          <EmptyState message="لا يوجد مقررات مسجّل بها بعد.">
-            <p className="empty-state-actions">
-              <Link to="/student/courses" className="primary-btn">
-                الذهاب لصفحة الدورات وطلب الانضمام
-              </Link>
-            </p>
-          </EmptyState>
-        </div>
+        <EmptyState className="empty-state" message="لا يوجد مقررات مسجّل بها بعد.">
+          <p className="empty-state-actions">
+            <Link to="/student/courses" className="primary-btn">
+              الذهاب لصفحة الدورات وطلب الانضمام
+            </Link>
+          </p>
+        </EmptyState>
       ) : (
         <ContentList>
           {rows.map((c) => (
@@ -90,9 +95,7 @@ export function StudentMyCoursesPage() {
               className={cn("mycourse-card", c.courseImageURL && "mycourse-card--cover")}
             >
               {c.courseImageURL ? (
-                <div className="mycourse-cover">
-                  <img src={c.courseImageURL} alt="" className="mycourse-cover-img" loading="lazy" />
-                </div>
+                <CoverImage variant="catalog" src={c.courseImageURL} alt={c.courseTitle} />
               ) : null}
               <div className="mycourse-card-body">
                 <h3>{c.courseTitle || "مقرر"}</h3>

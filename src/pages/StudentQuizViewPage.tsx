@@ -15,6 +15,7 @@ import { isStudentEnrolledInCourse } from "../services/myCoursesService";
 import { useIsAdminPreview } from "../context/AdminPreviewContext";
 import { useAuth } from "../context/AuthContext";
 import { VideoIntroBlock } from "../components/VideoIntroBlock";
+import { AlertMessage, SectionTitle } from "../components/ui";
 import { extractQuizRows, readStoredAnswers, type WebQuizRow } from "../utils/quizFromFirestore";
 import { DashboardLayout } from "./DashboardLayout";
 
@@ -348,7 +349,7 @@ export function StudentQuizViewPage() {
       {loading ? (
         <PageLoadHint />
       ) : err ? (
-        <p className="message error">{err}</p>
+        <AlertMessage kind="error">{err}</AlertMessage>
       ) : (
         <div className="quiz-view-card">
           <p className="muted small">
@@ -359,7 +360,9 @@ export function StudentQuizViewPage() {
                 ? "تم الإرسال — بانتظار التصحيح من الإدارة"
                 : "لم يُرسل بعد"}
           </p>
-          {scheduleBlocks && schedule.messageAr ? <p className="message error">{schedule.messageAr}</p> : null}
+          {scheduleBlocks && schedule.messageAr ? (
+            <AlertMessage kind="error">{schedule.messageAr}</AlertMessage>
+          ) : null}
           {durationMin != null ? (
             <p className="muted small quiz-quiz-duration">
               المدة: {Math.round(durationMin)} د
@@ -375,7 +378,7 @@ export function StudentQuizViewPage() {
 
           {hasStructuredQuestions ? (
             <>
-              <h3 className="form-section-title">الأسئلة</h3>
+              <SectionTitle as="h3">الأسئلة</SectionTitle>
               {isGraded ? (
                 <p className="muted small">النتيجة مُتاحة — عرض إجاباتك أدناه (قراءة فقط).</p>
               ) : null}
@@ -388,7 +391,7 @@ export function StudentQuizViewPage() {
                 readonly={formLocked}
                 submitLabel={status === "pending" ? "تحديث الإجابات" : "إرسال الإجابات"}
               />
-              {formErr ? <p className="message error">{formErr}</p> : null}
+              {formErr ? <AlertMessage kind="error">{formErr}</AlertMessage> : null}
             </>
           ) : (
             <p className="muted small quiz-hint">

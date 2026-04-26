@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
-import { AlertMessage, ContentList, ContentListItem, EmptyState, PageToolbar } from "../components/ui";
+import {
+  AlertMessage,
+  ContentList,
+  ContentListItem,
+  CoverImage,
+  cn,
+  EmptyState,
+  PageToolbar,
+} from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
 import { myCoursesService } from "../services/myCoursesService";
@@ -105,8 +113,21 @@ export function StudentEnrollmentRequestsPage() {
         <ContentList>
           {rows.map((r) => {
             const inMy = enrolled.has(r.targetId);
+            const hasThumb = Boolean(r.targetImageURL?.trim());
             return (
-              <ContentListItem key={r.id} className="enrollment-req-item">
+              <ContentListItem
+                key={r.id}
+                className={cn("enrollment-req-item", hasThumb && "enrollment-req-item--row")}
+              >
+                {hasThumb ? (
+                  <CoverImage
+                    variant="thumb"
+                    src={r.targetImageURL}
+                    alt={r.targetName}
+                    className="enrollment-req-thumb"
+                  />
+                ) : null}
+                <div className="enrollment-req-item__body">
                 <h3 className="post-title">{r.targetName || "مقرر"}</h3>
                 <p className="muted post-meta small">
                   طُلب في {formatFirestoreTime(r.requestedAt)}
@@ -139,6 +160,7 @@ export function StudentEnrollmentRequestsPage() {
                       فتح المقرر
                     </Link>
                   ) : null}
+                </div>
                 </div>
               </ContentListItem>
             );

@@ -13,6 +13,14 @@ import type { Course, Lesson } from "../types";
 import { dispatchQuizUpdated } from "../utils/quizEvents";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { IoEyeOutline, IoTrashOutline, IoListCircleOutline } from "react-icons/io5";
+import {
+  AlertMessage,
+  ContentList,
+  ContentListItem,
+  EmptyState,
+  FormPanel,
+  SectionTitle,
+} from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
 
 export function AdminLessonQuizzesPage() {
@@ -153,12 +161,12 @@ export function AdminLessonQuizzesPage() {
       {loading ? (
         <PageLoadHint />
       ) : !lesson ? (
-        <p className="message error">الدرس غير موجود.</p>
+        <AlertMessage kind="error">الدرس غير موجود.</AlertMessage>
       ) : (
         <>
-          {message ? <p className={isError ? "message error" : "message success"}>{message}</p> : null}
-          <form className="course-form card-elevated" onSubmit={onCreate}>
-            <h3 className="form-section-title">إضافة اختبار جديد</h3>
+          {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
+          <FormPanel onSubmit={onCreate}>
+            <SectionTitle as="h3">إضافة اختبار جديد</SectionTitle>
             <label>
               <span>عنوان الاختبار</span>
               <input
@@ -238,22 +246,22 @@ export function AdminLessonQuizzesPage() {
             >
               <ButtonBusyLabel busy={submitting}>إنشاء اختبار</ButtonBusyLabel>
             </button>
-          </form>
+          </FormPanel>
 
-          <h3 className="form-section-title" style={{ marginTop: "1.5rem" }}>
+          <SectionTitle as="h3" className="form-section-title--spaced-15">
             اختبارات هذا الدرس
-          </h3>
+          </SectionTitle>
           {quizzes.length === 0 ? (
-            <p className="muted">لا اختبارات بعد.</p>
+            <EmptyState message="لا اختبارات بعد." />
           ) : (
-            <div className="course-list">
+            <ContentList>
               {quizzes.map((q) => {
                 const t = String(
                   q.data.title ?? q.data.name ?? q.data.quizTitle ?? (q.data as { label?: string }).label ?? "بدون عنوان",
                 );
                 const n = (q.data as { questionsCount?: number }).questionsCount;
                 return (
-                  <article className="course-item" key={q.id}>
+                  <ContentListItem key={q.id}>
                     <h4 className="post-title">{t}</h4>
                     <p className="muted post-meta small">
                       معرّف المستند: {q.id} · أسئلة: {typeof n === "number" ? n : "—"}
@@ -285,10 +293,10 @@ export function AdminLessonQuizzesPage() {
                         <span className="icon-tool-label">حذف</span>
                       </button>
                     </div>
-                  </article>
+                  </ContentListItem>
                 );
               })}
-            </div>
+            </ContentList>
           )}
         </>
       )}

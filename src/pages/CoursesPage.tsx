@@ -10,6 +10,8 @@ import {
   AlertMessage,
   ContentList,
   ContentListItem,
+  CoverImage,
+  cn,
   EmptyState,
   FormPanel,
   PageToolbar,
@@ -373,8 +375,12 @@ export function CoursesPage({ role }: { role: UserRole }) {
         />
       ) : (
         <ContentList>
-          {filtered.map((course) => (
-            <ContentListItem key={course.id}>
+          {filtered.map((course) => {
+            const hasCover = Boolean(course.imageUrl?.trim());
+            return (
+            <ContentListItem key={course.id} className={cn(hasCover && "mycourse-card--cover")}>
+              {hasCover ? <CoverImage variant="catalog" src={course.imageUrl} alt={course.title} /> : null}
+              <div className={hasCover ? "mycourse-card-body" : undefined}>
               <h3>{course.title}</h3>
               <p className="muted">{course.description}</p>
               <div className="course-meta">
@@ -430,8 +436,10 @@ export function CoursesPage({ role }: { role: UserRole }) {
                   />
                 )}
               </div>
+              </div>
             </ContentListItem>
-          ))}
+            );
+          })}
         </ContentList>
       )}
 

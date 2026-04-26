@@ -2,22 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { IoChevronDown, IoNotificationsOutline } from "react-icons/io5";
 import { Link, useNavigate } from "react-router-dom";
 import { ButtonBusyLabel } from "./ButtonBusyLabel";
+import { Avatar } from "./ui";
 import { useAuth } from "../context/AuthContext";
 import { authService } from "../services/authService";
 import { notificationsService } from "../services/notificationsService";
 import type { UserRole } from "../types";
-
-function avatarInitials(displayName: string | null | undefined, email: string | null | undefined) {
-  const s = (displayName || email || "?").trim();
-  if (!s) {
-    return "?";
-  }
-  const parts = s.split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return (parts[0]!.charAt(0) + parts[1]!.charAt(0)).toUpperCase();
-  }
-  return s.charAt(0)!.toUpperCase();
-}
 
 export function DashboardTopBar({ role }: { role: UserRole }) {
   const { user, ready } = useAuth();
@@ -100,13 +89,14 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
             aria-expanded={menuOpen}
             aria-haspopup="true"
           >
-            {photo ? (
-              <img className="user-avatar topbar-avatar" src={photo} alt="" width={40} height={40} />
-            ) : (
-              <div className="user-avatar-fallback topbar-avatar" aria-hidden>
-                {avatarInitials(user.displayName, user.email)}
-              </div>
-            )}
+            <Avatar
+              photoURL={photo}
+              displayName={user.displayName}
+              email={user.email}
+              imageClassName="user-avatar topbar-avatar"
+              fallbackClassName="user-avatar-fallback topbar-avatar"
+              size={40}
+            />
             <span className="user-menu-name">{name}</span>
             <IoChevronDown className="user-menu-chevron" aria-hidden />
           </button>

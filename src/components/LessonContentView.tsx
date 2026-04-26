@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AlertMessage, EmptyState, Panel, SectionTitle } from "./ui";
 import type { Lesson } from "../types";
 import { looksLikeLessonHtml, sanitizeLessonHtml } from "../utils/lessonBodyFormat";
 import { resolveVideoEmbed } from "../utils/lessonMedia";
@@ -18,8 +19,10 @@ function VideoSection({ title, videoUrl }: { title: string; videoUrl: string }) 
   const { kind, embedSrc } = resolveVideoEmbed(videoUrl);
   if (kind === "file" && embedSrc) {
     return (
-      <section className="lesson-media-block card-elevated" aria-label="فيديو الدرس">
-        <h3 className="form-section-title lesson-section-label">مشغّل الفيديو</h3>
+      <Panel as="section" className="lesson-media-block" aria-label="فيديو الدرس">
+        <SectionTitle as="h3" className="lesson-section-label">
+          مشغّل الفيديو
+        </SectionTitle>
         <div className="lesson-video-file-wrap">
           <video className="lesson-video-file" controls playsInline src={embedSrc} preload="metadata" />
         </div>
@@ -27,15 +30,15 @@ function VideoSection({ title, videoUrl }: { title: string; videoUrl: string }) 
           فتح الرابط مباشرة
         </a>
         <p className="muted small">ملف فيديو مباشر (mp4 / webm / …).</p>
-      </section>
+      </Panel>
     );
   }
   if ((kind === "youtube" || kind === "vimeo") && embedSrc) {
     return (
-      <section className="lesson-media-block card-elevated" aria-label="فيديو الدرس">
-        <h3 className="form-section-title lesson-section-label">
+      <Panel as="section" className="lesson-media-block" aria-label="فيديو الدرس">
+        <SectionTitle as="h3" className="lesson-section-label">
           {kind === "youtube" ? "فيديو (YouTube)" : "فيديو (Vimeo)"}
-        </h3>
+        </SectionTitle>
         <div className="lesson-youtube-embed" style={{ width: "100%", maxWidth: 900 }}>
           <iframe
             title={title}
@@ -47,12 +50,14 @@ function VideoSection({ title, videoUrl }: { title: string; videoUrl: string }) 
         <a href={videoUrl} className="inline-link" target="_blank" rel="noopener noreferrer">
           فتح في تبويب جديد
         </a>
-      </section>
+      </Panel>
     );
   }
   return (
-    <section className="lesson-media-block card-elevated" aria-label="رابط فيديو">
-      <h3 className="form-section-title lesson-section-label">رابط الفيديو</h3>
+    <Panel as="section" className="lesson-media-block" aria-label="رابط فيديو">
+      <SectionTitle as="h3" className="lesson-section-label">
+        رابط الفيديو
+      </SectionTitle>
       <p className="muted small">افتح الرابط في المتصفح إن لم يُضمَّن تلقائياً.</p>
       <a
         href={videoUrl}
@@ -62,14 +67,16 @@ function VideoSection({ title, videoUrl }: { title: string; videoUrl: string }) 
       >
         فتح رابط الفيديو
       </a>
-    </section>
+    </Panel>
   );
 }
 
 function PdfSection({ pdfUrl }: { pdfUrl: string }) {
   return (
-    <section className="lesson-media-block card-elevated" aria-label="مستند PDF">
-      <h3 className="form-section-title lesson-section-label">مستند PDF</h3>
+    <Panel as="section" className="lesson-media-block" aria-label="مستند PDF">
+      <SectionTitle as="h3" className="lesson-section-label">
+        مستند PDF
+      </SectionTitle>
       <div className="lesson-pdf-frame-wrap">
         <iframe className="lesson-pdf-iframe" title="PDF" src={pdfUrl} />
       </div>
@@ -82,19 +89,21 @@ function PdfSection({ pdfUrl }: { pdfUrl: string }) {
         </a>
       </div>
       <p className="muted small">إن لم تظهر المعاينة، استخدم «فتح في تبويب جديد».</p>
-    </section>
+    </Panel>
   );
 }
 
 function AudioSection({ audioUrl }: { audioUrl: string }) {
   return (
-    <section className="lesson-media-block card-elevated" aria-label="تسجيل صوتي">
-      <h3 className="form-section-title lesson-section-label">تسجيل صوتي</h3>
+    <Panel as="section" className="lesson-media-block" aria-label="تسجيل صوتي">
+      <SectionTitle as="h3" className="lesson-section-label">
+        تسجيل صوتي
+      </SectionTitle>
       <audio className="lesson-audio-element" controls preload="metadata" src={audioUrl} />
       <a href={audioUrl} className="inline-link" target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: "0.65rem" }}>
         فتح الرابط
       </a>
-    </section>
+    </Panel>
   );
 }
 
@@ -110,11 +119,11 @@ function TextSection({
   const useHtml = looksLikeLessonHtml(body);
   const html = useHtml ? sanitizeLessonHtml(body) : "";
   return (
-    <section className="lesson-text-block card-elevated">
-      <h3 className="form-section-title">
-        {ct === "text" ? "نص الدرس" : "الشرح والملاحظات"}
+    <Panel as="section" className="lesson-text-block">
+      <SectionTitle as="h3">
+        {ct === "text" ? "نص الدرس" : "الشرح والملاحظات"}{" "}
         <span className="meta-pill meta-pill--muted lesson-type-pill">{typeLabel}</span>
-      </h3>
+      </SectionTitle>
       <div className="lesson-body lesson-body--flush">
         {useHtml ? (
           <div className="lesson-prose" dir="auto" dangerouslySetInnerHTML={{ __html: html }} />
@@ -122,7 +131,7 @@ function TextSection({
           <pre className="lesson-pre">{body}</pre>
         )}
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -172,17 +181,16 @@ export function LessonContentView({ lesson }: { lesson: Lesson }) {
     <div className="lesson-content-stack">
       {blocks}
 
-      {showVideoErr ? <p className="message error">مُعيّن كفيديو دون رابط فيديو.</p> : null}
-      {showPdfErr ? <p className="message error">مُعيّن كـ PDF دون رابط للملف.</p> : null}
-      {showAudioErr ? <p className="message error">مُعيّن كصوت دون رابط.</p> : null}
-      {showTextErr ? <p className="message error">مُعيّن كنص ولا يوجد نص في الحقل.</p> : null}
+      {showVideoErr ? <AlertMessage kind="error">مُعيّن كفيديو دون رابط فيديو.</AlertMessage> : null}
+      {showPdfErr ? <AlertMessage kind="error">مُعيّن كـ PDF دون رابط للملف.</AlertMessage> : null}
+      {showAudioErr ? <AlertMessage kind="error">مُعيّن كصوت دون رابط.</AlertMessage> : null}
+      {showTextErr ? <AlertMessage kind="error">مُعيّن كنص ولا يوجد نص في الحقل.</AlertMessage> : null}
 
       {empty ? (
-        <div className="empty-state-card lesson-empty-content" style={{ maxWidth: "100%" }} role="status">
-          <p className="muted" style={{ margin: 0 }}>
-            لا يوجد محتوى مضاف (نص / فيديو / PDF / صوت). راجع الدرس من لوحة المشرف إن لزم.
-          </p>
-        </div>
+        <EmptyState
+          className="lesson-empty-content"
+          message="لا يوجد محتوى مضاف (نص / فيديو / PDF / صوت). راجع الدرس من لوحة المشرف إن لزم."
+        />
       ) : null}
     </div>
   );

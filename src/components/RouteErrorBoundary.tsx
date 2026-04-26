@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { AlertMessage } from "./ui";
 
 type Props = { children: ReactNode };
 
@@ -35,7 +36,9 @@ export class RouteErrorBoundary extends Component<Props, State> {
             <p className="badge">تنبيه</p>
             <h1>حدث خطأ في التحميل</h1>
             <p className="muted">يمكنك العودة للرئيسية أو إعادة تحميل الصفحة. إن تكرر الخطأ، تحقق من الاتصال والتحديثات.</p>
-            <p className="message error error-detail">{this.state.error.message}</p>
+            <AlertMessage kind="error" className="error-detail" role="alert">
+              {this.state.error.message}
+            </AlertMessage>
             <div className="course-actions error-boundary-actions">
               <button type="button" className="primary-btn" onClick={this.handleReload}>
                 تحديث الصفحة

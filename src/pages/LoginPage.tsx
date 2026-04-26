@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ButtonBusyLabel } from "../components/ButtonBusyLabel";
+import { AlertMessage } from "../components/ui";
 import { FcGoogle } from "react-icons/fc";
 import { IoPhonePortraitOutline } from "react-icons/io5";
 import { authService } from "../services/authService";
@@ -122,9 +123,9 @@ export function LoginPage() {
         </button>
 
         {message ? (
-          <p className={isError ? "message error" : "message success"} role="status" aria-live="polite">
+          <AlertMessage kind={isError ? "error" : "success"} role="status" ariaLive="polite">
             {message}
-          </p>
+          </AlertMessage>
         ) : null}
       </section>
     </main>

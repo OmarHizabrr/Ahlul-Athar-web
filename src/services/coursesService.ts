@@ -28,17 +28,41 @@ function generateActivationCode(studentId: string): string {
   return `${suffix.toUpperCase()}${ts}`;
 }
 
-const mapCourse = (id: string, data: Record<string, unknown>): Course => ({
-  id,
-  title: String(data.title ?? ""),
-  description: String(data.description ?? ""),
-  courseType: (data.courseType === "private" ? "private" : "public") as "public" | "private",
-  isActive: Boolean(data.isActive ?? true),
-  createdBy: String(data.createdBy ?? ""),
-  createdByName: String(data.createdByName ?? ""),
-  studentCount: Number(data.studentCount ?? 0),
-  lessonCount: Number(data.lessonCount ?? 0),
-});
+function firstImageUrlFromRecord(data: Record<string, unknown>): string | undefined {
+  const keys = [
+    "courseImageURL",
+    "imageUrl",
+    "courseImageUrl",
+    "coverImage",
+    "coverUrl",
+    "courseImage",
+    "thumbnailUrl",
+    "image",
+  ];
+  for (const k of keys) {
+    const v = data[k];
+    if (typeof v === "string" && v.trim().length > 0) {
+      return v.trim();
+    }
+  }
+  return undefined;
+}
+
+const mapCourse = (id: string, data: Record<string, unknown>): Course => {
+  const imageUrl = firstImageUrlFromRecord(data);
+  return {
+    id,
+    title: String(data.title ?? ""),
+    description: String(data.description ?? ""),
+    courseType: (data.courseType === "private" ? "private" : "public") as "public" | "private",
+    isActive: Boolean(data.isActive ?? true),
+    createdBy: String(data.createdBy ?? ""),
+    createdByName: String(data.createdByName ?? ""),
+    studentCount: Number(data.studentCount ?? 0),
+    lessonCount: Number(data.lessonCount ?? 0),
+    ...(imageUrl != null ? { imageUrl } : {}),
+  };
+};
 
 function timeMillisFromUnknown(v: unknown): number {
   if (v == null) {
@@ -143,7 +167,7 @@ export const coursesService = {
       targetId: course.id,
       targetName: course.title,
       targetDescription: course.description,
-      targetImageURL: null,
+      targetImageURL: course.imageUrl != null && course.imageUrl !== "" ? course.imageUrl : null,
       status: "pending",
       reason: "طلب انضمام من منصة الويب",
       requestedAt: serverTimestamp(),

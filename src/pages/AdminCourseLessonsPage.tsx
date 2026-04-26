@@ -7,7 +7,15 @@ import { lessonsService } from "../services/lessonsService";
 import type { Course, Lesson } from "../types";
 import { IoEyeOutline, IoListCircleOutline, IoPencil, IoTrashOutline } from "react-icons/io5";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
-import { AlertMessage, ContentList, ContentListItem, FormPanel, SectionTitle } from "../components/ui";
+import {
+  AlertMessage,
+  ContentList,
+  ContentListItem,
+  CoverImage,
+  EmptyState,
+  FormPanel,
+  SectionTitle,
+} from "../components/ui";
 import { formatFirestoreTime } from "../utils/firestoreTime";
 import { DashboardLayout } from "./DashboardLayout";
 
@@ -240,7 +248,7 @@ export function AdminCourseLessonsPage() {
       {loading ? (
         <PageLoadHint />
       ) : !course ? (
-        <p className="message error">المقرر غير موجود.</p>
+        <AlertMessage kind="error">المقرر غير موجود.</AlertMessage>
       ) : (
         <>
           {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
@@ -381,11 +389,14 @@ export function AdminCourseLessonsPage() {
             الدروس الحالية
           </SectionTitle>
           {lessons.length === 0 ? (
-            <p className="muted">لا دروس.</p>
+            <EmptyState message="لا دروس." />
           ) : (
             <ContentList>
               {lessons.map((L) => (
                 <ContentListItem key={L.id}>
+                  <div className="lesson-list-row">
+                    {L.imageUrl ? <CoverImage variant="thumb" src={L.imageUrl} alt="" /> : null}
+                    <div className="lesson-list-row__main">
                   <h4 className="post-title">{L.title}</h4>
                   <p className="muted post-meta">
                     {formatFirestoreTime(L.createdAt)} · {L.contentType || "نص"}
@@ -440,6 +451,8 @@ export function AdminCourseLessonsPage() {
                       <IoTrashOutline size={20} />
                       <span className="icon-tool-label">حذف</span>
                     </button>
+                  </div>
+                    </div>
                   </div>
                 </ContentListItem>
               ))}

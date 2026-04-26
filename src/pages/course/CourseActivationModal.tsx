@@ -1,4 +1,5 @@
 import { ButtonBusyLabel } from "../../components/ButtonBusyLabel";
+import { SectionTitle } from "../../components/ui";
 
 type CourseActivationModalProps = {
   submitting: boolean;
@@ -36,7 +37,9 @@ export function CourseActivationModal({
         aria-labelledby="activation-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <h4 id="activation-title">فترة تفعيل الدورة</h4>
+        <SectionTitle as="h4" id="activation-title">
+          فترة تفعيل الدورة
+        </SectionTitle>
         <p className="muted small-print">
           نفس منطق تطبيق Flutter: اختر &quot;مدى الحياة&quot; أو عدد الأيام قبل انتهاء التفعيل.
         </p>

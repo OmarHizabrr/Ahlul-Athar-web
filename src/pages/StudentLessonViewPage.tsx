@@ -14,6 +14,7 @@ import { isStudentEnrolledInCourse } from "../services/myCoursesService";
 import { lessonsService } from "../services/lessonsService";
 import type { Lesson } from "../types";
 import { formatFirestoreTime } from "../utils/firestoreTime";
+import { AlertMessage, EmptyState, PageToolbar, Panel, SectionTitle } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
 
 const CONTENT_TYPE_LABEL: Record<string, string> = {
@@ -168,13 +169,9 @@ export function StudentLessonViewPage() {
       {loading ? (
         <PageLoadHint />
       ) : err ? (
-        <p className="message error">{err}</p>
+        <AlertMessage kind="error">{err}</AlertMessage>
       ) : !lesson ? (
-        <div className="empty-state-card" style={{ maxWidth: "100%" }} role="status">
-          <p className="muted" style={{ margin: 0 }}>
-            الدرس غير موجود أو أُزيل.
-          </p>
-        </div>
+        <EmptyState message="الدرس غير موجود أو أُزيل." />
       ) : (
         <StudentLessonBody
           courseId={courseId}
@@ -211,7 +208,7 @@ function StudentLessonBody({
 
   return (
     <article className="lesson-reader">
-      <div className="toolbar lesson-toolbar">
+      <PageToolbar className="lesson-toolbar">
         <button
           type="button"
           className="ghost-btn toolbar-btn"
@@ -221,9 +218,9 @@ function StudentLessonBody({
         >
           <ButtonBusyLabel busy={refreshing}>تحديث</ButtonBusyLabel>
         </button>
-      </div>
+      </PageToolbar>
 
-      <div className="lesson-hero card-elevated">
+      <Panel className="lesson-hero">
         {lesson.imageUrl ? (
           <div className="lesson-hero-cover">
             <img
@@ -256,7 +253,7 @@ function StudentLessonBody({
             {lesson.createdByName ? ` · ${lesson.createdByName}` : ""}
           </p>
         </div>
-      </div>
+      </Panel>
 
       {lesson.hasMandatoryQuiz ? (
         <p className="lesson-mandatory-hint muted small" role="note">
@@ -268,7 +265,7 @@ function StudentLessonBody({
 
       {quizzes.length > 0 ? (
         <div className="lesson-quiz-section">
-          <h3 className="form-section-title">اختبارات الدرس</h3>
+          <SectionTitle as="h3">اختبارات الدرس</SectionTitle>
           <ul className="lesson-quiz-list">
             {quizzes.map((q) => (
               <li key={q.quizFileId}>

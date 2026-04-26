@@ -1,19 +1,29 @@
 import type { FormHTMLAttributes, HTMLAttributes, ReactNode } from "react";
 import { cn } from "../../utils/cn";
 
+type PanelAs = "div" | "section" | "article";
+
 type PanelBase = {
   children: ReactNode;
   className?: string;
   /** يضيف `card-elevated` (الافتراضي true) */
   elevated?: boolean;
+  /** الافتراضي `div` — استخدم `section` لأقسام مع `aria-label` */
+  as?: PanelAs;
 };
 
 /** حاوية سطح مرتفع — للبطاقات والأقسام. */
-export function Panel({ children, className, elevated = true, ...rest }: PanelBase & HTMLAttributes<HTMLDivElement>) {
+export function Panel({
+  as: Tag = "div",
+  children,
+  className,
+  elevated = true,
+  ...rest
+}: PanelBase & HTMLAttributes<HTMLElement>) {
   return (
-    <div className={cn(elevated && "card-elevated", className)} {...rest}>
+    <Tag className={cn(elevated && "card-elevated", className)} {...rest}>
       {children}
-    </div>
+    </Tag>
   );
 }
 

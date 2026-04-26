@@ -14,17 +14,20 @@ export function AlertMessage({
   children,
   className,
   role = "status",
+  ariaLive,
 }: {
   kind: AlertKind;
   children: ReactNode;
   className?: string;
   role?: "status" | "alert";
+  /** للرسائل الديناميكية (مثل تسجيل الدخول) */
+  ariaLive?: "off" | "polite" | "assertive";
 }) {
   if (children == null || children === "") {
     return null;
   }
   return (
-    <p className={cn(kindClass[kind], className)} role={role}>
+    <p className={cn(kindClass[kind], className)} role={role} aria-live={ariaLive}>
       {children}
     </p>
   );
