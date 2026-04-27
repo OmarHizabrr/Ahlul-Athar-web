@@ -10,6 +10,7 @@ import {
   AlertMessage,
   ContentList,
   ContentListItem,
+  CoverImage,
   EmptyState,
   FormPanel,
   PageToolbar,
@@ -27,6 +28,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
   const [targetUid, setTargetUid] = useState("");
   const [nTitle, setNTitle] = useState("");
   const [nBody, setNBody] = useState("");
+  const [nImageUrl, setNImageUrl] = useState("");
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
@@ -103,9 +105,10 @@ export function NotificationsPage({ role }: { role: UserRole }) {
     setSubmitting(true);
     setMessage("");
     try {
-      await notificationsService.sendToUser(role, targetUid, nTitle, nBody);
+      await notificationsService.sendToUser(role, targetUid, nTitle, nBody, nImageUrl);
       setNTitle("");
       setNBody("");
+      setNImageUrl("");
       setMessage("تم إرسال الإشعار.");
       setIsError(false);
     } catch {
@@ -181,6 +184,16 @@ export function NotificationsPage({ role }: { role: UserRole }) {
               rows={3}
             />
           </label>
+          <label>
+            <span>رابط صورة الإشعار (اختياري)</span>
+            <input
+              className="text-input"
+              type="url"
+              value={nImageUrl}
+              onChange={(e) => setNImageUrl(e.target.value)}
+              placeholder="https://..."
+            />
+          </label>
           <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
             <ButtonBusyLabel busy={submitting}>إرسال</ButtonBusyLabel>
           </button>
@@ -210,29 +223,35 @@ export function NotificationsPage({ role }: { role: UserRole }) {
         <EmptyState message="لا توجد إشعارات." />
       ) : (
         <ContentList>
-          {items.map((n) => (
-            <ContentListItem
-              key={n.id}
-              className={cn("notif-item", n.read ? "read" : "unread")}
-            >
-              <h2 className="post-title">{n.title}</h2>
-              <p className="muted post-meta">{formatFirestoreTime(n.createdAt)}</p>
-              <p className="post-body">{n.body}</p>
-              {!n.read ? (
-                <div className="course-actions">
-                  <button
-                    type="button"
-                    className="primary-btn"
-                    onClick={() => void onMarkRead(n.id)}
-                    disabled={submitting}
-                    aria-busy={submitting}
-                  >
-                    <ButtonBusyLabel busy={submitting}>تعليم كمقروء</ButtonBusyLabel>
-                  </button>
+          {items.map((n) => {
+            const hasImage = Boolean(n.imageUrl?.trim());
+            return (
+              <ContentListItem
+                key={n.id}
+                className={cn("notif-item", n.read ? "read" : "unread", hasImage && "mycourse-card--cover")}
+              >
+                {hasImage ? <CoverImage variant="catalog" src={n.imageUrl} alt={n.title} /> : null}
+                <div className={hasImage ? "mycourse-card-body" : undefined}>
+                  <h2 className="post-title">{n.title}</h2>
+                  <p className="muted post-meta">{formatFirestoreTime(n.createdAt)}</p>
+                  <p className="post-body">{n.body}</p>
+                  {!n.read ? (
+                    <div className="course-actions">
+                      <button
+                        type="button"
+                        className="primary-btn"
+                        onClick={() => void onMarkRead(n.id)}
+                        disabled={submitting}
+                        aria-busy={submitting}
+                      >
+                        <ButtonBusyLabel busy={submitting}>تعليم كمقروء</ButtonBusyLabel>
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
-            </ContentListItem>
-          ))}
+              </ContentListItem>
+            );
+          })}
         </ContentList>
       )}
     </DashboardLayout>

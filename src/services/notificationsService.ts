@@ -31,11 +31,19 @@ function timeMillisFromUnknown(v: unknown): number {
 
 function mapNotif(d: QueryDocumentSnapshot<DocumentData>): UserNotification {
   const data = d.data();
+  const imageUrl =
+    (typeof data.imageUrl === "string" && data.imageUrl.trim()) ||
+    (typeof data.imageURL === "string" && data.imageURL.trim()) ||
+    (typeof data.image === "string" && data.image.trim()) ||
+    (typeof data.photoUrl === "string" && data.photoUrl.trim()) ||
+    (typeof data.bannerUrl === "string" && data.bannerUrl.trim()) ||
+    undefined;
   return {
     id: d.id,
     userId: String(data.userId ?? ""),
     title: String(data.title ?? ""),
     body: String(data.body ?? data.message ?? ""),
+    ...(imageUrl ? { imageUrl } : {}),
     read: Boolean(data.read ?? false),
     createdAt: data.createdAt,
   };
@@ -75,7 +83,13 @@ export const notificationsService = {
    * إرسال إشعار لمستخدم — يُستخدم من لوحة المسؤول.
    * لإشعار جميع الطلاب: استدعاء متعدد من الواجهة أو دالة منفصلة لاحقاً.
    */
-  async sendToUser(_senderRole: UserRole, targetUserId: string, title: string, body: string) {
+  async sendToUser(
+    _senderRole: UserRole,
+    targetUserId: string,
+    title: string,
+    body: string,
+    imageUrl?: string,
+  ) {
     if (!targetUserId.trim()) {
       throw new Error("target_user_required");
     }
@@ -83,6 +97,7 @@ export const notificationsService = {
       userId: targetUserId.trim(),
       title: title.trim(),
       body: body.trim(),
+      imageUrl: imageUrl?.trim() ? imageUrl.trim() : null,
       read: false,
       createdAt: serverTimestamp(),
     });

@@ -87,6 +87,7 @@ export interface UserNotification {
   userId: string;
   title: string;
   body: string;
+  imageUrl?: string;
   read: boolean;
   createdAt: unknown;
 }

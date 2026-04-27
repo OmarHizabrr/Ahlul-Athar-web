@@ -29,20 +29,40 @@ function generateActivationCode(studentId: string): string {
 }
 
 function firstImageUrlFromRecord(data: Record<string, unknown>): string | undefined {
+  const pickString = (v: unknown): string | undefined =>
+    typeof v === "string" && v.trim().length > 0 ? v.trim() : undefined;
   const keys = [
     "courseImageURL",
+    "courseImageURLAr",
     "imageUrl",
+    "imageURL",
+    "image_url",
     "courseImageUrl",
+    "course_image_url",
     "coverImage",
     "coverUrl",
     "courseImage",
     "thumbnailUrl",
+    "thumbUrl",
+    "thumbnail",
+    "bannerUrl",
+    "photoUrl",
+    "photoURL",
+    "iconUrl",
     "image",
   ];
   for (const k of keys) {
-    const v = data[k];
-    if (typeof v === "string" && v.trim().length > 0) {
-      return v.trim();
+    const direct = pickString(data[k]);
+    if (direct) {
+      return direct;
+    }
+  }
+  const imageObj = data.image;
+  if (typeof imageObj === "object" && imageObj !== null) {
+    const map = imageObj as Record<string, unknown>;
+    const nested = pickString(map.url) ?? pickString(map.src) ?? pickString(map.path);
+    if (nested) {
+      return nested;
     }
   }
   return undefined;
@@ -132,7 +152,10 @@ export const coursesService = {
     return mapCourse(snap.id, snap.data() as Record<string, unknown>);
   },
 
-  async createCourse(user: PlatformUser, payload: Pick<Course, "title" | "description" | "courseType" | "isActive">) {
+  async createCourse(
+    user: PlatformUser,
+    payload: Pick<Course, "title" | "description" | "courseType" | "isActive" | "imageUrl">,
+  ) {
     await addDoc(coursesCollection, {
       ...payload,
       createdBy: user.uid,
@@ -144,7 +167,10 @@ export const coursesService = {
     });
   },
 
-  async updateCourse(courseId: string, payload: Pick<Course, "title" | "description" | "courseType" | "isActive">) {
+  async updateCourse(
+    courseId: string,
+    payload: Pick<Course, "title" | "description" | "courseType" | "isActive" | "imageUrl">,
+  ) {
     const courseRef = doc(db, "courses", courseId);
     await updateDoc(courseRef, { ...payload, updatedAt: serverTimestamp() });
   },

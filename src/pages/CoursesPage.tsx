@@ -8,6 +8,7 @@ import type { Course, EnrollmentRequest, UserRole } from "../types";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import {
   AlertMessage,
+  AppModal,
   ContentList,
   ContentListItem,
   CoverImage,
@@ -15,15 +16,15 @@ import {
   EmptyState,
   FormPanel,
   PageToolbar,
+  SectionTitle,
 } from "../components/ui";
-import { AdminEnrollmentRequestsPanel } from "./course/AdminEnrollmentRequestsPanel";
-import { CourseActivationModal } from "./course/CourseActivationModal";
 import { IoEyeOutline } from "react-icons/io5";
 import { DashboardLayout } from "./DashboardLayout";
 
 type CourseForm = {
   title: string;
   description: string;
+  imageUrl: string;
   courseType: "public" | "private";
   isActive: boolean;
 };
@@ -31,6 +32,7 @@ type CourseForm = {
 const initialForm: CourseForm = {
   title: "",
   description: "",
+  imageUrl: "",
   courseType: "public",
   isActive: true,
 };
@@ -42,16 +44,10 @@ export function CoursesPage({ role }: { role: UserRole }) {
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [courseModalOpen, setCourseModalOpen] = useState(false);
   const [form, setForm] = useState<CourseForm>(initialForm);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
-  const [requests, setRequests] = useState<EnrollmentRequest[]>([]);
-  const [requestsLoading, setRequestsLoading] = useState(false);
-  const [requestFilter, setRequestFilter] = useState<"all" | EnrollmentRequest["status"]>("pending");
-  const [activationOpen, setActivationOpen] = useState(false);
-  const [activationTarget, setActivationTarget] = useState<EnrollmentRequest | null>(null);
-  const [isLifetimeActivation, setIsLifetimeActivation] = useState(true);
-  const [activationDays, setActivationDays] = useState(30);
   const [enrolledIds, setEnrolledIds] = useState<Set<string>>(() => new Set());
   const [latestReqByCourse, setLatestReqByCourse] = useState<Map<string, EnrollmentRequest>>(
     () => new Map(),
@@ -102,26 +98,6 @@ export function CoursesPage({ role }: { role: UserRole }) {
     }
   }, [role, user, loadStudentCourseContext]);
 
-  const loadRequests = async () => {
-    if (role !== "admin") {
-      return;
-    }
-    setRequestsLoading(true);
-    try {
-      const data = await coursesService.listCourseEnrollmentRequests(requestFilter);
-      setRequests(data);
-    } catch {
-      setMessage("تعذر تحميل طلبات الانضمام.");
-      setIsError(true);
-    } finally {
-      setRequestsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadRequests();
-  }, [role, requestFilter]);
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) {
@@ -135,6 +111,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
   const resetForm = () => {
     setEditingId(null);
     setForm(initialForm);
+    setCourseModalOpen(false);
   };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -146,10 +123,16 @@ export function CoursesPage({ role }: { role: UserRole }) {
     setMessage("");
     try {
       if (editingId) {
-        await coursesService.updateCourse(editingId, form);
+        await coursesService.updateCourse(editingId, {
+          ...form,
+          imageUrl: form.imageUrl.trim(),
+        });
         setMessage("تم تحديث الدورة بنجاح.");
       } else {
-        await coursesService.createCourse(user, form);
+        await coursesService.createCourse(user, {
+          ...form,
+          imageUrl: form.imageUrl.trim(),
+        });
         setMessage("تم إنشاء الدورة بنجاح.");
       }
       setIsError(false);
@@ -168,9 +151,17 @@ export function CoursesPage({ role }: { role: UserRole }) {
     setForm({
       title: course.title,
       description: course.description,
+      imageUrl: course.imageUrl ?? "",
       courseType: course.courseType,
       isActive: course.isActive,
     });
+    setCourseModalOpen(true);
+  };
+
+  const onOpenCreateModal = () => {
+    setEditingId(null);
+    setForm(initialForm);
+    setCourseModalOpen(true);
   };
 
   const onDelete = async (course: Course) => {
@@ -216,62 +207,6 @@ export function CoursesPage({ role }: { role: UserRole }) {
     }
   };
 
-  const openActivationDialog = (req: EnrollmentRequest) => {
-    setActivationTarget(req);
-    setIsLifetimeActivation(true);
-    setActivationDays(30);
-    setActivationOpen(true);
-  };
-
-  const confirmActivation = async () => {
-    if (!activationTarget) {
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const expiresAt =
-        isLifetimeActivation ? null : new Date(Date.now() + activationDays * 86_400_000);
-      const { alreadyEnrolled } = await coursesService.approveEnrollmentRequest(activationTarget, {
-        isLifetime: isLifetimeActivation,
-        days: activationDays,
-        expiresAt,
-      });
-      setMessage(
-        alreadyEnrolled
-          ? "تم اعتماد الطلب وتحديث بيانات التفعيل. الطالب كان مسجّلًا مسبقًا—لم نُكرّر زيادة عدد الطلاب."
-          : "تم قبول الطلب وإضافة الطالب للدورة (نفس مسار التطبيق: enrollment_requests + numbers + Mycourses).",
-      );
-      setIsError(false);
-      setActivationOpen(false);
-      setActivationTarget(null);
-      await Promise.all([loadRequests(), loadCourses()]);
-    } catch {
-      setMessage("تعذر قبول الطلب. تحقق من صلاحيات Firestore أو الفهارس المركّبة.");
-      setIsError(true);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const onRejectRequest = async (requestId: string) => {
-    const reason = window.prompt("سبب الرفض (يُحفظ في ملاحظات الإدارة):", "");
-    if (reason === null) {
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await coursesService.rejectEnrollmentRequest(requestId, reason.trim() || "مرفوض");
-      setMessage("تم رفض الطلب وتسجيل الملاحظة.");
-      setIsError(false);
-      await loadRequests();
-    } catch {
-      setMessage("تعذر رفض الطلب.");
-      setIsError(true);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const pageLede =
     role === "admin"
       ? "إنشاء وتعديل المقررات، إدارة طلبات الانضمام، وربط الدروس من صفحة «دروس المقرر»."
@@ -291,48 +226,6 @@ export function CoursesPage({ role }: { role: UserRole }) {
 
   return (
     <DashboardLayout role={role} title="الدورات" lede={pageLede}>
-      {role === "admin" ? (
-        <FormPanel onSubmit={onSubmit}>
-          <input
-            value={form.title}
-            onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-            placeholder="عنوان الدورة"
-            required
-          />
-          <input
-            value={form.description}
-            onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-            placeholder="وصف مختصر"
-            required
-          />
-          <select
-            value={form.courseType}
-            onChange={(e) => setForm((p) => ({ ...p, courseType: e.target.value as "public" | "private" }))}
-          >
-            <option value="public">عامة</option>
-            <option value="private">خاصة</option>
-          </select>
-          <label className="switch-line">
-            <input
-              type="checkbox"
-              checked={form.isActive}
-              onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
-            />
-            <span>نشطة</span>
-          </label>
-          <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
-            <ButtonBusyLabel busy={submitting}>
-              {editingId ? "حفظ التعديلات" : "إنشاء دورة"}
-            </ButtonBusyLabel>
-          </button>
-          {editingId ? (
-            <button type="button" className="ghost-btn" onClick={resetForm} disabled={submitting}>
-              إلغاء التعديل
-            </button>
-          ) : null}
-        </FormPanel>
-      ) : null}
-
       <PageToolbar>
         <input
           className="course-search"
@@ -340,6 +233,16 @@ export function CoursesPage({ role }: { role: UserRole }) {
           onChange={(e) => setSearch(e.target.value)}
           placeholder="بحث بالدورات..."
         />
+        {role === "admin" ? (
+          <>
+            <button type="button" className="primary-btn toolbar-btn" onClick={onOpenCreateModal}>
+              إضافة دورة
+            </button>
+            <Link to="/admin/enrollment-requests" className="ghost-btn toolbar-btn">
+              طلبات الالتحاق
+            </Link>
+          </>
+        ) : null}
         {role === "student" ? (
           <>
             <Link to="/student/mycourses" className="ghost-btn toolbar-btn">
@@ -444,31 +347,81 @@ export function CoursesPage({ role }: { role: UserRole }) {
       )}
 
       {role === "admin" ? (
-        <AdminEnrollmentRequestsPanel
-          requestFilter={requestFilter}
-          onRequestFilterChange={setRequestFilter}
-          requests={requests}
-          requestsLoading={requestsLoading}
-          submitting={submitting}
-          onRefresh={loadRequests}
-          onOpenActivation={openActivationDialog}
-          onRejectRequest={(id) => void onRejectRequest(id)}
-        />
-      ) : null}
-
-      {activationOpen && activationTarget ? (
-        <CourseActivationModal
-          submitting={submitting}
-          isLifetimeActivation={isLifetimeActivation}
-          onLifetimeChange={setIsLifetimeActivation}
-          activationDays={activationDays}
-          onDaysChange={setActivationDays}
-          onConfirm={confirmActivation}
+        <AppModal
+          open={courseModalOpen}
+          title={editingId ? "تعديل بيانات الدورة" : "إضافة دورة جديدة"}
           onClose={() => {
-            setActivationOpen(false);
-            setActivationTarget(null);
+            if (!submitting) {
+              resetForm();
+            }
           }}
-        />
+          contentClassName="course-form-modal"
+        >
+          <FormPanel onSubmit={onSubmit} elevated={false} className="course-form-modal__form">
+            <SectionTitle as="h4">{editingId ? "تحديث الدورة" : "إضافة دورة"}</SectionTitle>
+            <label>
+              <span>عنوان الدورة</span>
+              <input
+                className="text-input"
+                value={form.title}
+                onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                placeholder="عنوان الدورة"
+                required
+              />
+            </label>
+            <label>
+              <span>وصف مختصر</span>
+              <input
+                className="text-input"
+                value={form.description}
+                onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                placeholder="وصف مختصر"
+                required
+              />
+            </label>
+            <label>
+              <span>رابط صورة الدورة (اختياري)</span>
+              <input
+                className="text-input"
+                type="url"
+                value={form.imageUrl}
+                onChange={(e) => setForm((p) => ({ ...p, imageUrl: e.target.value }))}
+                placeholder="https://..."
+              />
+            </label>
+            <div className="form-row-2">
+              <label>
+                <span>نوع الدورة</span>
+                <select
+                  className="text-input"
+                  value={form.courseType}
+                  onChange={(e) => setForm((p) => ({ ...p, courseType: e.target.value as "public" | "private" }))}
+                >
+                  <option value="public">عامة</option>
+                  <option value="private">خاصة</option>
+                </select>
+              </label>
+              <label className="switch-line course-form-modal__switch">
+                <input
+                  type="checkbox"
+                  checked={form.isActive}
+                  onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
+                />
+                <span>نشطة في الكتالوج</span>
+              </label>
+            </div>
+            <div className="course-actions">
+              <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
+                <ButtonBusyLabel busy={submitting}>
+                  {editingId ? "حفظ التعديلات" : "إنشاء دورة"}
+                </ButtonBusyLabel>
+              </button>
+              <button type="button" className="ghost-btn" onClick={resetForm} disabled={submitting}>
+                إلغاء
+              </button>
+            </div>
+          </FormPanel>
+        </AppModal>
       ) : null}
     </DashboardLayout>
   );

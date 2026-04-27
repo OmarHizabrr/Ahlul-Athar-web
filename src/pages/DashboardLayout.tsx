@@ -62,6 +62,11 @@ export function DashboardLayout({ role, title, lede, children }: DashboardLayout
           <Link to={`${base}/courses`} onClick={() => setNavOpen(false)}>
             الدورات
           </Link>
+          {role === "admin" ? (
+            <Link to="/admin/enrollment-requests" onClick={() => setNavOpen(false)}>
+              طلبات الالتحاق
+            </Link>
+          ) : null}
           {role === "student" ? (
             <>
               <Link to="/student/mycourses" onClick={() => setNavOpen(false)}>

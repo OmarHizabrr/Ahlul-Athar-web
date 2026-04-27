@@ -10,6 +10,9 @@ const RoleSelectorPage = lazy(() => import("./pages/RoleSelectorPage").then((m) 
 const LoginPage = lazy(() => import("./pages/LoginPage").then((m) => ({ default: m.LoginPage })));
 const HomePage = lazy(() => import("./pages/dashboard/HomePage").then((m) => ({ default: m.HomePage })));
 const CoursesPage = lazy(() => import("./pages/CoursesPage").then((m) => ({ default: m.CoursesPage })));
+const AdminEnrollmentRequestsPage = lazy(() =>
+  import("./pages/AdminEnrollmentRequestsPage").then((m) => ({ default: m.AdminEnrollmentRequestsPage })),
+);
 const PostsPage = lazy(() => import("./pages/dashboard/PostsPage").then((m) => ({ default: m.PostsPage })));
 const NotificationsPage = lazy(() =>
   import("./pages/dashboard/NotificationsPage").then((m) => ({ default: m.NotificationsPage })),
@@ -105,6 +108,14 @@ function App() {
             element={
               <ProtectedRoute role="admin">
                 <CoursesPage role="admin" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/enrollment-requests"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminEnrollmentRequestsPage />
               </ProtectedRoute>
             }
           />

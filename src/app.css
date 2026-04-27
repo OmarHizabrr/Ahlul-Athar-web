@@ -1586,6 +1586,82 @@ button:disabled {
   min-width: 0;
 }
 
+.app-modal-overlay {
+  animation: modal-fade-in 0.2s ease-out;
+}
+
+.app-modal-card {
+  width: min(100%, 720px);
+  max-height: min(88vh, 760px);
+  overflow: auto;
+  animation: modal-pop-in 0.24s ease-out;
+}
+
+.app-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.app-modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.app-modal-close {
+  margin: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(71, 85, 105, 0.8);
+  background: rgba(15, 23, 42, 0.8);
+  color: #cbd5e1;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.app-modal-close:hover {
+  border-color: rgba(96, 165, 250, 0.65);
+  color: #dbeafe;
+}
+
+.course-form-modal {
+  width: min(100%, 680px);
+}
+
+.course-form-modal__form {
+  margin: 0;
+  padding: 0;
+}
+
+.course-form-modal__switch {
+  align-self: end;
+  margin-top: 1.7rem;
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @media (max-width: 560px) {
   .card {
     padding: 1.2rem;
