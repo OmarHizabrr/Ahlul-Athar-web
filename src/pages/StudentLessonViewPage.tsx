@@ -11,8 +11,9 @@ import {
   type LessonQuizItem,
 } from "../services/lessonAccessService";
 import { isStudentEnrolledInCourse } from "../services/myCoursesService";
+import { lessonCommentsService } from "../services/lessonCommentsService";
 import { lessonsService } from "../services/lessonsService";
-import type { Lesson } from "../types";
+import type { Lesson, LessonComment, PlatformUser } from "../types";
 import { formatFirestoreTime } from "../utils/firestoreTime";
 import { AlertMessage, EmptyState, PageToolbar, Panel, SectionTitle } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
@@ -201,10 +202,54 @@ function StudentLessonBody({
   onRefresh: () => void;
   refreshing: boolean;
 }) {
+  const { user } = useAuth();
   const isAdminPreview = useIsAdminPreview();
   const viewRoot = isAdminPreview ? "/admin/preview" : "/student";
   const ct = lesson.contentType?.trim().toLowerCase() ?? "";
   const typeLabel = ct ? CONTENT_TYPE_LABEL[ct] ?? lesson.contentType : null;
+  const [activeTab, setActiveTab] = useState<"view" | "attachments" | "comments" | "quizzes">("view");
+  const [comments, setComments] = useState<LessonComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentBody, setCommentBody] = useState("");
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+
+  const mediaItems = [
+    { key: "video", label: "فيديو", value: lesson.videoUrl },
+    { key: "pdf", label: "PDF", value: lesson.pdfUrl },
+    { key: "audio", label: "صوت", value: lesson.audioUrl },
+  ].filter((x) => Boolean(x.value && String(x.value).trim()));
+
+  const loadComments = useCallback(async () => {
+    setCommentsLoading(true);
+    try {
+      const rows = await lessonCommentsService.listByLesson(courseId, lessonId);
+      setComments(rows);
+    } catch {
+      setComments([]);
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, [courseId, lessonId]);
+
+  useEffect(() => {
+    if (activeTab === "comments") {
+      void loadComments();
+    }
+  }, [activeTab, loadComments]);
+
+  const onAddComment = async () => {
+    if (!user || !commentBody.trim()) {
+      return;
+    }
+    setCommentSubmitting(true);
+    try {
+      await lessonCommentsService.addComment(user as PlatformUser, courseId, lessonId, commentBody);
+      setCommentBody("");
+      await loadComments();
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
 
   return (
     <article className="lesson-reader">
@@ -260,34 +305,136 @@ function StudentLessonBody({
           قد يُطلب اجتياز اختبار هذا الدرس حسب إعدادات المقرر للانتقال للدرس التالي.
         </p>
       ) : null}
+      <div className="lesson-tabs" role="tablist" aria-label="أقسام الدرس">
+        <button
+          type="button"
+          className={activeTab === "view" ? "lesson-tab lesson-tab--active" : "lesson-tab"}
+          onClick={() => setActiveTab("view")}
+          role="tab"
+          aria-selected={activeTab === "view"}
+        >
+          المشاهدة
+        </button>
+        <button
+          type="button"
+          className={activeTab === "attachments" ? "lesson-tab lesson-tab--active" : "lesson-tab"}
+          onClick={() => setActiveTab("attachments")}
+          role="tab"
+          aria-selected={activeTab === "attachments"}
+        >
+          المرفقات
+        </button>
+        <button
+          type="button"
+          className={activeTab === "comments" ? "lesson-tab lesson-tab--active" : "lesson-tab"}
+          onClick={() => setActiveTab("comments")}
+          role="tab"
+          aria-selected={activeTab === "comments"}
+        >
+          التعليقات
+        </button>
+        <button
+          type="button"
+          className={activeTab === "quizzes" ? "lesson-tab lesson-tab--active" : "lesson-tab"}
+          onClick={() => setActiveTab("quizzes")}
+          role="tab"
+          aria-selected={activeTab === "quizzes"}
+        >
+          الاختبارات
+        </button>
+      </div>
 
-      <LessonContentView lesson={lesson} />
+      {activeTab === "view" ? <LessonContentView lesson={lesson} /> : null}
 
-      {quizzes.length > 0 ? (
-        <div className="lesson-quiz-section">
+      {activeTab === "attachments" ? (
+        <div className="lesson-tab-panel">
+          <SectionTitle as="h3">مرفقات الدرس</SectionTitle>
+          {mediaItems.length === 0 ? (
+            <EmptyState message="لا توجد مرفقات مباشرة لهذا الدرس." />
+          ) : (
+            <ul className="lesson-attachments-list">
+              {mediaItems.map((m) => (
+                <li key={m.key} className="lesson-attachment-item">
+                  <span className="meta-pill meta-pill--muted">{m.label}</span>
+                  <a className="inline-link" href={String(m.value)} target="_blank" rel="noopener noreferrer">
+                    فتح المرفق
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
+
+      {activeTab === "comments" ? (
+        <div className="lesson-tab-panel">
+          <SectionTitle as="h3">تعليقات الدرس</SectionTitle>
+          <div className="lesson-comment-box">
+            <textarea
+              className="text-input textarea"
+              rows={3}
+              value={commentBody}
+              onChange={(e) => setCommentBody(e.target.value)}
+              placeholder="اكتب تعليقك هنا..."
+            />
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={() => void onAddComment()}
+              disabled={commentSubmitting || !commentBody.trim()}
+              aria-busy={commentSubmitting}
+            >
+              <ButtonBusyLabel busy={commentSubmitting}>إرسال التعليق</ButtonBusyLabel>
+            </button>
+          </div>
+          {commentsLoading ? (
+            <PageLoadHint text="جاري تحميل التعليقات..." />
+          ) : comments.length === 0 ? (
+            <EmptyState message="لا توجد تعليقات بعد." />
+          ) : (
+            <ul className="lesson-comments-list">
+              {comments.map((c) => (
+                <li key={c.id} className="lesson-comment-item">
+                  <p className="muted small">
+                    <strong>{c.userName}</strong> · {formatFirestoreTime(c.createdAt)}
+                  </p>
+                  <p className="post-body">{c.body}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
+
+      {activeTab === "quizzes" ? (
+        <div className="lesson-quiz-section lesson-tab-panel">
           <SectionTitle as="h3">اختبارات الدرس</SectionTitle>
-          <ul className="lesson-quiz-list">
-            {quizzes.map((q) => (
-              <li key={q.quizFileId}>
-                <div className="lesson-quiz-row">
-                  <span className="lesson-quiz-title">{q.title}</span>
-                  <span className="lesson-quiz-pill" data-st={q.status === "none" ? "none" : q.status}>
-                    {q.status === "graded"
-                      ? "مُتاح / مقيّم"
-                      : q.status === "pending"
-                        ? "مُرسل — بانتظار التصحيح"
-                        : "لم يُرسل بعد"}
-                  </span>
-                  <Link
-                    className="ghost-btn"
-                    to={`${viewRoot}/course/${courseId}/lesson/${lessonId}/quiz/${q.quizFileId}`}
-                  >
-                    فتح الاختبار
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
+          {quizzes.length > 0 ? (
+            <ul className="lesson-quiz-list">
+              {quizzes.map((q) => (
+                <li key={q.quizFileId}>
+                  <div className="lesson-quiz-row">
+                    <span className="lesson-quiz-title">{q.title}</span>
+                    <span className="lesson-quiz-pill" data-st={q.status === "none" ? "none" : q.status}>
+                      {q.status === "graded"
+                        ? "مُتاح / مقيّم"
+                        : q.status === "pending"
+                          ? "مُرسل — بانتظار التصحيح"
+                          : "لم يُرسل بعد"}
+                    </span>
+                    <Link
+                      className="ghost-btn"
+                      to={`${viewRoot}/course/${courseId}/lesson/${lessonId}/quiz/${q.quizFileId}`}
+                    >
+                      فتح الاختبار
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState message="لا توجد اختبارات لهذا الدرس بعد." />
+          )}
         </div>
       ) : null}
     </article>

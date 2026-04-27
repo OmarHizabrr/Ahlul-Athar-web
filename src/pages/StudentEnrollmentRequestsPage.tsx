@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import {
@@ -9,6 +9,7 @@ import {
   cn,
   EmptyState,
   PageToolbar,
+  StatTile,
 } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
@@ -38,6 +39,7 @@ export function StudentEnrollmentRequestsPage() {
   const [enrolled, setEnrolled] = useState<Set<string>>(() => new Set());
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | EnrollmentRequest["status"]>("all");
 
   const load = useCallback(async () => {
     if (!user) {
@@ -64,6 +66,13 @@ export function StudentEnrollmentRequestsPage() {
       void load();
     }
   }, [ready, user, load]);
+
+  const visibleRows = useMemo(() => {
+    if (statusFilter === "all") {
+      return rows;
+    }
+    return rows.filter((r) => r.status === statusFilter);
+  }, [rows, statusFilter]);
 
   if (!ready) {
     return (
@@ -103,15 +112,50 @@ export function StudentEnrollmentRequestsPage() {
         <Link to="/student/mycourses" className="ghost-btn toolbar-btn">
           مقرراتي
         </Link>
+        <button
+          type="button"
+          className="ghost-btn toolbar-btn"
+          onClick={() =>
+            setStatusFilter((s) =>
+              s === "all"
+                ? "pending"
+                : s === "pending"
+                  ? "approved"
+                  : s === "approved"
+                    ? "rejected"
+                    : s === "rejected"
+                      ? "expired"
+                      : "all",
+            )
+          }
+        >
+          {statusFilter === "all"
+            ? "كل الحالات"
+            : statusFilter === "pending"
+              ? "قيد المراجعة"
+              : statusFilter === "approved"
+                ? "المقبولة"
+                : statusFilter === "rejected"
+                  ? "المرفوضة"
+                  : "المنتهية"}
+        </button>
       </PageToolbar>
       {message ? <AlertMessage kind="error">{message}</AlertMessage> : null}
+      {!loading ? (
+        <div className="grid-2 home-stats-grid">
+          <StatTile title="إجمالي الطلبات" highlight={rows.length} />
+          <StatTile title="قيد المراجعة" highlight={rows.filter((r) => r.status === "pending").length} />
+          <StatTile title="طلبات مقبولة" highlight={rows.filter((r) => r.status === "approved").length} />
+          <StatTile title="طلبات مرفوضة/منتهية" highlight={rows.filter((r) => r.status === "rejected" || r.status === "expired").length} />
+        </div>
+      ) : null}
       {loading ? (
         <PageLoadHint />
-      ) : rows.length === 0 ? (
+      ) : visibleRows.length === 0 ? (
         <EmptyState message='لا توجد طلبات انضمام حتى الآن. تصفح «الدورات» واطلب الانضمام للمقررات المتاحة.' />
       ) : (
         <ContentList>
-          {rows.map((r) => {
+          {visibleRows.map((r) => {
             const inMy = enrolled.has(r.targetId);
             const hasThumb = Boolean(r.targetImageURL?.trim());
             return (

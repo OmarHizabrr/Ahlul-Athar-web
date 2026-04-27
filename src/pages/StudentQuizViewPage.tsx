@@ -251,6 +251,27 @@ export function StudentQuizViewPage() {
     setValues((p) => ({ ...p, [key]: v }));
   };
 
+  const answeredCount = useMemo(() => {
+    if (rows.length === 0) {
+      return 0;
+    }
+    let count = 0;
+    for (const r of rows) {
+      const raw = (values[r.key] ?? "").toString();
+      if (r.kind === "true_false") {
+        if (raw === "true" || raw === "false") {
+          count += 1;
+        }
+        continue;
+      }
+      if (raw.trim().length > 0) {
+        count += 1;
+      }
+    }
+    return count;
+  }, [rows, values]);
+  const progressPct = rows.length > 0 ? Math.round((answeredCount / rows.length) * 100) : 0;
+
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (isAdminPreview || !user || formLocked || !hasStructuredQuestions) {
@@ -352,21 +373,34 @@ export function StudentQuizViewPage() {
         <AlertMessage kind="error">{err}</AlertMessage>
       ) : (
         <div className="quiz-view-card">
-          <p className="muted small">
-            حالة تسليمك:{" "}
-            {isGraded
-              ? "تم التصحيح (graded)"
-              : status === "pending"
-                ? "تم الإرسال — بانتظار التصحيح من الإدارة"
-                : "لم يُرسل بعد"}
-          </p>
+          <div className="quiz-status-row" aria-label="حالة الاختبار">
+            <span
+              className={
+                isGraded
+                  ? "meta-pill meta-pill--ok"
+                  : status === "pending"
+                    ? "meta-pill meta-pill--info"
+                    : "meta-pill meta-pill--muted"
+              }
+            >
+              {isGraded
+                ? "تم التصحيح"
+                : status === "pending"
+                  ? "بانتظار التصحيح"
+                  : "لم يُرسل بعد"}
+            </span>
+            <span className="meta-pill meta-pill--muted">
+              {hasStructuredQuestions ? `${answeredCount}/${rows.length} مجاب` : "بدون أسئلة"}
+            </span>
+            {durationMin != null ? <span className="meta-pill meta-pill--muted">المدة: {Math.round(durationMin)} د</span> : null}
+          </div>
+          {hasStructuredQuestions ? (
+            <div className="quiz-progress-wrap" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPct}>
+              <div className="quiz-progress-bar" style={{ width: `${progressPct}%` }} />
+            </div>
+          ) : null}
           {scheduleBlocks && schedule.messageAr ? (
             <AlertMessage kind="error">{schedule.messageAr}</AlertMessage>
-          ) : null}
-          {durationMin != null ? (
-            <p className="muted small quiz-quiz-duration">
-              المدة: {Math.round(durationMin)} د
-            </p>
           ) : null}
           {desc.length > 0 ? <p className="quiz-desc">{desc}</p> : null}
           {mediaUrl.trim() ? <VideoIntroBlock mediaUrl={mediaUrl} title="مقطع الاختبار" /> : null}

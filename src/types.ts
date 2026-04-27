@@ -69,6 +69,18 @@ export type LessonWithAccess = {
   blockHint?: string;
 };
 
+/** تعليق على الدرس (واجهة الويب/التطبيق) */
+export interface LessonComment {
+  id: string;
+  lessonId: string;
+  courseId: string;
+  userId: string;
+  userName: string;
+  userPhotoURL?: string;
+  body: string;
+  createdAt: unknown;
+}
+
 /** منشور عام / إعلان — يظهر للطلاب عند isPublished. */
 export interface Post {
   id: string;

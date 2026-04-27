@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import {
@@ -8,6 +8,7 @@ import {
   CoverImage,
   EmptyState,
   PageToolbar,
+  StatTile,
 } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { cn } from "../utils/cn";
@@ -21,6 +22,8 @@ export function StudentMyCoursesPage() {
   const [rows, setRows] = useState<MyCourseEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [search, setSearch] = useState("");
+  const [showActivatedOnly, setShowActivatedOnly] = useState(false);
 
   const load = useCallback(async () => {
     if (!user) {
@@ -44,6 +47,19 @@ export function StudentMyCoursesPage() {
     }
   }, [ready, user, load]);
 
+  const visibleRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const base = showActivatedOnly ? rows.filter((r) => r.isActivated) : rows;
+    if (!q) {
+      return base;
+    }
+    return base.filter(
+      (r) =>
+        (r.courseTitle ?? "").toLowerCase().includes(q) ||
+        (r.courseDescription ?? "").toLowerCase().includes(q),
+    );
+  }, [rows, search, showActivatedOnly]);
+
   if (!ready) {
     return (
       <DashboardLayout role="student" title="مقرراتي" lede="مقرراتك بعد قبول طلبات الانضمام.">
@@ -63,6 +79,12 @@ export function StudentMyCoursesPage() {
       lede="الدورات التي وافقت الإدارة على انضمامك إليها — يطابق تبويب «دوراتي» في تطبيق الجوال."
     >
       <PageToolbar>
+        <input
+          className="course-search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="بحث في مقرراتي..."
+        />
         <button
           type="button"
           className="ghost-btn toolbar-btn"
@@ -75,11 +97,35 @@ export function StudentMyCoursesPage() {
         <Link to="/student/courses" className="ghost-btn toolbar-btn">
           تصفح الكتالوج
         </Link>
+        <button
+          type="button"
+          className="ghost-btn toolbar-btn"
+          onClick={() => setShowActivatedOnly((v) => !v)}
+        >
+          {showActivatedOnly ? "عرض كل المقررات" : "المفعلة فقط"}
+        </button>
       </PageToolbar>
       {message ? <AlertMessage kind="error">{message}</AlertMessage> : null}
+      {!loading ? (
+        <div className="grid-2 home-stats-grid">
+          <StatTile title="عدد مقرراتي" highlight={rows.length} />
+          <StatTile
+            title="إجمالي الدروس"
+            highlight={rows.reduce((sum, c) => sum + (typeof c.lessonCount === "number" ? c.lessonCount : 0), 0)}
+          />
+          <StatTile
+            title="مقررات مفعلة"
+            highlight={rows.filter((c) => c.isActivated).length}
+          />
+          <StatTile
+            title="مقررات دائمة"
+            highlight={rows.filter((c) => c.isLifetime).length}
+          />
+        </div>
+      ) : null}
       {loading ? (
         <PageLoadHint />
-      ) : rows.length === 0 ? (
+      ) : visibleRows.length === 0 ? (
         <EmptyState className="empty-state" message="لا يوجد مقررات مسجّل بها بعد.">
           <p className="empty-state-actions">
             <Link to="/student/courses" className="primary-btn">
@@ -89,7 +135,7 @@ export function StudentMyCoursesPage() {
         </EmptyState>
       ) : (
         <ContentList>
-          {rows.map((c) => (
+          {visibleRows.map((c) => (
             <ContentListItem
               key={c.courseId}
               className={cn("mycourse-card", c.courseImageURL && "mycourse-card--cover")}

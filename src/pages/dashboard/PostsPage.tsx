@@ -14,6 +14,7 @@ import {
   FormPanel,
   PageToolbar,
   SectionTitle,
+  StatTile,
 } from "../../components/ui";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
 
@@ -34,6 +35,10 @@ export function PostsPage({ role }: { role: UserRole }) {
   const [postModalOpen, setPostModalOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
+  const [showPublishedOnly, setShowPublishedOnly] = useState(role === "student");
+
+  const visiblePosts =
+    role === "admin" && showPublishedOnly ? posts.filter((p) => p.isPublished) : posts;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -128,15 +133,35 @@ export function PostsPage({ role }: { role: UserRole }) {
       ) : null}
 
       {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
+      {!loading ? (
+        <div className="grid-2 home-stats-grid">
+          <StatTile title="إجمالي المنشورات" highlight={posts.length} />
+          <StatTile title="منشورة" highlight={posts.filter((p) => p.isPublished).length} />
+          {role === "admin" ? (
+            <StatTile title="مسودات" highlight={posts.filter((p) => !p.isPublished).length} />
+          ) : null}
+        </div>
+      ) : null}
+      {role === "admin" ? (
+        <PageToolbar>
+          <button
+            type="button"
+            className="ghost-btn toolbar-btn"
+            onClick={() => setShowPublishedOnly((v) => !v)}
+          >
+            {showPublishedOnly ? "عرض كل المنشورات" : "عرض المنشور فقط"}
+          </button>
+        </PageToolbar>
+      ) : null}
 
       {loading ? (
         <PageLoadHint />
       ) : (
         <ContentList>
-          {posts.length === 0 ? (
+          {visiblePosts.length === 0 ? (
             <EmptyState message="لا توجد منشورات بعد." />
           ) : (
-            posts.map((p) => (
+            visiblePosts.map((p) => (
               <ContentListItem key={p.id}>
                 <h2 className="post-title">{p.title}</h2>
                 <p className="muted post-meta">

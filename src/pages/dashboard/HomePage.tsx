@@ -30,9 +30,13 @@ export function HomePage({ role }: { role: UserRole }) {
   const [loading, setLoading] = useState(true);
   const [courseCount, setCourseCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
+  const [totalStudents, setTotalStudents] = useState(0);
+  const [totalLessons, setTotalLessons] = useState(0);
   const [unread, setUnread] = useState(0);
   const [recentTitles, setRecentTitles] = useState<string[]>([]);
   const [myCoursesCount, setMyCoursesCount] = useState(0);
+  const [myLessonsCount, setMyLessonsCount] = useState(0);
+  const [myActiveCoursesCount, setMyActiveCoursesCount] = useState(0);
   const [pendingEnrollmentCount, setPendingEnrollmentCount] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const base = role === "admin" ? "/admin" : "/student";
@@ -46,6 +50,8 @@ export function HomePage({ role }: { role: UserRole }) {
     try {
       const courses = await coursesService.listCoursesForRole(role);
       setCourseCount(courses.length);
+      setTotalStudents(courses.reduce((sum, c) => sum + (Number.isFinite(c.studentCount) ? c.studentCount : 0), 0));
+      setTotalLessons(courses.reduce((sum, c) => sum + (Number.isFinite(c.lessonCount) ? c.lessonCount : 0), 0));
       if (role === "admin") {
         const pending = await coursesService.listCourseEnrollmentRequests("pending");
         setPendingCount(pending.length);
@@ -54,6 +60,10 @@ export function HomePage({ role }: { role: UserRole }) {
         setPendingCount(0);
         const mine = await myCoursesService.listForStudent(user.uid);
         setMyCoursesCount(mine.length);
+        setMyLessonsCount(
+          mine.reduce((sum, c) => sum + (typeof c.lessonCount === "number" && Number.isFinite(c.lessonCount) ? c.lessonCount : 0), 0),
+        );
+        setMyActiveCoursesCount(mine.filter((c) => c.isActiveOnCatalog !== false).length);
         try {
           const myReqs = await coursesService.listStudentEnrollmentRequests(user.uid);
           setPendingEnrollmentCount(myReqs.filter((r) => r.status === "pending").length);
@@ -134,6 +144,14 @@ export function HomePage({ role }: { role: UserRole }) {
                 }
               />
             )}
+            {role === "student" ? <StatTile title="إجمالي دروس مقرراتي" highlight={myLessonsCount} /> : null}
+            {role === "student" ? <StatTile title="المقررات المفعّلة" highlight={myActiveCoursesCount} /> : null}
+            {role === "admin" ? (
+              <StatTile title="إجمالي الطلاب" highlight={totalStudents} />
+            ) : null}
+            {role === "admin" ? (
+              <StatTile title="إجمالي الدروس" highlight={totalLessons} />
+            ) : null}
             {role === "student" ? (
               <StatTile
                 title="طلبات انضمام معلّقة"

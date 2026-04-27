@@ -5,6 +5,7 @@ import { ButtonBusyLabel } from "./ButtonBusyLabel";
 import { Avatar } from "./ui";
 import { useAuth } from "../context/AuthContext";
 import { authService } from "../services/authService";
+import { coursesService } from "../services/coursesService";
 import { notificationsService } from "../services/notificationsService";
 import type { UserRole } from "../types";
 
@@ -13,6 +14,7 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
   const navigate = useNavigate();
   const base = role === "admin" ? "/admin" : "/student";
   const [unread, setUnread] = useState(0);
+  const [pendingEnrollments, setPendingEnrollments] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -29,26 +31,49 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
     }
   }, [user]);
 
+  const refreshPendingEnrollments = useCallback(async () => {
+    if (!user) {
+      return;
+    }
+    try {
+      if (role === "admin") {
+        const pending = await coursesService.listCourseEnrollmentRequests("pending");
+        setPendingEnrollments(pending.length);
+      } else {
+        const mine = await coursesService.listStudentEnrollmentRequests(user.uid);
+        setPendingEnrollments(mine.filter((r) => r.status === "pending").length);
+      }
+    } catch {
+      setPendingEnrollments(0);
+    }
+  }, [role, user]);
+
   useEffect(() => {
     if (!ready || !user) {
       return;
     }
     void refreshUnread();
+    void refreshPendingEnrollments();
     const t = window.setInterval(() => void refreshUnread(), 60_000);
+    const tReq = window.setInterval(() => void refreshPendingEnrollments(), 60_000);
     const onVis = () => {
       if (document.visibilityState === "visible") {
         void refreshUnread();
       }
     };
     const onNotifUpdated = () => void refreshUnread();
+    const onEnrollmentUpdated = () => void refreshPendingEnrollments();
     window.addEventListener("ah:notifications-updated", onNotifUpdated);
+    window.addEventListener("ah:enrollment-requests-updated", onEnrollmentUpdated);
     document.addEventListener("visibilitychange", onVis);
     return () => {
       window.removeEventListener("ah:notifications-updated", onNotifUpdated);
+      window.removeEventListener("ah:enrollment-requests-updated", onEnrollmentUpdated);
       window.clearInterval(t);
+      window.clearInterval(tReq);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [ready, user, refreshUnread]);
+  }, [ready, user, refreshUnread, refreshPendingEnrollments]);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -149,6 +174,19 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
           <span className="topbar-notif-icon-wrap">
             <IoNotificationsOutline className="topbar-notif-icon" />
             {unread > 0 ? <span className="notif-badge">{unread > 99 ? "99+" : unread}</span> : null}
+          </span>
+        </Link>
+        <Link
+          to={role === "admin" ? "/admin/enrollment-requests" : "/student/enrollment-requests"}
+          className="topbar-notif-btn"
+          title={role === "admin" ? "طلبات الالتحاق" : "طلباتي"}
+          aria-label={role === "admin" ? "طلبات الالتحاق" : "طلباتي"}
+        >
+          <span className="topbar-notif-icon-wrap topbar-notif-icon-wrap--text">
+            <span className="topbar-mini-label">{role === "admin" ? "طلبات" : "طلباتي"}</span>
+            {pendingEnrollments > 0 ? (
+              <span className="notif-badge">{pendingEnrollments > 99 ? "99+" : pendingEnrollments}</span>
+            ) : null}
           </span>
         </Link>
       </div>

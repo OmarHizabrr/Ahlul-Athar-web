@@ -62,6 +62,7 @@ export function AdminEnrollmentRequestsPage() {
       setIsError(false);
       setActivationOpen(false);
       setActivationTarget(null);
+      window.dispatchEvent(new CustomEvent("ah:enrollment-requests-updated"));
       await loadRequests();
     } catch {
       setMessage("تعذر قبول الطلب. تحقق من صلاحيات Firestore أو الفهارس.");
@@ -81,6 +82,7 @@ export function AdminEnrollmentRequestsPage() {
       await coursesService.rejectEnrollmentRequest(requestId, reason.trim() || "مرفوض");
       setMessage("تم رفض الطلب وتسجيل الملاحظة.");
       setIsError(false);
+      window.dispatchEvent(new CustomEvent("ah:enrollment-requests-updated"));
       await loadRequests();
     } catch {
       setMessage("تعذر رفض الطلب.");

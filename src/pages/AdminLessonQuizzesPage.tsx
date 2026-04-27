@@ -22,6 +22,7 @@ import {
   FormPanel,
   PageToolbar,
   SectionTitle,
+  StatTile,
 } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
 
@@ -139,6 +140,19 @@ export function AdminLessonQuizzesPage() {
   };
 
   const lede = "إنشاء وإدارة ملفات الاختبار لدرس (مسار Firestore: quiz_files كما في تطبيق الجوال).";
+  const scheduledQuizzes = quizzes.filter((q) => q.data.hasScheduledTime === true).length;
+  const quizzesWithVideo = quizzes.filter((q) => {
+    const s = String((q.data.videoUrl ?? q.data.mediaUrl ?? "") as string).trim();
+    return s.length > 0;
+  }).length;
+  const totalQuestions = quizzes.reduce((sum, q) => {
+    const n = Number((q.data as { questionsCount?: unknown }).questionsCount);
+    return sum + (Number.isFinite(n) && n > 0 ? n : 0);
+  }, 0);
+  const durationRows = quizzes
+    .map((q) => Number((q.data as { duration?: unknown }).duration))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  const avgDuration = durationRows.length > 0 ? Math.round(durationRows.reduce((a, b) => a + b, 0) / durationRows.length) : null;
 
   if (!ready) {
     return (
@@ -169,6 +183,13 @@ export function AdminLessonQuizzesPage() {
       ) : (
         <>
           {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
+          <div className="grid-2 home-stats-grid admin-lessons-stats">
+            <StatTile title="إجمالي الاختبارات" highlight={quizzes.length} />
+            <StatTile title="اختبارات مجدولة" highlight={scheduledQuizzes} />
+            <StatTile title="اختبارات بفيديو" highlight={quizzesWithVideo} />
+            <StatTile title="إجمالي الأسئلة" highlight={totalQuestions} />
+            <StatTile title="متوسط مدة الاختبار" highlight={avgDuration != null ? `${avgDuration} د` : "—"} />
+          </div>
           <PageToolbar>
             <button
               type="button"

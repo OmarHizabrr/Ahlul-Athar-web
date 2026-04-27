@@ -67,6 +67,13 @@ export function SettingsPage({ role }: { role: UserRole }) {
               </Link>
             </li>
           ) : null}
+          {role === "admin" ? (
+            <li>
+              <Link className="settings-link" to="/admin/enrollment-requests">
+                طلبات الالتحاق (الإدارة)
+              </Link>
+            </li>
+          ) : null}
           <li>
             <Link className="settings-link" to={`${base}/posts`}>
               المنشورات

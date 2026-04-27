@@ -198,6 +198,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
       await coursesService.requestEnrollment(user, course);
       setMessage("تم إرسال طلب الانضمام للإدارة.");
       setIsError(false);
+      window.dispatchEvent(new CustomEvent("ah:enrollment-requests-updated"));
       await loadStudentCourseContext();
     } catch {
       setMessage("فشل إرسال طلب الانضمام.");

@@ -10,6 +10,7 @@ import {
   PageToolbar,
   Panel,
   SectionTitle,
+  StatTile,
   cn,
 } from "../components/ui";
 import { useIsAdminPreview } from "../context/AdminPreviewContext";
@@ -119,6 +120,10 @@ export function StudentCourseViewPage() {
     : (course?.title ?? "مقرر");
   const viewRoot = isAdminPreview ? "/admin/preview" : "/student";
   const courseCoverUrl = course?.imageUrl?.trim() ?? "";
+  const unlockedLessons = lessons.filter((row) => row.isUnlocked).length;
+  const lockedLessons = Math.max(lessons.length - unlockedLessons, 0);
+  const mandatoryQuizLessons = lessons.filter((row) => row.lesson.hasMandatoryQuiz).length;
+  const completionPct = lessons.length > 0 ? Math.round((unlockedLessons / lessons.length) * 100) : 0;
 
   return (
     <DashboardLayout role={layoutRole} title={title} lede={courseLede}>
@@ -185,6 +190,15 @@ export function StudentCourseViewPage() {
               </>
             )}
           </Panel>
+          {enrolled ? (
+            <div className="grid-2 home-stats-grid">
+              <StatTile title="إجمالي الدروس" highlight={lessons.length} />
+              <StatTile title="الدروس المفتوحة" highlight={unlockedLessons} />
+              <StatTile title="الدروس المقفلة" highlight={lockedLessons} />
+              <StatTile title="دروس باختبار إجباري" highlight={mandatoryQuizLessons} />
+              <StatTile title="نسبة التقدّم" highlight={`${completionPct}%`} />
+            </div>
+          ) : null}
           {!enrolled ? (
             <AlertMessage kind="error" role="alert">
               أنت لست مسجّلاً في هذا المقرر. أرسل طلب انضمام من «الدورات» ثم بعد قبول الإدارة ستظهر الدروس

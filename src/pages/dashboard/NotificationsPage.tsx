@@ -16,6 +16,7 @@ import {
   FormPanel,
   PageToolbar,
   SectionTitle,
+  StatTile,
 } from "../../components/ui";
 import { cn } from "../../utils/cn";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
@@ -30,6 +31,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
   const [nTitle, setNTitle] = useState("");
   const [nBody, setNBody] = useState("");
   const [nImageUrl, setNImageUrl] = useState("");
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
@@ -122,6 +124,8 @@ export function NotificationsPage({ role }: { role: UserRole }) {
     }
   };
 
+  const visibleItems = showUnreadOnly ? items.filter((n) => !n.read) : items;
+
   if (!ready) {
     return (
       <DashboardLayout
@@ -149,9 +153,23 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       ) : null}
 
       {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
+      {!loading ? (
+        <div className="grid-2 home-stats-grid">
+          <StatTile title="إجمالي الإشعارات" highlight={items.length} />
+          <StatTile title="غير المقروءة" highlight={items.filter((n) => !n.read).length} />
+          <StatTile title="بصور" highlight={items.filter((n) => (n.imageUrl ?? "").trim().length > 0).length} />
+        </div>
+      ) : null}
 
       <PageToolbar className="notif-toolbar">
         <p className="muted">الإشعارات الخاصة بك</p>
+        <button
+          type="button"
+          className="ghost-btn toolbar-btn"
+          onClick={() => setShowUnreadOnly((v) => !v)}
+        >
+          {showUnreadOnly ? "عرض الكل" : "غير المقروء فقط"}
+        </button>
         {items.some((i) => !i.read) ? (
           <button
             type="button"
@@ -167,11 +185,11 @@ export function NotificationsPage({ role }: { role: UserRole }) {
 
       {loading ? (
         <PageLoadHint />
-      ) : items.length === 0 ? (
+      ) : visibleItems.length === 0 ? (
         <EmptyState message="لا توجد إشعارات." />
       ) : (
         <ContentList>
-          {items.map((n) => {
+          {visibleItems.map((n) => {
             const hasImage = Boolean(n.imageUrl?.trim());
             return (
               <ContentListItem

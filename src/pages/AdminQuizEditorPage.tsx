@@ -31,6 +31,7 @@ import {
   PageToolbar,
   Panel,
   SectionTitle,
+  StatTile,
 } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
 
@@ -306,6 +307,11 @@ export function AdminQuizEditorPage() {
   };
 
   const lede = "تعديل بيانات الاختبار وإدارة أسئلته (نفس المسارات subcollection في Firestore).";
+  const gradedSubmissions = submissions.filter((s) => s.status === "graded").length;
+  const pendingSubmissions = Math.max(submissions.length - gradedSubmissions, 0);
+  const mcqQuestions = questions.filter((q) => String(q.data.type ?? "") === "multiple_choice").length;
+  const trueFalseQuestions = questions.filter((q) => String(q.data.type ?? "") === "true_false").length;
+  const openQuestions = questions.filter((q) => String(q.data.type ?? "open") === "open").length;
 
   if (!ready) {
     return (
@@ -351,6 +357,14 @@ export function AdminQuizEditorPage() {
               إضافة سؤال
             </button>
           </PageToolbar>
+          <div className="grid-2 home-stats-grid admin-lessons-stats">
+            <StatTile title="إجمالي الأسئلة" highlight={questions.length} />
+            <StatTile title="اختيار من متعدد" highlight={mcqQuestions} />
+            <StatTile title="صح/خطأ" highlight={trueFalseQuestions} />
+            <StatTile title="مفتوحة" highlight={openQuestions} />
+            <StatTile title="إجابات الطلاب" highlight={submissions.length} />
+            <StatTile title="مصحّحة/معلّقة" highlight={`${gradedSubmissions}/${pendingSubmissions}`} />
+          </div>
 
           <SectionTitle as="h3" className="form-section-title--spaced-15">
             الأسئلة

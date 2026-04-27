@@ -17,6 +17,7 @@ import {
   FormPanel,
   PageToolbar,
   SectionTitle,
+  StatTile,
 } from "../components/ui";
 import { formatFirestoreTime } from "../utils/firestoreTime";
 import { DashboardLayout } from "./DashboardLayout";
@@ -273,6 +274,28 @@ export function AdminCourseLessonsPage() {
         <>
           {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
           <p className="muted small">نفس مسار التطبيق: مجموعة lessons ثم مُعرّف المقرر ثم وثائق الدرس.</p>
+          <div className="grid-2 home-stats-grid admin-lessons-stats">
+            <StatTile title="إجمالي الدروس" highlight={lessons.length} />
+            <StatTile
+              title="دروس باختبار إجباري"
+              highlight={lessons.filter((l) => l.hasMandatoryQuiz).length}
+            />
+            <StatTile
+              title="دروس بوسائط"
+              highlight={lessons.filter((l) => l.videoUrl || l.pdfUrl || l.audioUrl).length}
+            />
+            <StatTile
+              title="متوسط المدة"
+              highlight={
+                lessons.some((l) => typeof l.duration === "number")
+                  ? `${Math.round(
+                      lessons.reduce((sum, l) => sum + (typeof l.duration === "number" ? l.duration : 0), 0) /
+                        Math.max(1, lessons.filter((l) => typeof l.duration === "number").length),
+                    )} د`
+                  : "—"
+              }
+            />
+          </div>
           <PageToolbar>
             <button type="button" className="primary-btn toolbar-btn" onClick={onOpenCreateModal}>
               إضافة درس
