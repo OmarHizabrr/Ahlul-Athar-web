@@ -9,11 +9,13 @@ import { IoEyeOutline, IoListCircleOutline, IoPencil, IoTrashOutline } from "rea
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import {
   AlertMessage,
+  AppModal,
   ContentList,
   ContentListItem,
   CoverImage,
   EmptyState,
   FormPanel,
+  PageToolbar,
   SectionTitle,
 } from "../components/ui";
 import { formatFirestoreTime } from "../utils/firestoreTime";
@@ -72,6 +74,7 @@ export function AdminCourseLessonsPage() {
   const [audioUrl, setAudioUrl] = useState("");
   const [duration, setDuration] = useState("");
   const [difficulty, setDifficulty] = useState("");
+  const [lessonModalOpen, setLessonModalOpen] = useState(false);
 
   const resetForm = () => {
     setEditingId(null);
@@ -85,6 +88,7 @@ export function AdminCourseLessonsPage() {
     setAudioUrl("");
     setDuration("");
     setDifficulty("");
+    setLessonModalOpen(false);
   };
 
   const startEdit = (L: Lesson) => {
@@ -100,9 +104,25 @@ export function AdminCourseLessonsPage() {
     setDuration(L.duration != null && !Number.isNaN(L.duration) ? String(L.duration) : "");
     setDifficulty(L.difficulty ?? "");
     setMessage("");
+    setLessonModalOpen(true);
     requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
+  };
+
+  const onOpenCreateModal = () => {
+    setEditingId(null);
+    setTitle("");
+    setDescription("");
+    setContent("");
+    setContentType("text");
+    setHasMandatoryQuiz(false);
+    setVideoUrl("");
+    setPdfUrl("");
+    setAudioUrl("");
+    setDuration("");
+    setDifficulty("");
+    setLessonModalOpen(true);
   };
 
   const load = useCallback(async () => {
@@ -253,137 +273,11 @@ export function AdminCourseLessonsPage() {
         <>
           {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
           <p className="muted small">نفس مسار التطبيق: مجموعة lessons ثم مُعرّف المقرر ثم وثائق الدرس.</p>
-          <FormPanel onSubmit={onSubmit}>
-            <SectionTitle as="h3">{editingId ? "تعديل الدرس" : "إضافة درس"}</SectionTitle>
-            {editingId ? (
-              <p className="muted small">
-                تعديل الدرس الحالي.{" "}
-                <button type="button" className="link-btn" onClick={resetForm} disabled={submitting}>
-                  إلغاء والعودة لإضافة درس جديد
-                </button>
-              </p>
-            ) : null}
-            <label>
-              <span>عنوان الدرس</span>
-              <input className="text-input" value={title} onChange={(e) => setTitle(e.target.value)} required />
-            </label>
-            <label>
-              <span>وصف قصير</span>
-              <input
-                className="text-input"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                required
-              />
-            </label>
-            <label>
-              <span>نوع المحتوى</span>
-              <select
-                className="text-input"
-                value={contentType}
-                onChange={(e) => setContentType(e.target.value)}
-              >
-                {CONTENT_TYPES.map((x) => (
-                  <option key={x.v} value={x.v}>
-                    {x.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="admin-lesson-urls">
-              <p className="muted small form-hint">روابط الوسائط (كما في تطبيق الجوال) — تُحفظ في الحقول videoUrl / pdfUrl / audioUrl</p>
-              <label>
-                <span>رابط الفيديو (YouTube، Vimeo، مباشر…)</span>
-                <input
-                  className="text-input"
-                  type="url"
-                  inputMode="url"
-                  placeholder="https://"
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                />
-              </label>
-              <label>
-                <span>رابط PDF</span>
-                <input
-                  className="text-input"
-                  type="url"
-                  inputMode="url"
-                  placeholder="https://"
-                  value={pdfUrl}
-                  onChange={(e) => setPdfUrl(e.target.value)}
-                />
-              </label>
-              <label>
-                <span>رابط الصوت</span>
-                <input
-                  className="text-input"
-                  type="url"
-                  inputMode="url"
-                  placeholder="https://"
-                  value={audioUrl}
-                  onChange={(e) => setAudioUrl(e.target.value)}
-                />
-              </label>
-            </div>
-            <div className="form-row-2">
-              <label>
-                <span>المدة (دقائق، اختياري)</span>
-                <input
-                  className="text-input"
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  placeholder="مثال: 15"
-                />
-              </label>
-              <label>
-                <span>الصعوبة (نص — كما في التطبيق)</span>
-                <input
-                  className="text-input"
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                  placeholder="سهل / متوسط / صعب"
-                />
-              </label>
-            </div>
-            <label>
-              <span>
-                {contentType === "text"
-                  ? "المحتوى النصي للدرس"
-                  : "نص تعليمات / ملاحظات (اختياري — يظهر للطالب مع الرابط)"}
-              </span>
-              <textarea
-                className="text-input textarea"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={5}
-                required={contentType === "text"}
-              />
-            </label>
-            <label className="switch-line">
-              <input
-                type="checkbox"
-                checked={hasMandatoryQuiz}
-                onChange={(e) => setHasMandatoryQuiz(e.target.checked)}
-              />
-              <span>اختبار إجباري قبل الدرس التالي (hasMandatoryQuiz)</span>
-            </label>
-            <div className="form-actions-row">
-              <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
-                <ButtonBusyLabel busy={submitting}>
-                  {editingId ? "حفظ التعديلات" : "حفظ الدرس"}
-                </ButtonBusyLabel>
-              </button>
-              {editingId ? (
-                <button type="button" className="ghost-btn" onClick={resetForm} disabled={submitting} aria-busy={submitting}>
-                  <ButtonBusyLabel busy={submitting}>إلغاء التعديل</ButtonBusyLabel>
-                </button>
-              ) : null}
-            </div>
-          </FormPanel>
+          <PageToolbar>
+            <button type="button" className="primary-btn toolbar-btn" onClick={onOpenCreateModal}>
+              إضافة درس
+            </button>
+          </PageToolbar>
 
           <SectionTitle as="h3" className="form-section-title--spaced">
             الدروس الحالية
@@ -458,6 +352,141 @@ export function AdminCourseLessonsPage() {
               ))}
             </ContentList>
           )}
+
+          <AppModal
+            open={lessonModalOpen}
+            title={editingId ? "تعديل بيانات الدرس" : "إضافة درس جديد"}
+            onClose={() => {
+              if (!submitting) {
+                resetForm();
+              }
+            }}
+            contentClassName="course-form-modal"
+          >
+            <FormPanel onSubmit={onSubmit} elevated={false} className="course-form-modal__form">
+              <SectionTitle as="h4">{editingId ? "تحديث الدرس" : "إضافة درس"}</SectionTitle>
+              <label>
+                <span>عنوان الدرس</span>
+                <input className="text-input" value={title} onChange={(e) => setTitle(e.target.value)} required />
+              </label>
+              <label>
+                <span>وصف قصير</span>
+                <input
+                  className="text-input"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  required
+                />
+              </label>
+              <label>
+                <span>نوع المحتوى</span>
+                <select
+                  className="text-input"
+                  value={contentType}
+                  onChange={(e) => setContentType(e.target.value)}
+                >
+                  {CONTENT_TYPES.map((x) => (
+                    <option key={x.v} value={x.v}>
+                      {x.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="admin-lesson-urls">
+                <p className="muted small form-hint">
+                  روابط الوسائط — تُحفظ في الحقول videoUrl / pdfUrl / audioUrl
+                </p>
+                <label>
+                  <span>رابط الفيديو</span>
+                  <input
+                    className="text-input"
+                    type="url"
+                    inputMode="url"
+                    placeholder="https://"
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                  />
+                </label>
+                <label>
+                  <span>رابط PDF</span>
+                  <input
+                    className="text-input"
+                    type="url"
+                    inputMode="url"
+                    placeholder="https://"
+                    value={pdfUrl}
+                    onChange={(e) => setPdfUrl(e.target.value)}
+                  />
+                </label>
+                <label>
+                  <span>رابط الصوت</span>
+                  <input
+                    className="text-input"
+                    type="url"
+                    inputMode="url"
+                    placeholder="https://"
+                    value={audioUrl}
+                    onChange={(e) => setAudioUrl(e.target.value)}
+                  />
+                </label>
+              </div>
+              <div className="form-row-2">
+                <label>
+                  <span>المدة (دقائق)</span>
+                  <input
+                    className="text-input"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    placeholder="مثال: 15"
+                  />
+                </label>
+                <label>
+                  <span>الصعوبة</span>
+                  <input
+                    className="text-input"
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value)}
+                    placeholder="سهل / متوسط / صعب"
+                  />
+                </label>
+              </div>
+              <label>
+                <span>
+                  {contentType === "text"
+                    ? "المحتوى النصي للدرس"
+                    : "نص تعليمات / ملاحظات (اختياري — يظهر للطالب مع الرابط)"}
+                </span>
+                <textarea
+                  className="text-input textarea"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  rows={5}
+                  required={contentType === "text"}
+                />
+              </label>
+              <label className="switch-line">
+                <input
+                  type="checkbox"
+                  checked={hasMandatoryQuiz}
+                  onChange={(e) => setHasMandatoryQuiz(e.target.checked)}
+                />
+                <span>اختبار إجباري قبل الدرس التالي</span>
+              </label>
+              <div className="course-actions">
+                <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
+                  <ButtonBusyLabel busy={submitting}>
+                    {editingId ? "حفظ التعديلات" : "حفظ الدرس"}
+                  </ButtonBusyLabel>
+                </button>
+                <button type="button" className="ghost-btn" onClick={resetForm} disabled={submitting}>
+                  إلغاء
+                </button>
+              </div>
+            </FormPanel>
+          </AppModal>
         </>
       )}
     </DashboardLayout>

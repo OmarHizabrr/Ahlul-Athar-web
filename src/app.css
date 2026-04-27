@@ -83,7 +83,7 @@ h1 {
   border-radius: 12px;
   font-size: 0.96rem;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease, opacity 0.18s ease;
 }
 
 .google-btn {
@@ -180,6 +180,12 @@ input:focus {
   background: #1e293b;
   color: #e2e8f0;
   border: 1px solid #334155;
+}
+
+.primary-btn:hover:not(:disabled),
+.ghost-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.35);
 }
 
 .link-btn {
@@ -1642,6 +1648,13 @@ button:disabled {
   margin-top: 1.7rem;
 }
 
+.app-modal-card .course-actions .primary-btn,
+.app-modal-card .course-actions .ghost-btn,
+.course-form-modal .primary-btn,
+.course-form-modal .ghost-btn {
+  margin-top: 0;
+}
+
 @keyframes modal-fade-in {
   from {
     opacity: 0;
@@ -1678,6 +1691,31 @@ button:disabled {
 
   .form-row-2 {
     grid-template-columns: 1fr;
+  }
+
+  .app-modal-card {
+    width: 100%;
+    max-height: 92vh;
+    padding: 1rem 0.9rem;
+  }
+
+  .app-modal-head {
+    margin-bottom: 0.6rem;
+  }
+
+  .app-modal-title {
+    font-size: 1rem;
+  }
+
+  .app-modal-card .course-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-modal-card .course-actions .primary-btn,
+  .app-modal-card .course-actions .ghost-btn {
+    width: 100%;
+    flex: 1 1 auto;
   }
 }
 

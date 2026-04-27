@@ -1,5 +1,5 @@
 import { ButtonBusyLabel } from "../../components/ButtonBusyLabel";
-import { SectionTitle } from "../../components/ui";
+import { AppModal } from "../../components/ui";
 
 type CourseActivationModalProps = {
   submitting: boolean;
@@ -21,25 +21,17 @@ export function CourseActivationModal({
   onClose,
 }: CourseActivationModalProps) {
   return (
-    <div
-      className="modal-overlay"
-      role="presentation"
-      onClick={() => {
+    <AppModal
+      open
+      title="فترة تفعيل الدورة"
+      onClose={() => {
         if (!submitting) {
           onClose();
         }
       }}
+      contentClassName="course-form-modal"
     >
-      <div
-        className="modal-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="activation-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <SectionTitle as="h4" id="activation-title">
-          فترة تفعيل الدورة
-        </SectionTitle>
+      <div>
         <p className="muted small-print">
           نفس منطق تطبيق Flutter: اختر &quot;مدى الحياة&quot; أو عدد الأيام قبل انتهاء التفعيل.
         </p>
@@ -89,6 +81,6 @@ export function CourseActivationModal({
           </button>
         </div>
       </div>
-    </div>
+    </AppModal>
   );
 }

@@ -5,7 +5,16 @@ import { DashboardLayout } from "../DashboardLayout";
 import { postsService } from "../../services/postsService";
 import type { Post, UserRole } from "../../types";
 import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
-import { AlertMessage, ContentList, ContentListItem, EmptyState, FormPanel, SectionTitle } from "../../components/ui";
+import {
+  AlertMessage,
+  AppModal,
+  ContentList,
+  ContentListItem,
+  EmptyState,
+  FormPanel,
+  PageToolbar,
+  SectionTitle,
+} from "../../components/ui";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
 
 const postsLede: Record<UserRole, string> = {
@@ -22,6 +31,7 @@ export function PostsPage({ role }: { role: UserRole }) {
   const [body, setBody] = useState("");
   const [publish, setPublish] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [postModalOpen, setPostModalOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
@@ -47,6 +57,7 @@ export function PostsPage({ role }: { role: UserRole }) {
     setTitle("");
     setBody("");
     setPublish(true);
+    setPostModalOpen(false);
   };
 
   const startEdit = (p: Post) => {
@@ -55,9 +66,18 @@ export function PostsPage({ role }: { role: UserRole }) {
     setBody(p.body);
     setPublish(p.isPublished);
     setMessage("");
+    setPostModalOpen(true);
     requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
+  };
+
+  const onOpenCreateModal = () => {
+    setEditingId(null);
+    setTitle("");
+    setBody("");
+    setPublish(true);
+    setPostModalOpen(true);
   };
 
   const onSubmit = async (e: FormEvent) => {
@@ -100,54 +120,11 @@ export function PostsPage({ role }: { role: UserRole }) {
   return (
     <DashboardLayout role={role} title="المنشورات" lede={postsLede[role]}>
       {role === "admin" && user ? (
-        <FormPanel onSubmit={onSubmit}>
-          <SectionTitle as="h3">{editingId ? "تعديل منشور" : "إنشاء منشور"}</SectionTitle>
-          {editingId ? (
-            <p className="muted small">
-              تعديل المنشور الحالي.{" "}
-              <button type="button" className="link-btn" onClick={resetForm} disabled={submitting}>
-                إلغاء وإضافة منشور جديد
-              </button>
-            </p>
-          ) : null}
-          <label>
-            <span>العنوان</span>
-            <input
-              className="text-input"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-            />
-          </label>
-          <label>
-            <span>النص</span>
-            <textarea
-              className="text-input textarea"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              required
-              rows={4}
-            />
-          </label>
-          <label className="switch-line">
-            <input
-              type="checkbox"
-              checked={publish}
-              onChange={(e) => setPublish(e.target.checked)}
-            />
-            <span>نشر للطلاب (يظهر في التطبيق والويب)</span>
-          </label>
-          <div className="form-actions-row">
-            <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
-              <ButtonBusyLabel busy={submitting}>{editingId ? "حفظ التعديلات" : "نشر"}</ButtonBusyLabel>
-            </button>
-            {editingId ? (
-              <button type="button" className="ghost-btn" onClick={resetForm} disabled={submitting}>
-                إلغاء
-              </button>
-            ) : null}
-          </div>
-        </FormPanel>
+        <PageToolbar>
+          <button type="button" className="primary-btn toolbar-btn" onClick={onOpenCreateModal}>
+            إضافة منشور
+          </button>
+        </PageToolbar>
       ) : null}
 
       {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
@@ -229,6 +206,49 @@ export function PostsPage({ role }: { role: UserRole }) {
           )}
         </ContentList>
       )}
+
+      {role === "admin" && user ? (
+        <AppModal
+          open={postModalOpen}
+          title={editingId ? "تعديل منشور" : "إنشاء منشور"}
+          onClose={() => {
+            if (!submitting) {
+              resetForm();
+            }
+          }}
+          contentClassName="course-form-modal"
+        >
+          <FormPanel onSubmit={onSubmit} elevated={false} className="course-form-modal__form">
+            <SectionTitle as="h4">{editingId ? "تحديث المنشور" : "منشور جديد"}</SectionTitle>
+            <label>
+              <span>العنوان</span>
+              <input className="text-input" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            </label>
+            <label>
+              <span>النص</span>
+              <textarea
+                className="text-input textarea"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                required
+                rows={4}
+              />
+            </label>
+            <label className="switch-line">
+              <input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} />
+              <span>نشر للطلاب (يظهر في التطبيق والويب)</span>
+            </label>
+            <div className="course-actions">
+              <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
+                <ButtonBusyLabel busy={submitting}>{editingId ? "حفظ التعديلات" : "نشر"}</ButtonBusyLabel>
+              </button>
+              <button type="button" className="ghost-btn" onClick={resetForm} disabled={submitting}>
+                إلغاء
+              </button>
+            </div>
+          </FormPanel>
+        </AppModal>
+      ) : null}
     </DashboardLayout>
   );
 }

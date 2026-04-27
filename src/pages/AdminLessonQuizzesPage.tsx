@@ -15,10 +15,12 @@ import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { IoEyeOutline, IoTrashOutline, IoListCircleOutline } from "react-icons/io5";
 import {
   AlertMessage,
+  AppModal,
   ContentList,
   ContentListItem,
   EmptyState,
   FormPanel,
+  PageToolbar,
   SectionTitle,
 } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
@@ -40,6 +42,7 @@ export function AdminLessonQuizzesPage() {
   const [hasSched, setHasSched] = useState(false);
   const [schedStart, setSchedStart] = useState("");
   const [schedEnd, setSchedEnd] = useState("");
+  const [quizModalOpen, setQuizModalOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!courseId || !lessonId) {
@@ -100,6 +103,7 @@ export function AdminLessonQuizzesPage() {
       setHasSched(false);
       setSchedStart("");
       setSchedEnd("");
+      setQuizModalOpen(false);
       await load();
       dispatchQuizUpdated();
     } catch (err) {
@@ -165,88 +169,15 @@ export function AdminLessonQuizzesPage() {
       ) : (
         <>
           {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
-          <FormPanel onSubmit={onCreate}>
-            <SectionTitle as="h3">إضافة اختبار جديد</SectionTitle>
-            <label>
-              <span>عنوان الاختبار</span>
-              <input
-                className="text-input"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                placeholder="مثال: اختبار الوحدة الأولى"
-              />
-            </label>
-            <label>
-              <span>وصف (اختياري)</span>
-              <textarea
-                className="text-input textarea"
-                rows={2}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="تعليمات للطالب"
-              />
-            </label>
-            <div className="form-row-2">
-              <label>
-                <span>المدة (دقائق)</span>
-                <input
-                  className="text-input"
-                  type="number"
-                  min={0}
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  placeholder="0"
-                />
-              </label>
-              <label>
-                <span>رابط فيديو (اختياري — YouTube)</span>
-                <input
-                  className="text-input"
-                  type="url"
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  placeholder="https://"
-                />
-              </label>
-            </div>
-            <label className="switch-line">
-              <input type="checkbox" checked={hasSched} onChange={(e) => setHasSched(e.target.checked)} />
-              <span>فترة زمنية للاختبار (نفس فحص النافذة عند حلول الطالب في الويب/التطبيق)</span>
-            </label>
-            {hasSched ? (
-              <div className="form-row-2">
-                <label>
-                  <span>بداية النافذة</span>
-                  <input
-                    className="text-input"
-                    type="datetime-local"
-                    value={schedStart}
-                    onChange={(e) => setSchedStart(e.target.value)}
-                    required={hasSched}
-                  />
-                </label>
-                <label>
-                  <span>نهاية النافذة</span>
-                  <input
-                    className="text-input"
-                    type="datetime-local"
-                    value={schedEnd}
-                    onChange={(e) => setSchedEnd(e.target.value)}
-                    required={hasSched}
-                  />
-                </label>
-              </div>
-            ) : null}
+          <PageToolbar>
             <button
-              className="primary-btn"
-              type="submit"
-              disabled={submitting || !title.trim()}
-              aria-busy={submitting}
+              type="button"
+              className="primary-btn toolbar-btn"
+              onClick={() => setQuizModalOpen(true)}
             >
-              <ButtonBusyLabel busy={submitting}>إنشاء اختبار</ButtonBusyLabel>
+              إضافة اختبار
             </button>
-          </FormPanel>
+          </PageToolbar>
 
           <SectionTitle as="h3" className="form-section-title--spaced-15">
             اختبارات هذا الدرس
@@ -298,6 +229,110 @@ export function AdminLessonQuizzesPage() {
               })}
             </ContentList>
           )}
+
+          <AppModal
+            open={quizModalOpen}
+            title="إضافة اختبار جديد"
+            onClose={() => {
+              if (!submitting) {
+                setQuizModalOpen(false);
+              }
+            }}
+            contentClassName="course-form-modal"
+          >
+            <FormPanel onSubmit={onCreate} elevated={false} className="course-form-modal__form">
+              <SectionTitle as="h4">إضافة اختبار جديد</SectionTitle>
+              <label>
+                <span>عنوان الاختبار</span>
+                <input
+                  className="text-input"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  placeholder="مثال: اختبار الوحدة الأولى"
+                />
+              </label>
+              <label>
+                <span>وصف (اختياري)</span>
+                <textarea
+                  className="text-input textarea"
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="تعليمات للطالب"
+                />
+              </label>
+              <div className="form-row-2">
+                <label>
+                  <span>المدة (دقائق)</span>
+                  <input
+                    className="text-input"
+                    type="number"
+                    min={0}
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    placeholder="0"
+                  />
+                </label>
+                <label>
+                  <span>رابط فيديو (اختياري — YouTube)</span>
+                  <input
+                    className="text-input"
+                    type="url"
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    placeholder="https://"
+                  />
+                </label>
+              </div>
+              <label className="switch-line">
+                <input type="checkbox" checked={hasSched} onChange={(e) => setHasSched(e.target.checked)} />
+                <span>فترة زمنية للاختبار</span>
+              </label>
+              {hasSched ? (
+                <div className="form-row-2">
+                  <label>
+                    <span>بداية النافذة</span>
+                    <input
+                      className="text-input"
+                      type="datetime-local"
+                      value={schedStart}
+                      onChange={(e) => setSchedStart(e.target.value)}
+                      required={hasSched}
+                    />
+                  </label>
+                  <label>
+                    <span>نهاية النافذة</span>
+                    <input
+                      className="text-input"
+                      type="datetime-local"
+                      value={schedEnd}
+                      onChange={(e) => setSchedEnd(e.target.value)}
+                      required={hasSched}
+                    />
+                  </label>
+                </div>
+              ) : null}
+              <div className="course-actions">
+                <button
+                  className="primary-btn"
+                  type="submit"
+                  disabled={submitting || !title.trim()}
+                  aria-busy={submitting}
+                >
+                  <ButtonBusyLabel busy={submitting}>إنشاء اختبار</ButtonBusyLabel>
+                </button>
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={() => setQuizModalOpen(false)}
+                  disabled={submitting}
+                >
+                  إغلاق
+                </button>
+              </div>
+            </FormPanel>
+          </AppModal>
         </>
       )}
     </DashboardLayout>

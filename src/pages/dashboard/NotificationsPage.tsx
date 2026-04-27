@@ -8,6 +8,7 @@ import type { UserRole } from "../../types";
 import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
 import {
   AlertMessage,
+  AppModal,
   ContentList,
   ContentListItem,
   CoverImage,
@@ -29,6 +30,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
   const [nTitle, setNTitle] = useState("");
   const [nBody, setNBody] = useState("");
   const [nImageUrl, setNImageUrl] = useState("");
+  const [sendModalOpen, setSendModalOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
@@ -109,6 +111,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       setNTitle("");
       setNBody("");
       setNImageUrl("");
+      setSendModalOpen(false);
       setMessage("تم إرسال الإشعار.");
       setIsError(false);
     } catch {
@@ -138,66 +141,11 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       lede="نفس مزامنة الإشعارات مع تطبيق الجوال. يُحدَّث العداد في الشريط عند تعليم القراءة."
     >
       {role === "admin" && u ? (
-        <FormPanel onSubmit={onSend}>
-          <SectionTitle as="h3">إرسال إشعار لمستخدم</SectionTitle>
-          <label>
-            <span>المستلم</span>
-            {usersPick.length > 0 ? (
-              <select
-                className="text-input"
-                value={targetUid}
-                onChange={(e) => setTargetUid(e.target.value)}
-                required
-              >
-                {usersPick.map((x) => (
-                  <option key={x.uid} value={x.uid}>
-                    {x.displayName} ({x.role === "admin" ? "مسؤول" : "طالب"}) — {x.uid}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                className="text-input"
-                value={targetUid}
-                onChange={(e) => setTargetUid(e.target.value)}
-                placeholder="user UID"
-                required
-              />
-            )}
-          </label>
-          <label>
-            <span>العنوان</span>
-            <input
-              className="text-input"
-              value={nTitle}
-              onChange={(e) => setNTitle(e.target.value)}
-              required
-            />
-          </label>
-          <label>
-            <span>النص</span>
-            <textarea
-              className="text-input textarea"
-              value={nBody}
-              onChange={(e) => setNBody(e.target.value)}
-              required
-              rows={3}
-            />
-          </label>
-          <label>
-            <span>رابط صورة الإشعار (اختياري)</span>
-            <input
-              className="text-input"
-              type="url"
-              value={nImageUrl}
-              onChange={(e) => setNImageUrl(e.target.value)}
-              placeholder="https://..."
-            />
-          </label>
-          <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
-            <ButtonBusyLabel busy={submitting}>إرسال</ButtonBusyLabel>
+        <PageToolbar>
+          <button type="button" className="primary-btn toolbar-btn" onClick={() => setSendModalOpen(true)}>
+            إرسال إشعار
           </button>
-        </FormPanel>
+        </PageToolbar>
       ) : null}
 
       {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
@@ -254,6 +202,80 @@ export function NotificationsPage({ role }: { role: UserRole }) {
           })}
         </ContentList>
       )}
+
+      {role === "admin" && u ? (
+        <AppModal
+          open={sendModalOpen}
+          title="إرسال إشعار لمستخدم"
+          onClose={() => {
+            if (!submitting) {
+              setSendModalOpen(false);
+            }
+          }}
+          contentClassName="course-form-modal"
+        >
+          <FormPanel onSubmit={onSend} elevated={false} className="course-form-modal__form">
+            <SectionTitle as="h4">إرسال إشعار</SectionTitle>
+            <label>
+              <span>المستلم</span>
+              {usersPick.length > 0 ? (
+                <select
+                  className="text-input"
+                  value={targetUid}
+                  onChange={(e) => setTargetUid(e.target.value)}
+                  required
+                >
+                  {usersPick.map((x) => (
+                    <option key={x.uid} value={x.uid}>
+                      {x.displayName} ({x.role === "admin" ? "مسؤول" : "طالب"}) — {x.uid}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className="text-input"
+                  value={targetUid}
+                  onChange={(e) => setTargetUid(e.target.value)}
+                  placeholder="user UID"
+                  required
+                />
+              )}
+            </label>
+            <label>
+              <span>العنوان</span>
+              <input className="text-input" value={nTitle} onChange={(e) => setNTitle(e.target.value)} required />
+            </label>
+            <label>
+              <span>النص</span>
+              <textarea
+                className="text-input textarea"
+                value={nBody}
+                onChange={(e) => setNBody(e.target.value)}
+                required
+                rows={3}
+              />
+            </label>
+            <label>
+              <span>رابط صورة الإشعار (اختياري)</span>
+              <input
+                className="text-input"
+                type="url"
+                value={nImageUrl}
+                onChange={(e) => setNImageUrl(e.target.value)}
+                placeholder="https://..."
+              />
+            </label>
+            <div className="course-actions">
+              <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
+                <ButtonBusyLabel busy={submitting}>إرسال</ButtonBusyLabel>
+              </button>
+              <button type="button" className="ghost-btn" onClick={() => setSendModalOpen(false)} disabled={submitting}>
+                إلغاء
+              </button>
+            </div>
+          </FormPanel>
+        </AppModal>
+      ) : null}
     </DashboardLayout>
   );
 }

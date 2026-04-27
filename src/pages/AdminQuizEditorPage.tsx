@@ -23,7 +23,15 @@ import { quizDocumentToScheduleFormStrings } from "../utils/quizScheduleFields";
 import { IoPencil, IoTrashOutline } from "react-icons/io5";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { VideoIntroBlock } from "../components/VideoIntroBlock";
-import { AlertMessage, EmptyState, FormPanel, Panel, SectionTitle } from "../components/ui";
+import {
+  AlertMessage,
+  AppModal,
+  EmptyState,
+  FormPanel,
+  PageToolbar,
+  Panel,
+  SectionTitle,
+} from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
 
 const KINDS: { v: QuizQuestionKind; label: string }[] = [
@@ -76,6 +84,8 @@ export function AdminQuizEditorPage() {
   const [qOpts, setQOpts] = useState("");
 
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [metaModalOpen, setMetaModalOpen] = useState(false);
+  const [questionModalOpen, setQuestionModalOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!courseId || !lessonId || !quizId) {
@@ -143,6 +153,7 @@ export function AdminQuizEditorPage() {
     setQBody(String(Q.data.question ?? ""));
     setQOpts(Q.options.map((o) => o.text).join("\n"));
     setMessage("");
+    setQuestionModalOpen(true);
   };
 
   const resetQuestionForm = () => {
@@ -151,6 +162,7 @@ export function AdminQuizEditorPage() {
     setQTitle("");
     setQBody("");
     setQOpts("");
+    setQuestionModalOpen(false);
   };
 
   const onSaveMeta = async (e: FormEvent) => {
@@ -320,92 +332,25 @@ export function AdminQuizEditorPage() {
       ) : (
         <>
           {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
-          <FormPanel onSubmit={onSaveMeta}>
-            <SectionTitle as="h3">بيانات الاختبار</SectionTitle>
-            <label>
-              <span>العنوان</span>
-              <input
-                className="text-input"
-                value={metaTitle}
-                onChange={(e) => setMetaTitle(e.target.value)}
-                required
-              />
-            </label>
-            <label>
-              <span>الوصف</span>
-              <textarea
-                className="text-input textarea"
-                rows={2}
-                value={metaDesc}
-                onChange={(e) => setMetaDesc(e.target.value)}
-              />
-            </label>
-            <div className="form-row-2">
-              <label>
-                <span>المدة (دقائق)</span>
-                <input
-                  className="text-input"
-                  type="number"
-                  min={0}
-                  value={metaDuration}
-                  onChange={(e) => setMetaDuration(e.target.value)}
-                />
-              </label>
-              <label>
-                <span>رابط فيديو</span>
-                <input
-                  className="text-input"
-                  type="url"
-                  value={metaVideo}
-                  onChange={(e) => setMetaVideo(e.target.value)}
-                  placeholder="https://"
-                />
-              </label>
-            </div>
-            {metaVideo.trim() ? (
-              <Panel className="admin-quiz-video-preview">
-                <p className="muted small" style={{ margin: "0 0 0.5rem" }}>
-                  معاينة الفيديو (نفس الظهور لدى الطالب):
-                </p>
-                <VideoIntroBlock mediaUrl={metaVideo} title="معاينة فيديو الاختبار" compact />
-              </Panel>
-            ) : null}
-            <label className="switch-line">
-              <input
-                type="checkbox"
-                checked={metaHasSched}
-                onChange={(e) => setMetaHasSched(e.target.checked)}
-              />
-              <span>فترة زمنية للاختبار (تُطبَّق عند حلول الطالب)</span>
-            </label>
-            {metaHasSched ? (
-              <div className="form-row-2">
-                <label>
-                  <span>بداية النافذة</span>
-                  <input
-                    className="text-input"
-                    type="datetime-local"
-                    value={metaSchedStart}
-                    onChange={(e) => setMetaSchedStart(e.target.value)}
-                    required={metaHasSched}
-                  />
-                </label>
-                <label>
-                  <span>نهاية النافذة</span>
-                  <input
-                    className="text-input"
-                    type="datetime-local"
-                    value={metaSchedEnd}
-                    onChange={(e) => setMetaSchedEnd(e.target.value)}
-                    required={metaHasSched}
-                  />
-                </label>
-              </div>
-            ) : null}
-            <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
-              <ButtonBusyLabel busy={submitting}>حفظ بيانات الاختبار</ButtonBusyLabel>
+          <PageToolbar>
+            <button type="button" className="primary-btn toolbar-btn" onClick={() => setMetaModalOpen(true)}>
+              تعديل بيانات الاختبار
             </button>
-          </FormPanel>
+            <button
+              type="button"
+              className="ghost-btn toolbar-btn"
+              onClick={() => {
+                setEditingId(null);
+                setKind("open");
+                setQTitle("");
+                setQBody("");
+                setQOpts("");
+                setQuestionModalOpen(true);
+              }}
+            >
+              إضافة سؤال
+            </button>
+          </PageToolbar>
 
           <SectionTitle as="h3" className="form-section-title--spaced-15">
             الأسئلة
@@ -450,65 +395,6 @@ export function AdminQuizEditorPage() {
               })}
             </ul>
           )}
-
-          <FormPanel onSubmit={onSaveQuestion} style={{ marginTop: "1rem" }}>
-            <SectionTitle as="h3">{editingId ? "تعديل سؤال" : "سؤال جديد"}</SectionTitle>
-            {editingId ? (
-              <p className="muted small">
-                <button type="button" className="link-btn" onClick={resetQuestionForm} disabled={submitting}>
-                  إلغاء التعديل
-                </button>
-              </p>
-            ) : null}
-            <label>
-              <span>نوع السؤال</span>
-              <select
-                className="text-input"
-                value={kind}
-                onChange={(e) => setKind(e.target.value as QuizQuestionKind)}
-              >
-                {KINDS.map((k) => (
-                  <option key={k.v} value={k.v}>
-                    {k.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>عنوان السؤال (قصير)</span>
-              <input className="text-input" value={qTitle} onChange={(e) => setQTitle(e.target.value)} required />
-            </label>
-            <label>
-              <span>نص السؤال</span>
-              <textarea
-                className="text-input textarea"
-                rows={3}
-                value={qBody}
-                onChange={(e) => setQBody(e.target.value)}
-                required
-              />
-            </label>
-            {kind === "multiple_choice" ? (
-              <label>
-                <span>الخيارات (سطر لكل خيار)</span>
-                <textarea
-                  className="text-input textarea"
-                  rows={5}
-                  value={qOpts}
-                  onChange={(e) => setQOpts(e.target.value)}
-                  placeholder={"الخيار 1\nالخيار 2\nالخيار 3"}
-                  required
-                />
-              </label>
-            ) : null}
-            <div className="form-actions-row">
-              <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
-                <ButtonBusyLabel busy={submitting}>
-                  {editingId ? "حفظ التعديل" : "إضافة السؤال"}
-                </ButtonBusyLabel>
-              </button>
-            </div>
-          </FormPanel>
 
           <SectionTitle as="h3" className="form-section-title--spaced-175">
             إجابات الطلاب والتصحيح
@@ -586,6 +472,175 @@ export function AdminQuizEditorPage() {
               })}
             </ul>
           )}
+
+          <AppModal
+            open={metaModalOpen}
+            title="بيانات الاختبار"
+            onClose={() => {
+              if (!submitting) {
+                setMetaModalOpen(false);
+              }
+            }}
+            contentClassName="course-form-modal"
+          >
+            <FormPanel onSubmit={onSaveMeta} elevated={false} className="course-form-modal__form">
+              <SectionTitle as="h4">تحديث بيانات الاختبار</SectionTitle>
+              <label>
+                <span>العنوان</span>
+                <input
+                  className="text-input"
+                  value={metaTitle}
+                  onChange={(e) => setMetaTitle(e.target.value)}
+                  required
+                />
+              </label>
+              <label>
+                <span>الوصف</span>
+                <textarea
+                  className="text-input textarea"
+                  rows={2}
+                  value={metaDesc}
+                  onChange={(e) => setMetaDesc(e.target.value)}
+                />
+              </label>
+              <div className="form-row-2">
+                <label>
+                  <span>المدة (دقائق)</span>
+                  <input
+                    className="text-input"
+                    type="number"
+                    min={0}
+                    value={metaDuration}
+                    onChange={(e) => setMetaDuration(e.target.value)}
+                  />
+                </label>
+                <label>
+                  <span>رابط فيديو</span>
+                  <input
+                    className="text-input"
+                    type="url"
+                    value={metaVideo}
+                    onChange={(e) => setMetaVideo(e.target.value)}
+                    placeholder="https://"
+                  />
+                </label>
+              </div>
+              {metaVideo.trim() ? (
+                <Panel className="admin-quiz-video-preview">
+                  <p className="muted small" style={{ margin: "0 0 0.5rem" }}>
+                    معاينة الفيديو (نفس الظهور لدى الطالب):
+                  </p>
+                  <VideoIntroBlock mediaUrl={metaVideo} title="معاينة فيديو الاختبار" compact />
+                </Panel>
+              ) : null}
+              <label className="switch-line">
+                <input
+                  type="checkbox"
+                  checked={metaHasSched}
+                  onChange={(e) => setMetaHasSched(e.target.checked)}
+                />
+                <span>فترة زمنية للاختبار (تُطبَّق عند حلول الطالب)</span>
+              </label>
+              {metaHasSched ? (
+                <div className="form-row-2">
+                  <label>
+                    <span>بداية النافذة</span>
+                    <input
+                      className="text-input"
+                      type="datetime-local"
+                      value={metaSchedStart}
+                      onChange={(e) => setMetaSchedStart(e.target.value)}
+                      required={metaHasSched}
+                    />
+                  </label>
+                  <label>
+                    <span>نهاية النافذة</span>
+                    <input
+                      className="text-input"
+                      type="datetime-local"
+                      value={metaSchedEnd}
+                      onChange={(e) => setMetaSchedEnd(e.target.value)}
+                      required={metaHasSched}
+                    />
+                  </label>
+                </div>
+              ) : null}
+              <div className="course-actions">
+                <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
+                  <ButtonBusyLabel busy={submitting}>حفظ بيانات الاختبار</ButtonBusyLabel>
+                </button>
+                <button type="button" className="ghost-btn" onClick={() => setMetaModalOpen(false)} disabled={submitting}>
+                  إلغاء
+                </button>
+              </div>
+            </FormPanel>
+          </AppModal>
+
+          <AppModal
+            open={questionModalOpen}
+            title={editingId ? "تعديل سؤال" : "إضافة سؤال جديد"}
+            onClose={() => {
+              if (!submitting) {
+                resetQuestionForm();
+              }
+            }}
+            contentClassName="course-form-modal"
+          >
+            <FormPanel onSubmit={onSaveQuestion} elevated={false} className="course-form-modal__form">
+              <SectionTitle as="h4">{editingId ? "تحديث السؤال" : "سؤال جديد"}</SectionTitle>
+              <label>
+                <span>نوع السؤال</span>
+                <select
+                  className="text-input"
+                  value={kind}
+                  onChange={(e) => setKind(e.target.value as QuizQuestionKind)}
+                >
+                  {KINDS.map((k) => (
+                    <option key={k.v} value={k.v}>
+                      {k.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>عنوان السؤال (قصير)</span>
+                <input className="text-input" value={qTitle} onChange={(e) => setQTitle(e.target.value)} required />
+              </label>
+              <label>
+                <span>نص السؤال</span>
+                <textarea
+                  className="text-input textarea"
+                  rows={3}
+                  value={qBody}
+                  onChange={(e) => setQBody(e.target.value)}
+                  required
+                />
+              </label>
+              {kind === "multiple_choice" ? (
+                <label>
+                  <span>الخيارات (سطر لكل خيار)</span>
+                  <textarea
+                    className="text-input textarea"
+                    rows={5}
+                    value={qOpts}
+                    onChange={(e) => setQOpts(e.target.value)}
+                    placeholder={"الخيار 1\nالخيار 2\nالخيار 3"}
+                    required
+                  />
+                </label>
+              ) : null}
+              <div className="course-actions">
+                <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
+                  <ButtonBusyLabel busy={submitting}>
+                    {editingId ? "حفظ التعديل" : "إضافة السؤال"}
+                  </ButtonBusyLabel>
+                </button>
+                <button type="button" className="ghost-btn" onClick={resetQuestionForm} disabled={submitting}>
+                  إلغاء
+                </button>
+              </div>
+            </FormPanel>
+          </AppModal>
         </>
       )}
     </DashboardLayout>
