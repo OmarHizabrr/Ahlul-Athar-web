@@ -3,7 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { authService } from "../../services/authService";
 import { userProfileService } from "../../services/userProfileService";
 import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
-import { AlertMessage, Avatar, FormPanel, Panel, SectionTitle } from "../../components/ui";
+import { AlertMessage, AppTabPanel, AppTabs, Avatar, FormPanel, Panel, SectionTitle } from "../../components/ui";
 import { DashboardLayout } from "../DashboardLayout";
 import type { UserFirestoreProfile, UserRole } from "../../types";
 
@@ -19,6 +19,7 @@ export function ProfilePage({ role }: { role: UserRole }) {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
+  const [profileTab, setProfileTab] = useState<"card" | "edit">("card");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const showMsg = (text: string, err: boolean) => {
@@ -123,6 +124,17 @@ export function ProfilePage({ role }: { role: UserRole }) {
         <PageLoadHint />
       ) : (
         <div className="profile-page">
+          <AppTabs
+            groupId={`profile-${u.uid}`}
+            ariaLabel="أقسام الملف الشخصي"
+            value={profileTab}
+            onChange={setProfileTab}
+            tabs={[
+              { id: "card" as const, label: "البطاقة والصورة" },
+              { id: "edit" as const, label: "تعديل البيانات" },
+            ]}
+          />
+          <AppTabPanel tabId="card" groupId={`profile-${u.uid}`} hidden={profileTab !== "card"} className="lesson-tab-panel">
           <Panel className="profile-hero">
             <div className="profile-avatar-block">
               <Avatar
@@ -161,7 +173,9 @@ export function ProfilePage({ role }: { role: UserRole }) {
               )}
             </div>
           </Panel>
+          </AppTabPanel>
 
+          <AppTabPanel tabId="edit" groupId={`profile-${u.uid}`} hidden={profileTab !== "edit"} className="lesson-tab-panel">
           <FormPanel className="profile-form" onSubmit={onSave}>
             <SectionTitle as="h3">تعديل البيانات</SectionTitle>
             <p className="muted small">المعرّف: {u.uid}</p>
@@ -188,6 +202,7 @@ export function ProfilePage({ role }: { role: UserRole }) {
               <ButtonBusyLabel busy={saving}>حفظ التعديلات</ButtonBusyLabel>
             </button>
           </FormPanel>
+          </AppTabPanel>
         </div>
       )}
       {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}

@@ -15,7 +15,7 @@ import { isStudentEnrolledInCourse } from "../services/myCoursesService";
 import { useIsAdminPreview } from "../context/AdminPreviewContext";
 import { useAuth } from "../context/AuthContext";
 import { VideoIntroBlock } from "../components/VideoIntroBlock";
-import { AlertMessage, SectionTitle } from "../components/ui";
+import { AlertMessage, AppTabPanel, AppTabs, SectionTitle } from "../components/ui";
 import { extractQuizRows, readStoredAnswers, type WebQuizRow } from "../utils/quizFromFirestore";
 import { DashboardLayout } from "./DashboardLayout";
 
@@ -150,6 +150,7 @@ export function StudentQuizViewPage() {
   const [err, setErr] = useState("");
   const [formErr, setFormErr] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
+  const [quizTab, setQuizTab] = useState<"intro" | "questions">("intro");
 
   const load = useCallback(async () => {
     if (!user || !courseId || !lessonId || !quizId) {
@@ -373,67 +374,82 @@ export function StudentQuizViewPage() {
         <AlertMessage kind="error">{err}</AlertMessage>
       ) : (
         <div className="quiz-view-card">
-          <div className="quiz-status-row" aria-label="حالة الاختبار">
-            <span
-              className={
-                isGraded
-                  ? "meta-pill meta-pill--ok"
-                  : status === "pending"
-                    ? "meta-pill meta-pill--info"
-                    : "meta-pill meta-pill--muted"
-              }
-            >
-              {isGraded
-                ? "تم التصحيح"
-                : status === "pending"
-                  ? "بانتظار التصحيح"
-                  : "لم يُرسل بعد"}
-            </span>
-            <span className="meta-pill meta-pill--muted">
-              {hasStructuredQuestions ? `${answeredCount}/${rows.length} مجاب` : "بدون أسئلة"}
-            </span>
-            {durationMin != null ? <span className="meta-pill meta-pill--muted">المدة: {Math.round(durationMin)} د</span> : null}
-          </div>
-          {hasStructuredQuestions ? (
-            <div className="quiz-progress-wrap" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPct}>
-              <div className="quiz-progress-bar" style={{ width: `${progressPct}%` }} />
-            </div>
-          ) : null}
-          {scheduleBlocks && schedule.messageAr ? (
-            <AlertMessage kind="error">{schedule.messageAr}</AlertMessage>
-          ) : null}
-          {desc.length > 0 ? <p className="quiz-desc">{desc}</p> : null}
-          {mediaUrl.trim() ? <VideoIntroBlock mediaUrl={mediaUrl} title="مقطع الاختبار" /> : null}
-          {answer != null && (answer.score != null || answer.grade != null) ? (
-            <p className="quiz-score">
-              الدرجة: {String((answer as { score?: unknown }).score ?? (answer as { grade?: unknown }).grade)}
-            </p>
-          ) : null}
+          <AppTabs
+            groupId={`quiz-${quizId}`}
+            ariaLabel="أقسام الاختبار"
+            value={quizTab}
+            onChange={setQuizTab}
+            tabs={[
+              { id: "intro" as const, label: "المقدمة" },
+              { id: "questions" as const, label: "الأسئلة" },
+            ]}
+          />
 
-          {hasStructuredQuestions ? (
-            <>
-              <SectionTitle as="h3">الأسئلة</SectionTitle>
-              {isGraded ? (
-                <p className="muted small">النتيجة مُتاحة — عرض إجاباتك أدناه (قراءة فقط).</p>
-              ) : null}
-              <QuizTakerForm
-                rows={rows}
-                values={values}
-                onChange={onChange}
-                onSubmit={onSubmit}
-                submitting={submitting}
-                readonly={formLocked}
-                submitLabel={status === "pending" ? "تحديث الإجابات" : "إرسال الإجابات"}
-              />
-              {formErr ? <AlertMessage kind="error">{formErr}</AlertMessage> : null}
-            </>
-          ) : (
-            <p className="muted small quiz-hint">
-              لا تتوفر أسئلة لهذا الاختبار في{" "}
-              <code>quiz_questions</code> ولا مصفوفة <code>questions</code> داخل وثيقة الاختبار. راجع
-              الإدارة أو أضف الأسئلة من لوحة التحكم / التطبيق.
-            </p>
-          )}
+          <AppTabPanel tabId="intro" groupId={`quiz-${quizId}`} hidden={quizTab !== "intro"} className="lesson-tab-panel">
+            <div className="quiz-status-row" aria-label="حالة الاختبار">
+              <span
+                className={
+                  isGraded
+                    ? "meta-pill meta-pill--ok"
+                    : status === "pending"
+                      ? "meta-pill meta-pill--info"
+                      : "meta-pill meta-pill--muted"
+                }
+              >
+                {isGraded
+                  ? "تم التصحيح"
+                  : status === "pending"
+                    ? "بانتظار التصحيح"
+                    : "لم يُرسل بعد"}
+              </span>
+              <span className="meta-pill meta-pill--muted">
+                {hasStructuredQuestions ? `${answeredCount}/${rows.length} مجاب` : "بدون أسئلة"}
+              </span>
+              {durationMin != null ? <span className="meta-pill meta-pill--muted">المدة: {Math.round(durationMin)} د</span> : null}
+            </div>
+            {hasStructuredQuestions ? (
+              <div className="quiz-progress-wrap" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPct}>
+                <div className="quiz-progress-bar" style={{ width: `${progressPct}%` }} />
+              </div>
+            ) : null}
+            {scheduleBlocks && schedule.messageAr ? (
+              <AlertMessage kind="error">{schedule.messageAr}</AlertMessage>
+            ) : null}
+            {desc.length > 0 ? <p className="quiz-desc">{desc}</p> : null}
+            {mediaUrl.trim() ? <VideoIntroBlock mediaUrl={mediaUrl} title="مقطع الاختبار" /> : null}
+            {answer != null && (answer.score != null || answer.grade != null) ? (
+              <p className="quiz-score">
+                الدرجة: {String((answer as { score?: unknown }).score ?? (answer as { grade?: unknown }).grade)}
+              </p>
+            ) : null}
+          </AppTabPanel>
+
+          <AppTabPanel tabId="questions" groupId={`quiz-${quizId}`} hidden={quizTab !== "questions"} className="lesson-tab-panel">
+            {hasStructuredQuestions ? (
+              <>
+                <SectionTitle as="h3">الأسئلة</SectionTitle>
+                {isGraded ? (
+                  <p className="muted small">النتيجة مُتاحة — عرض إجاباتك أدناه (قراءة فقط).</p>
+                ) : null}
+                <QuizTakerForm
+                  rows={rows}
+                  values={values}
+                  onChange={onChange}
+                  onSubmit={onSubmit}
+                  submitting={submitting}
+                  readonly={formLocked}
+                  submitLabel={status === "pending" ? "تحديث الإجابات" : "إرسال الإجابات"}
+                />
+                {formErr ? <AlertMessage kind="error">{formErr}</AlertMessage> : null}
+              </>
+            ) : (
+              <p className="muted small quiz-hint">
+                لا تتوفر أسئلة لهذا الاختبار في{" "}
+                <code>quiz_questions</code> ولا مصفوفة <code>questions</code> داخل وثيقة الاختبار. راجع
+                الإدارة أو أضف الأسئلة من لوحة التحكم / التطبيق.
+              </p>
+            )}
+          </AppTabPanel>
         </div>
       )}
     </DashboardLayout>

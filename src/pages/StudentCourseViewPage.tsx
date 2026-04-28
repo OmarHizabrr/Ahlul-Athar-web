@@ -10,6 +10,8 @@ import {
   PageToolbar,
   Panel,
   SectionTitle,
+  AppTabPanel,
+  AppTabs,
   StatTile,
   cn,
 } from "../components/ui";
@@ -38,6 +40,7 @@ export function StudentCourseViewPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState("");
+  const [courseTab, setCourseTab] = useState<"overview" | "lessons">("overview");
 
   const runLoad = useCallback(
     async (mode: "initial" | "refresh") => {
@@ -190,84 +193,100 @@ export function StudentCourseViewPage() {
               </>
             )}
           </Panel>
-          {enrolled ? (
-            <div className="grid-2 home-stats-grid">
-              <StatTile title="إجمالي الدروس" highlight={lessons.length} />
-              <StatTile title="الدروس المفتوحة" highlight={unlockedLessons} />
-              <StatTile title="الدروس المقفلة" highlight={lockedLessons} />
-              <StatTile title="دروس باختبار إجباري" highlight={mandatoryQuizLessons} />
-              <StatTile title="نسبة التقدّم" highlight={`${completionPct}%`} />
-            </div>
-          ) : null}
           {!enrolled ? (
             <AlertMessage kind="error" role="alert">
               أنت لست مسجّلاً في هذا المقرر. أرسل طلب انضمام من «الدورات» ثم بعد قبول الإدارة ستظهر الدروس
               هنا.
             </AlertMessage>
-          ) : lessons.length === 0 ? (
-            <EmptyState message="لا توجد دروس مضافة لهذا المقرر بعد." />
           ) : (
-            <ContentList>
-              <SectionTitle as="h3" className="content-list-section-title">
-                الدروس
-              </SectionTitle>
-              {lessons.map((row, idx) => {
-                const t = row.lesson.contentType?.trim();
-                const tlab = t ? CONTENT_TYPE_LABEL[t] ?? t : "—";
-                return (
-                  <ContentListItem
-                    key={row.lesson.id}
-                    className={cn(
-                      !row.isUnlocked && "course-item--locked",
-                      !row.isUnlocked && "lesson-locked-card",
-                    )}
-                  >
-                    <div className="lesson-list-row">
-                      {row.lesson.imageUrl ? (
-                        <CoverImage variant="thumb" src={row.lesson.imageUrl} alt="" />
-                      ) : null}
-                      <div className="lesson-list-row__main">
-                    <h4 className="post-title">
-                      <span className="lesson-index-pill" aria-hidden>
-                        {idx + 1}
-                      </span>{" "}
-                      {row.lesson.title}
-                    </h4>
-                    {row.lesson.hasMandatoryQuiz ? (
-                      <p className="muted small">يحتوي على اختبار إجباري (للدرس التالي)</p>
-                    ) : null}
-                    {row.lesson.description ? <p className="muted">{row.lesson.description}</p> : null}
-                    <p className="muted post-meta">
-                      نوع المحتوى: {tlab}
-                      {row.lesson.videoUrl ? " · فيديو" : ""}
-                      {row.lesson.pdfUrl ? " · PDF" : ""}
-                      {row.lesson.audioUrl ? " · صوت" : ""}
-                    </p>
-                    {row.isUnlocked ? null : (
-                      <AlertMessage kind="error" className="lock-hint">
-                        {row.blockHint ?? "الدرس مقفل"}
-                      </AlertMessage>
-                    )}
-                    <div className="course-actions">
-                      {row.isUnlocked ? (
-                        <Link
-                          className="primary-btn"
-                          to={`${viewRoot}/course/${courseId}/lesson/${row.lesson.id}`}
+            <>
+              <AppTabs
+                groupId={`course-${courseId}`}
+                ariaLabel="أقسام المقرر"
+                value={courseTab}
+                onChange={setCourseTab}
+                tabs={[
+                  { id: "overview", label: "نظرة عامة" },
+                  { id: "lessons", label: "الدروس" },
+                ]}
+              />
+              <AppTabPanel tabId="overview" groupId={`course-${courseId}`} hidden={courseTab !== "overview"} className="lesson-tab-panel">
+                <div className="grid-2 home-stats-grid">
+                  <StatTile title="إجمالي الدروس" highlight={lessons.length} />
+                  <StatTile title="الدروس المفتوحة" highlight={unlockedLessons} />
+                  <StatTile title="الدروس المقفلة" highlight={lockedLessons} />
+                  <StatTile title="دروس باختبار إجباري" highlight={mandatoryQuizLessons} />
+                  <StatTile title="نسبة التقدّم" highlight={`${completionPct}%`} />
+                </div>
+              </AppTabPanel>
+              <AppTabPanel tabId="lessons" groupId={`course-${courseId}`} hidden={courseTab !== "lessons"} className="lesson-tab-panel">
+                {lessons.length === 0 ? (
+                  <EmptyState message="لا توجد دروس مضافة لهذا المقرر بعد." />
+                ) : (
+                  <ContentList>
+                    <SectionTitle as="h3" className="content-list-section-title">
+                      الدروس
+                    </SectionTitle>
+                    {lessons.map((row, idx) => {
+                      const t = row.lesson.contentType?.trim();
+                      const tlab = t ? CONTENT_TYPE_LABEL[t] ?? t : "—";
+                      return (
+                        <ContentListItem
+                          key={row.lesson.id}
+                          className={cn(
+                            !row.isUnlocked && "course-item--locked",
+                            !row.isUnlocked && "lesson-locked-card",
+                          )}
                         >
-                          فتح الدرس
-                        </Link>
-                      ) : (
-                        <span className="ghost-btn lesson-locked-pill" aria-disabled>
-                          مقفل
-                        </span>
-                      )}
-                    </div>
-                      </div>
-                    </div>
-                  </ContentListItem>
-                );
-              })}
-            </ContentList>
+                          <div className="lesson-list-row">
+                            {row.lesson.imageUrl ? (
+                              <CoverImage variant="thumb" src={row.lesson.imageUrl} alt="" />
+                            ) : null}
+                            <div className="lesson-list-row__main">
+                              <h4 className="post-title">
+                                <span className="lesson-index-pill" aria-hidden>
+                                  {idx + 1}
+                                </span>{" "}
+                                {row.lesson.title}
+                              </h4>
+                              {row.lesson.hasMandatoryQuiz ? (
+                                <p className="muted small">يحتوي على اختبار إجباري (للدرس التالي)</p>
+                              ) : null}
+                              {row.lesson.description ? <p className="muted">{row.lesson.description}</p> : null}
+                              <p className="muted post-meta">
+                                نوع المحتوى: {tlab}
+                                {row.lesson.videoUrl ? " · فيديو" : ""}
+                                {row.lesson.pdfUrl ? " · PDF" : ""}
+                                {row.lesson.audioUrl ? " · صوت" : ""}
+                              </p>
+                              {row.isUnlocked ? null : (
+                                <AlertMessage kind="error" className="lock-hint">
+                                  {row.blockHint ?? "الدرس مقفل"}
+                                </AlertMessage>
+                              )}
+                              <div className="course-actions">
+                                {row.isUnlocked ? (
+                                  <Link
+                                    className="primary-btn"
+                                    to={`${viewRoot}/course/${courseId}/lesson/${row.lesson.id}`}
+                                  >
+                                    فتح الدرس
+                                  </Link>
+                                ) : (
+                                  <span className="ghost-btn lesson-locked-pill" aria-disabled>
+                                    مقفل
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </ContentListItem>
+                      );
+                    })}
+                  </ContentList>
+                )}
+              </AppTabPanel>
+            </>
           )}
         </>
       )}

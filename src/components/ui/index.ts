@@ -1,6 +1,7 @@
 export { cn } from "../../utils/cn";
 export { AlertMessage, type AlertKind } from "./AlertMessage";
 export { AppModal } from "./AppModal";
+export { AppTabPanel, AppTabs, type AppTabDef } from "./AppTabs";
 export { Avatar } from "./Avatar";
 export { ContentList, ContentListItem } from "./ContentList";
 export { CoverImage, type CoverImageVariant } from "./CoverImage";

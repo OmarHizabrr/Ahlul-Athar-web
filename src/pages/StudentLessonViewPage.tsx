@@ -15,7 +15,7 @@ import { lessonCommentsService } from "../services/lessonCommentsService";
 import { lessonsService } from "../services/lessonsService";
 import type { Lesson, LessonComment, PlatformUser } from "../types";
 import { formatFirestoreTime } from "../utils/firestoreTime";
-import { AlertMessage, EmptyState, PageToolbar, Panel, SectionTitle } from "../components/ui";
+import { AlertMessage, AppTabPanel, AppTabs, EmptyState, PageToolbar, Panel, SectionTitle } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
 
 const CONTENT_TYPE_LABEL: Record<string, string> = {
@@ -305,49 +305,29 @@ function StudentLessonBody({
           قد يُطلب اجتياز اختبار هذا الدرس حسب إعدادات المقرر للانتقال للدرس التالي.
         </p>
       ) : null}
-      <div className="lesson-tabs" role="tablist" aria-label="أقسام الدرس">
-        <button
-          type="button"
-          className={activeTab === "view" ? "lesson-tab lesson-tab--active" : "lesson-tab"}
-          onClick={() => setActiveTab("view")}
-          role="tab"
-          aria-selected={activeTab === "view"}
-        >
-          المشاهدة
-        </button>
-        <button
-          type="button"
-          className={activeTab === "attachments" ? "lesson-tab lesson-tab--active" : "lesson-tab"}
-          onClick={() => setActiveTab("attachments")}
-          role="tab"
-          aria-selected={activeTab === "attachments"}
-        >
-          المرفقات
-        </button>
-        <button
-          type="button"
-          className={activeTab === "comments" ? "lesson-tab lesson-tab--active" : "lesson-tab"}
-          onClick={() => setActiveTab("comments")}
-          role="tab"
-          aria-selected={activeTab === "comments"}
-        >
-          التعليقات
-        </button>
-        <button
-          type="button"
-          className={activeTab === "quizzes" ? "lesson-tab lesson-tab--active" : "lesson-tab"}
-          onClick={() => setActiveTab("quizzes")}
-          role="tab"
-          aria-selected={activeTab === "quizzes"}
-        >
-          الاختبارات
-        </button>
-      </div>
+      <AppTabs
+        groupId={`lesson-${lessonId}`}
+        ariaLabel="أقسام الدرس"
+        value={activeTab}
+        onChange={setActiveTab}
+        tabs={[
+          { id: "view" as const, label: "المشاهدة" },
+          { id: "attachments" as const, label: "المرفقات" },
+          { id: "comments" as const, label: "التعليقات" },
+          { id: "quizzes" as const, label: "الاختبارات" },
+        ]}
+      />
 
-      {activeTab === "view" ? <LessonContentView lesson={lesson} /> : null}
+      <AppTabPanel
+        tabId="view"
+        groupId={`lesson-${lessonId}`}
+        hidden={activeTab !== "view"}
+        className="lesson-tab-panel"
+      >
+        <LessonContentView lesson={lesson} />
+      </AppTabPanel>
 
-      {activeTab === "attachments" ? (
-        <div className="lesson-tab-panel">
+      <AppTabPanel tabId="attachments" groupId={`lesson-${lessonId}`} hidden={activeTab !== "attachments"} className="lesson-tab-panel">
           <SectionTitle as="h3">مرفقات الدرس</SectionTitle>
           {mediaItems.length === 0 ? (
             <EmptyState message="لا توجد مرفقات مباشرة لهذا الدرس." />
@@ -363,11 +343,9 @@ function StudentLessonBody({
               ))}
             </ul>
           )}
-        </div>
-      ) : null}
+      </AppTabPanel>
 
-      {activeTab === "comments" ? (
-        <div className="lesson-tab-panel">
+      <AppTabPanel tabId="comments" groupId={`lesson-${lessonId}`} hidden={activeTab !== "comments"} className="lesson-tab-panel">
           <SectionTitle as="h3">تعليقات الدرس</SectionTitle>
           <div className="lesson-comment-box">
             <textarea
@@ -403,11 +381,9 @@ function StudentLessonBody({
               ))}
             </ul>
           )}
-        </div>
-      ) : null}
+      </AppTabPanel>
 
-      {activeTab === "quizzes" ? (
-        <div className="lesson-quiz-section lesson-tab-panel">
+      <AppTabPanel tabId="quizzes" groupId={`lesson-${lessonId}`} hidden={activeTab !== "quizzes"} className="lesson-quiz-section lesson-tab-panel">
           <SectionTitle as="h3">اختبارات الدرس</SectionTitle>
           {quizzes.length > 0 ? (
             <ul className="lesson-quiz-list">
@@ -435,8 +411,7 @@ function StudentLessonBody({
           ) : (
             <EmptyState message="لا توجد اختبارات لهذا الدرس بعد." />
           )}
-        </div>
-      ) : null}
+      </AppTabPanel>
     </article>
   );
 }
