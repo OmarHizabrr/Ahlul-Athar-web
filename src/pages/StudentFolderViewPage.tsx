@@ -8,6 +8,11 @@ import { foldersService } from "../services/foldersService";
 import type { Folder, FolderFile } from "../types";
 import { DashboardLayout } from "./DashboardLayout";
 
+function isPreviewable(file: FolderFile) {
+  const t = file.fileType ?? "other";
+  return t === "audio" || t === "video" || t === "image" || t === "pdf";
+}
+
 function FilePreview({ file }: { file: FolderFile }) {
   const t = file.fileType ?? "other";
   if (t === "audio") {
@@ -18,6 +23,15 @@ function FilePreview({ file }: { file: FolderFile }) {
   }
   if (t === "image") {
     return <img src={file.downloadUrl} alt={file.fileName} style={{ width: "100%", borderRadius: "12px" }} loading="lazy" />;
+  }
+  if (t === "pdf") {
+    return (
+      <iframe
+        title={file.fileName}
+        src={file.downloadUrl}
+        style={{ width: "100%", height: "420px", border: "1px solid rgba(51, 65, 85, 0.75)", borderRadius: "12px" }}
+      />
+    );
   }
   return null;
 }
@@ -34,6 +48,7 @@ export function StudentFolderViewPage() {
   const [requesting, setRequesting] = useState(false);
   const [fileType, setFileType] = useState<FolderFile["fileType"] | "all">("all");
   const [sortBy, setSortBy] = useState<"name" | "size" | "type">("name");
+  const [openPreviewIds, setOpenPreviewIds] = useState<Set<string>>(() => new Set());
 
   const load = async (id: string) => {
     setLoading(true);
@@ -179,22 +194,49 @@ export function StudentFolderViewPage() {
             <EmptyState message="لا توجد ملفات." />
           ) : (
             <ContentList>
-              {visibleFiles.map((f) => (
+              {visibleFiles.map((f) => {
+                const canPreview = isPreviewable(f);
+                const isOpen = openPreviewIds.has(f.id);
+                return (
                 <ContentListItem key={f.id} className="file-row">
                   <div style={{ width: "100%" }}>
                     <h3 className="post-title">{f.fileName}</h3>
                     <p className="muted small">
                       {f.fileType ? `النوع: ${f.fileType}` : "—"} {typeof f.fileSize === "number" ? `· الحجم: ${Math.round(f.fileSize / 1024)} KB` : ""}
                     </p>
-                    <div style={{ marginTop: "0.6rem" }}>
-                      <FilePreview file={f} />
-                    </div>
+                    {canPreview && isOpen ? (
+                      <div style={{ marginTop: "0.6rem" }}>
+                        <FilePreview file={f} />
+                      </div>
+                    ) : null}
                   </div>
-                  <a className="primary-btn" href={f.downloadUrl} target="_blank" rel="noopener noreferrer">
-                    فتح
-                  </a>
+                  <div className="course-actions">
+                    {canPreview ? (
+                      <button
+                        type="button"
+                        className="ghost-btn"
+                        onClick={() =>
+                          setOpenPreviewIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(f.id)) {
+                              next.delete(f.id);
+                            } else {
+                              next.add(f.id);
+                            }
+                            return next;
+                          })
+                        }
+                      >
+                        {isOpen ? "إخفاء المعاينة" : "معاينة"}
+                      </button>
+                    ) : null}
+                    <a className="primary-btn" href={f.downloadUrl} target="_blank" rel="noopener noreferrer">
+                      فتح
+                    </a>
+                  </div>
                 </ContentListItem>
-              ))}
+              );
+              })}
             </ContentList>
           )}
         </>

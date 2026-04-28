@@ -26,6 +26,11 @@ import { DashboardLayout } from "./DashboardLayout";
 
 type TabId = "files" | "members" | "requests";
 
+function isPreviewable(file: FolderFile) {
+  const t = file.fileType ?? "other";
+  return t === "audio" || t === "video" || t === "image" || t === "pdf";
+}
+
 function FilePreview({ file }: { file: FolderFile }) {
   const t = file.fileType ?? "other";
   if (t === "audio") {
@@ -36,6 +41,15 @@ function FilePreview({ file }: { file: FolderFile }) {
   }
   if (t === "image") {
     return <img src={file.downloadUrl} alt={file.fileName} style={{ width: "100%", borderRadius: "12px" }} loading="lazy" />;
+  }
+  if (t === "pdf") {
+    return (
+      <iframe
+        title={file.fileName}
+        src={file.downloadUrl}
+        style={{ width: "100%", height: "420px", border: "1px solid rgba(51, 65, 85, 0.75)", borderRadius: "12px" }}
+      />
+    );
   }
   return null;
 }
@@ -51,6 +65,7 @@ export function AdminFolderViewPage() {
   const [tab, setTab] = useState<TabId>("files");
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
+  const [openPreviewIds, setOpenPreviewIds] = useState<Set<string>>(() => new Set());
 
   const [memberModalOpen, setMemberModalOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
@@ -398,11 +413,32 @@ export function AdminFolderViewPage() {
                       <p className="muted small">
                         {f.fileType ? `النوع: ${f.fileType}` : "—"} {typeof f.fileSize === "number" ? `· الحجم: ${Math.round(f.fileSize / 1024)} KB` : ""}
                       </p>
-                      <div style={{ marginTop: "0.6rem" }}>
-                        <FilePreview file={f} />
-                      </div>
+                      {isPreviewable(f) && openPreviewIds.has(f.id) ? (
+                        <div style={{ marginTop: "0.6rem" }}>
+                          <FilePreview file={f} />
+                        </div>
+                      ) : null}
                     </div>
                     <div className="course-actions">
+                      {isPreviewable(f) ? (
+                        <button
+                          type="button"
+                          className="ghost-btn toolbar-btn"
+                          onClick={() =>
+                            setOpenPreviewIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(f.id)) {
+                                next.delete(f.id);
+                              } else {
+                                next.add(f.id);
+                              }
+                              return next;
+                            })
+                          }
+                        >
+                          {openPreviewIds.has(f.id) ? "إخفاء المعاينة" : "معاينة"}
+                        </button>
+                      ) : null}
                       <a className="ghost-btn toolbar-btn" href={f.downloadUrl} target="_blank" rel="noopener noreferrer">
                         فتح
                       </a>
