@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { AuthPageShell } from "../components/AuthPageShell";
 import { ButtonBusyLabel } from "../components/ButtonBusyLabel";
 import { AlertMessage } from "../components/ui";
 import { FcGoogle } from "react-icons/fc";
@@ -62,7 +63,7 @@ export function LoginPage() {
   };
 
   return (
-    <main className="center-page">
+    <AuthPageShell>
       <section className="card">
         <p className="badge">أهل الأثر</p>
         <h1>تسجيل الدخول — {roleText}</h1>
@@ -128,6 +129,6 @@ export function LoginPage() {
           </AlertMessage>
         ) : null}
       </section>
-    </main>
+    </AuthPageShell>
   );
 }

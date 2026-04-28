@@ -134,3 +134,49 @@ export interface EnrollmentRequest {
   processedAt?: unknown;
   adminNotes?: string;
 }
+
+export interface AdminRecord {
+  uid: string;
+  displayName: string;
+  email?: string;
+  isActive: boolean;
+  createdAt?: unknown;
+}
+
+export interface StudentRecord {
+  uid: string;
+  displayName: string;
+  email?: string;
+  phone?: string;
+  photoURL?: string;
+  isActive?: boolean;
+  isSuspended?: boolean;
+  isActivated?: boolean;
+  createdAt?: unknown;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  description?: string;
+  folderType?: "public" | "private";
+  isActive?: boolean;
+  coverImageUrl?: string;
+  fileCount?: number;
+  memberCount?: number;
+  totalSize?: number;
+  createdAt?: unknown;
+}
+
+export type FolderFileType = "image" | "pdf" | "video" | "audio" | "doc" | "other";
+
+export interface FolderFile {
+  id: string;
+  fileName: string;
+  downloadUrl: string;
+  storagePath?: string;
+  fileType?: FolderFileType;
+  fileSize?: number;
+  isActive?: boolean;
+  createdAt?: unknown;
+}

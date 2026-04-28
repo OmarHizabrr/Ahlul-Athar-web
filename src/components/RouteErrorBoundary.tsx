@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { AuthPageShell } from "./AuthPageShell";
 import { AlertMessage } from "./ui";
 
 type Props = { children: ReactNode };
@@ -31,7 +32,7 @@ export class RouteErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError && this.state.error) {
       return (
-        <main className="center-page">
+        <AuthPageShell>
           <section className="card">
             <p className="badge">تنبيه</p>
             <h1>حدث خطأ في التحميل</h1>
@@ -48,7 +49,7 @@ export class RouteErrorBoundary extends Component<Props, State> {
               </button>
             </div>
           </section>
-        </main>
+        </AuthPageShell>
       );
     }
 

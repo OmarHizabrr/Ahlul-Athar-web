@@ -59,9 +59,24 @@ export function DashboardLayout({ role, title, lede, children }: DashboardLayout
           <Link to={base} onClick={() => setNavOpen(false)}>
             الرئيسية
           </Link>
+          {role === "admin" ? (
+            <Link to="/admin/admins" onClick={() => setNavOpen(false)}>
+              المشرفون
+            </Link>
+          ) : null}
+          {role === "admin" ? (
+            <Link to="/admin/students" onClick={() => setNavOpen(false)}>
+              الطلاب
+            </Link>
+          ) : null}
           <Link to={`${base}/courses`} onClick={() => setNavOpen(false)}>
             الدورات
           </Link>
+          {role === "admin" ? (
+            <Link to="/admin/folders" onClick={() => setNavOpen(false)}>
+              المجلدات
+            </Link>
+          ) : null}
           {role === "admin" ? (
             <Link to="/admin/enrollment-requests" onClick={() => setNavOpen(false)}>
               طلبات الالتحاق
@@ -71,6 +86,12 @@ export function DashboardLayout({ role, title, lede, children }: DashboardLayout
             <>
               <Link to="/student/mycourses" onClick={() => setNavOpen(false)}>
                 مقرراتي
+              </Link>
+              <Link to="/student/myfiles" onClick={() => setNavOpen(false)}>
+                ملفاتي
+              </Link>
+              <Link to="/student/explore" onClick={() => setNavOpen(false)}>
+                الاستكشاف
               </Link>
               <Link to="/student/enrollment-requests" onClick={() => setNavOpen(false)}>
                 طلباتي

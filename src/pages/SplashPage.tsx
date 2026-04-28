@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthPageShell } from "../components/AuthPageShell";
 import { useAuth } from "../context/AuthContext";
 
 export function SplashPage() {
@@ -22,7 +23,7 @@ export function SplashPage() {
   }, [ready, user, navigate]);
 
   return (
-    <main className="center-page">
+    <AuthPageShell>
       <section className="card splash-card" aria-busy="true" aria-label="جاري التحميل">
         <p className="badge">أهل الأثر</p>
         <div className="splash-page-spinner" aria-hidden>
@@ -31,6 +32,6 @@ export function SplashPage() {
         <h1>جاري التهيئة...</h1>
         <p className="muted">مزامنة الحساب مع نفس بيانات تطبيق الجوال</p>
       </section>
-    </main>
+    </AuthPageShell>
   );
 }

@@ -1,5 +1,6 @@
 import { lazy, Suspense, type ReactElement } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { AuthPageShell } from "./components/AuthPageShell";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
 import { AdminPreviewProvider } from "./context/AdminPreviewContext";
 import { useAuth } from "./context/AuthContext";
@@ -13,6 +14,12 @@ const CoursesPage = lazy(() => import("./pages/CoursesPage").then((m) => ({ defa
 const AdminEnrollmentRequestsPage = lazy(() =>
   import("./pages/AdminEnrollmentRequestsPage").then((m) => ({ default: m.AdminEnrollmentRequestsPage })),
 );
+const AdminAdminsPage = lazy(() => import("./pages/AdminAdminsPage").then((m) => ({ default: m.AdminAdminsPage })));
+const AdminStudentsPage = lazy(() => import("./pages/AdminStudentsPage").then((m) => ({ default: m.AdminStudentsPage })));
+const AdminFoldersPage = lazy(() => import("./pages/AdminFoldersPage").then((m) => ({ default: m.AdminFoldersPage })));
+const AdminFolderViewPage = lazy(() =>
+  import("./pages/AdminFolderViewPage").then((m) => ({ default: m.AdminFolderViewPage })),
+);
 const PostsPage = lazy(() => import("./pages/dashboard/PostsPage").then((m) => ({ default: m.PostsPage })));
 const NotificationsPage = lazy(() =>
   import("./pages/dashboard/NotificationsPage").then((m) => ({ default: m.NotificationsPage })),
@@ -24,6 +31,11 @@ const StudentMyCoursesPage = lazy(() =>
 );
 const StudentEnrollmentRequestsPage = lazy(() =>
   import("./pages/StudentEnrollmentRequestsPage").then((m) => ({ default: m.StudentEnrollmentRequestsPage })),
+);
+const StudentMyFilesPage = lazy(() => import("./pages/StudentMyFilesPage").then((m) => ({ default: m.StudentMyFilesPage })));
+const StudentExplorePage = lazy(() => import("./pages/StudentExplorePage").then((m) => ({ default: m.StudentExplorePage })));
+const StudentFolderViewPage = lazy(() =>
+  import("./pages/StudentFolderViewPage").then((m) => ({ default: m.StudentFolderViewPage })),
 );
 const StudentCourseViewPage = lazy(() =>
   import("./pages/StudentCourseViewPage").then((m) => ({ default: m.StudentCourseViewPage })),
@@ -46,30 +58,30 @@ const AdminQuizEditorPage = lazy(() =>
 
 function AuthLoading() {
   return (
-    <main className="center-page">
+    <AuthPageShell>
       <section className="card splash-card" aria-busy="true">
-        <p className="badge">Ahlul Athar</p>
+        <p className="badge">أهل الأثر</p>
         <div className="splash-page-spinner" aria-hidden>
           <span className="btn-spinner" />
         </div>
         <h1>جاري التهيئة...</h1>
         <p className="muted">مزامنة الجلسة مع السحابة</p>
       </section>
-    </main>
+    </AuthPageShell>
   );
 }
 
 function RouteLoading() {
   return (
-    <main className="center-page">
+    <AuthPageShell>
       <section className="card splash-card" aria-busy="true">
-        <p className="badge">Ahlul Athar</p>
+        <p className="badge">أهل الأثر</p>
         <div className="splash-page-spinner" aria-hidden>
           <span className="btn-spinner" />
         </div>
         <h1>جاري فتح الصفحة...</h1>
       </section>
-    </main>
+    </AuthPageShell>
   );
 }
 
@@ -116,6 +128,38 @@ function App() {
             element={
               <ProtectedRoute role="admin">
                 <AdminEnrollmentRequestsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/admins"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminAdminsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/students"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminStudentsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/folders"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminFoldersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/folder/:folderId"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminFolderViewPage />
               </ProtectedRoute>
             }
           />
@@ -234,6 +278,30 @@ function App() {
             element={
               <ProtectedRoute role="student">
                 <StudentEnrollmentRequestsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/myfiles"
+            element={
+              <ProtectedRoute role="student">
+                <StudentMyFilesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/explore"
+            element={
+              <ProtectedRoute role="student">
+                <StudentExplorePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/folder/:folderId"
+            element={
+              <ProtectedRoute role="student">
+                <StudentFolderViewPage />
               </ProtectedRoute>
             }
           />

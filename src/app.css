@@ -35,9 +35,34 @@ body {
 
 .center-page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: 1.25rem;
+}
+
+/* صفحات الدخول والتهيئة: حواف آمنة وحاوية لا تخرج خارج الشاشة */
+.center-page--auth {
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+.auth-shell {
+  width: 100%;
+  max-width: min(430px, 100%);
+  margin-inline: auto;
+}
+
+.center-page--auth .card {
+  width: 100%;
+  max-width: 100%;
+}
+
+.center-page--auth .card h1 {
+  font-size: clamp(1.25rem, 4.5vw + 0.55rem, 1.85rem);
+  line-height: 1.35;
 }
 
 .card {
@@ -562,6 +587,7 @@ input:focus {
   color: #e2e8f0;
   text-decoration: none;
   transition: border-color 0.15s, background 0.15s;
+  overflow-wrap: anywhere;
 }
 
 .settings-link:hover {
@@ -1835,12 +1861,28 @@ button:disabled {
   margin: 0.35rem 0 0.8rem;
 }
 
+@media (max-width: 540px) {
+  .lesson-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.35rem;
+    scrollbar-width: thin;
+  }
+
+  .lesson-tab {
+    flex: 0 0 auto;
+    touch-action: manipulation;
+  }
+}
+
 .lesson-tab {
   border: 1px solid #334155;
   background: rgba(15, 23, 42, 0.7);
   color: #cbd5e1;
   border-radius: 999px;
-  padding: 0.35rem 0.75rem;
+  padding: 0.45rem 0.85rem;
   font-size: 0.85rem;
   cursor: pointer;
 }

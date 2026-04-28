@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthPageShell } from "../components/AuthPageShell";
 import { PageLoadHint } from "../components/ButtonBusyLabel";
 import { useAuth } from "../context/AuthContext";
 
@@ -15,17 +16,17 @@ export function RoleSelectorPage() {
 
   if (!ready) {
     return (
-      <main className="center-page">
+      <AuthPageShell>
         <section className="card">
           <p className="badge">أهل الأثر</p>
           <PageLoadHint text="جاري التهيئة..." />
         </section>
-      </main>
+      </AuthPageShell>
     );
   }
 
   return (
-    <main className="center-page">
+    <AuthPageShell>
       <section className="card">
         <p className="badge">أهل الأثر</p>
         <h1>اختر نوع الحساب</h1>
@@ -40,6 +41,6 @@ export function RoleSelectorPage() {
           </button>
         </div>
       </section>
-    </main>
+    </AuthPageShell>
   );
 }

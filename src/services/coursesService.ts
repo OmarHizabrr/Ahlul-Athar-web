@@ -17,7 +17,7 @@ import {
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { auth, db } from "../firebase";
-import type { Course, EnrollmentRequest, PlatformUser } from "../types";
+import type { Course, EnrollmentRequest, Folder, PlatformUser } from "../types";
 
 const coursesCollection = collection(db, "courses");
 const enrollmentRequestsCollection = collection(db, "enrollment_requests");
@@ -200,6 +200,26 @@ export const coursesService = {
     });
   },
 
+  async requestFolderEnrollment(user: PlatformUser, folder: Folder, reason = "طلب انضمام لمجلد") {
+    const requestId = `${user.uid}_${folder.id}_${Date.now()}`;
+    const reqRef = doc(db, "enrollment_requests", requestId);
+    await setDoc(reqRef, {
+      studentId: user.uid,
+      studentName: user.displayName ?? "",
+      studentEmail: user.email ?? "",
+      studentPhone: user.phoneNumber ?? null,
+      studentPhotoURL: user.photoURL ?? null,
+      requestType: "folder",
+      targetId: folder.id,
+      targetName: folder.name,
+      targetDescription: folder.description ?? "",
+      targetImageURL: folder.coverImageUrl ?? null,
+      status: "pending",
+      reason,
+      requestedAt: serverTimestamp(),
+    });
+  },
+
   /**
    * يطابق تطبيق Flutter: طلبات من نوع course فقط، مرتبة بـ requestedAt.
    * التصفية حسب الحالة تتم محليًا لتوافق بيانات قديمة.
@@ -229,6 +249,77 @@ export const coursesService = {
       return mapped;
     }
     return mapped.filter((r) => r.status === status);
+  },
+
+  async listAnyEnrollmentRequests(
+    opts: {
+      status?: EnrollmentRequest["status"] | "all";
+      type?: EnrollmentRequest["requestType"] | "all";
+    } = {},
+  ) {
+    const status = opts.status ?? "pending";
+    const type = opts.type ?? "all";
+    let docs: QueryDocumentSnapshot<DocumentData>[];
+    try {
+      const parts = [];
+      if (type !== "all") {
+        parts.push(where("requestType", "==", type));
+      }
+      const q = query(enrollmentRequestsCollection, ...parts, orderBy("requestedAt", "desc"));
+      docs = (await getDocs(q)).docs;
+    } catch {
+      const snap = await getDocs(enrollmentRequestsCollection);
+      docs = snap.docs;
+    }
+    const mapped = docs.map((d) => mapEnrollmentRequest(d));
+    const filteredByType = type === "all" ? mapped : mapped.filter((r) => r.requestType === type);
+    if (status === "all") {
+      return filteredByType;
+    }
+    return filteredByType.filter((r) => r.status === status);
+  },
+
+  async listFolderEnrollmentRequestsForTarget(folderId: string, status: EnrollmentRequest["status"] | "all" = "pending") {
+    let docs: QueryDocumentSnapshot<DocumentData>[];
+    try {
+      const q = query(
+        enrollmentRequestsCollection,
+        where("requestType", "==", "folder"),
+        where("targetId", "==", folderId),
+        orderBy("requestedAt", "desc"),
+      );
+      docs = (await getDocs(q)).docs;
+    } catch {
+      const q2 = query(enrollmentRequestsCollection, where("requestType", "==", "folder"), where("targetId", "==", folderId));
+      docs = (await getDocs(q2)).docs;
+    }
+    const mapped = docs.map((d) => mapEnrollmentRequest(d));
+    if (status === "all") return mapped;
+    return mapped.filter((r) => r.status === status);
+  },
+
+  async approveFolderEnrollmentRequest(request: EnrollmentRequest, activation: ActivationOptions) {
+    const user = auth.currentUser;
+    const requestRef = doc(db, "enrollment_requests", request.id);
+    const adminNotes = "تمت الموافقة من منصة الويب";
+    const activationCode = generateActivationCode(request.studentId);
+    const isLifetime = activation.isLifetime;
+    const expiresAtStr = isLifetime || !activation.expiresAt ? null : activation.expiresAt.toISOString();
+    const days = isLifetime ? 30 : activation.days;
+    await updateDoc(requestRef, {
+      status: "approved",
+      processedAt: serverTimestamp(),
+      processedBy: user?.uid ?? "",
+      processedByName: user?.displayName ?? "",
+      adminNotes,
+      updatedAt: serverTimestamp(),
+      isActivated: true,
+      isLifetime,
+      expiresAt: expiresAtStr,
+      activationDays: days,
+      activatedAt: serverTimestamp(),
+      activationCode,
+    });
   },
 
   /**
@@ -335,7 +426,6 @@ export const coursesService = {
       const q = query(
         enrollmentRequestsCollection,
         where("studentId", "==", studentId),
-        where("requestType", "==", "course"),
         orderBy("requestedAt", "desc"),
       );
       return (await getDocs(q)).docs.map((d) => mapEnrollmentRequest(d));
@@ -343,7 +433,6 @@ export const coursesService = {
       const q2 = query(enrollmentRequestsCollection, where("studentId", "==", studentId));
       const raw = (await getDocs(q2)).docs
         .map((d) => mapEnrollmentRequest(d))
-        .filter((r) => r.requestType === "course");
       raw.sort(
         (a, b) =>
           timeMillisFromUnknown(b.requestedAt ?? b.processedAt) -

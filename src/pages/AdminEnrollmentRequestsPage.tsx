@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AlertMessage } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
 import { coursesService } from "../services/coursesService";
+import { foldersService } from "../services/foldersService";
 import type { EnrollmentRequest } from "../types";
 import { AdminEnrollmentRequestsPanel } from "./course/AdminEnrollmentRequestsPanel";
 import { CourseActivationModal } from "./course/CourseActivationModal";
@@ -11,6 +12,7 @@ export function AdminEnrollmentRequestsPage() {
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [requestFilter, setRequestFilter] = useState<"all" | EnrollmentRequest["status"]>("pending");
+  const [typeFilter, setTypeFilter] = useState<"all" | EnrollmentRequest["requestType"]>("all");
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [activationOpen, setActivationOpen] = useState(false);
@@ -21,7 +23,7 @@ export function AdminEnrollmentRequestsPage() {
   const loadRequests = async () => {
     setRequestsLoading(true);
     try {
-      const data = await coursesService.listCourseEnrollmentRequests(requestFilter);
+      const data = await coursesService.listAnyEnrollmentRequests({ status: requestFilter, type: typeFilter });
       setRequests(data);
     } catch {
       setMessage("تعذر تحميل طلبات الالتحاق.");
@@ -33,7 +35,7 @@ export function AdminEnrollmentRequestsPage() {
 
   useEffect(() => {
     void loadRequests();
-  }, [requestFilter]);
+  }, [requestFilter, typeFilter]);
 
   const openActivationDialog = (req: EnrollmentRequest) => {
     setActivationTarget(req);
@@ -49,16 +51,40 @@ export function AdminEnrollmentRequestsPage() {
     setSubmitting(true);
     try {
       const expiresAt = isLifetimeActivation ? null : new Date(Date.now() + activationDays * 86_400_000);
-      const { alreadyEnrolled } = await coursesService.approveEnrollmentRequest(activationTarget, {
-        isLifetime: isLifetimeActivation,
-        days: activationDays,
-        expiresAt,
-      });
-      setMessage(
-        alreadyEnrolled
-          ? "تم اعتماد الطلب وتحديث بيانات التفعيل. الطالب مسجل مسبقًا."
-          : "تم قبول الطلب وإضافة الطالب للمقرر بنجاح.",
-      );
+      if (activationTarget.requestType === "folder") {
+        await coursesService.approveFolderEnrollmentRequest(activationTarget, {
+          isLifetime: isLifetimeActivation,
+          days: activationDays,
+          expiresAt,
+        });
+        const folder = await foldersService.getFolderById(activationTarget.targetId);
+        if (!folder) {
+          throw new Error("folder_not_found");
+        }
+        await foldersService.addMemberToFolder({
+          folder,
+          member: {
+            uid: activationTarget.studentId,
+            displayName: activationTarget.studentName,
+            email: activationTarget.studentEmail,
+            phone: activationTarget.studentPhone,
+            photoURL: activationTarget.studentPhotoURL,
+          },
+          activation: { isLifetime: isLifetimeActivation, days: activationDays, expiresAt },
+        });
+        setMessage("تم قبول طلب المجلد وإضافة الطالب للأعضاء.");
+      } else {
+        const { alreadyEnrolled } = await coursesService.approveEnrollmentRequest(activationTarget, {
+          isLifetime: isLifetimeActivation,
+          days: activationDays,
+          expiresAt,
+        });
+        setMessage(
+          alreadyEnrolled
+            ? "تم اعتماد الطلب وتحديث بيانات التفعيل. الطالب مسجل مسبقًا."
+            : "تم قبول الطلب وإضافة الطالب للمقرر بنجاح.",
+        );
+      }
       setIsError(false);
       setActivationOpen(false);
       setActivationTarget(null);
@@ -96,9 +122,20 @@ export function AdminEnrollmentRequestsPage() {
     <DashboardLayout
       role="admin"
       title="طلبات الالتحاق"
-      lede="قسم مستقل لمراجعة طلبات انضمام الطلاب للمقررات، مطابق لتدفق التطبيق."
+      lede="قسم مستقل لمراجعة طلبات انضمام الطلاب للمقررات والمجلدات، مطابق لتدفق التطبيق."
     >
       {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
+      <div className="request-filters" style={{ marginBottom: "0.75rem" }}>
+        <button type="button" className={typeFilter === "all" ? "primary-btn" : "ghost-btn"} onClick={() => setTypeFilter("all")} disabled={submitting || requestsLoading}>
+          الكل
+        </button>
+        <button type="button" className={typeFilter === "course" ? "primary-btn" : "ghost-btn"} onClick={() => setTypeFilter("course")} disabled={submitting || requestsLoading}>
+          الدورات
+        </button>
+        <button type="button" className={typeFilter === "folder" ? "primary-btn" : "ghost-btn"} onClick={() => setTypeFilter("folder")} disabled={submitting || requestsLoading}>
+          المجلدات
+        </button>
+      </div>
       <AdminEnrollmentRequestsPanel
         requestFilter={requestFilter}
         onRequestFilterChange={setRequestFilter}

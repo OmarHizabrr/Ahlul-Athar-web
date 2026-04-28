@@ -37,7 +37,7 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
     }
     try {
       if (role === "admin") {
-        const pending = await coursesService.listCourseEnrollmentRequests("pending");
+        const pending = await coursesService.listAnyEnrollmentRequests({ status: "pending", type: "all" });
         setPendingEnrollments(pending.length);
       } else {
         const mine = await coursesService.listStudentEnrollmentRequests(user.uid);
