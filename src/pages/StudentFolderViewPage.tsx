@@ -8,6 +8,20 @@ import { foldersService } from "../services/foldersService";
 import type { Folder, FolderFile } from "../types";
 import { DashboardLayout } from "./DashboardLayout";
 
+function FilePreview({ file }: { file: FolderFile }) {
+  const t = file.fileType ?? "other";
+  if (t === "audio") {
+    return <audio controls preload="none" src={file.downloadUrl} style={{ width: "100%" }} />;
+  }
+  if (t === "video") {
+    return <video controls preload="metadata" src={file.downloadUrl} style={{ width: "100%", maxHeight: "360px" }} />;
+  }
+  if (t === "image") {
+    return <img src={file.downloadUrl} alt={file.fileName} style={{ width: "100%", borderRadius: "12px" }} loading="lazy" />;
+  }
+  return null;
+}
+
 export function StudentFolderViewPage() {
   const { folderId } = useParams();
   const { user, ready } = useAuth();
@@ -167,14 +181,17 @@ export function StudentFolderViewPage() {
             <ContentList>
               {visibleFiles.map((f) => (
                 <ContentListItem key={f.id} className="file-row">
-                  <div>
+                  <div style={{ width: "100%" }}>
                     <h3 className="post-title">{f.fileName}</h3>
                     <p className="muted small">
                       {f.fileType ? `النوع: ${f.fileType}` : "—"} {typeof f.fileSize === "number" ? `· الحجم: ${Math.round(f.fileSize / 1024)} KB` : ""}
                     </p>
+                    <div style={{ marginTop: "0.6rem" }}>
+                      <FilePreview file={f} />
+                    </div>
                   </div>
                   <a className="primary-btn" href={f.downloadUrl} target="_blank" rel="noopener noreferrer">
-                    تحميل/فتح
+                    فتح
                   </a>
                 </ContentListItem>
               ))}

@@ -139,6 +139,7 @@ export interface AdminRecord {
   uid: string;
   displayName: string;
   email?: string;
+  photoURL?: string;
   isActive: boolean;
   createdAt?: unknown;
 }

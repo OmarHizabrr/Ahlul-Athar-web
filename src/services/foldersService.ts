@@ -36,12 +36,27 @@ function mapFolder(d: QueryDocumentSnapshot<DocumentData>): Folder {
 
 function mapFolderFile(d: QueryDocumentSnapshot<DocumentData>): FolderFile {
   const data = d.data();
+  const fileName = String(data.fileName ?? data.name ?? d.id);
+  const url = String(data.downloadUrl ?? data.url ?? "");
+  const inferType = (): FolderFile["fileType"] | undefined => {
+    const ext = (() => {
+      const raw = (fileName || url).split("?")[0] ?? "";
+      const last = raw.split(".").pop() ?? "";
+      return last.toLowerCase();
+    })();
+    if (["mp3", "wav", "ogg", "m4a", "aac"].includes(ext)) return "audio";
+    if (["mp4", "webm", "mov", "mkv"].includes(ext)) return "video";
+    if (["png", "jpg", "jpeg", "gif", "webp"].includes(ext)) return "image";
+    if (ext === "pdf") return "pdf";
+    if (["doc", "docx", "ppt", "pptx", "xls", "xlsx"].includes(ext)) return "doc";
+    return undefined;
+  };
   return {
     id: d.id,
-    fileName: String(data.fileName ?? data.name ?? d.id),
-    downloadUrl: String(data.downloadUrl ?? data.url ?? ""),
+    fileName,
+    downloadUrl: url,
     storagePath: data.storagePath != null ? String(data.storagePath) : undefined,
-    fileType: data.fileType != null ? String(data.fileType) as FolderFile["fileType"] : undefined,
+    fileType: data.fileType != null ? (String(data.fileType) as FolderFile["fileType"]) : inferType(),
     fileSize: typeof data.fileSize === "number" ? data.fileSize : undefined,
     isActive: data.isActive != null ? Boolean(data.isActive) : undefined,
     createdAt: data.createdAt,

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { PageLoadHint } from "../components/ButtonBusyLabel";
-import { AlertMessage, ContentList, ContentListItem, EmptyState, PageToolbar, StatTile } from "../components/ui";
+import { AlertMessage, Avatar, ContentList, ContentListItem, EmptyState, PageToolbar, StatTile } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
 import { directoryService } from "../services/directoryService";
 import type { AdminRecord } from "../types";
@@ -64,9 +64,20 @@ export function AdminAdminsPage() {
         <ContentList>
           {visible.map((r) => (
             <ContentListItem key={r.uid} className="user-row">
-              <div>
-                <h3 className="post-title">{r.displayName || r.uid}</h3>
-                <p className="muted small">{r.email || "—"}</p>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", minWidth: 0 }}>
+                <Avatar
+                  photoURL={r.photoURL}
+                  displayName={r.displayName}
+                  email={r.email}
+                  alt={r.displayName || "مشرف"}
+                  imageClassName="user-avatar topbar-avatar"
+                  fallbackClassName="user-avatar-fallback topbar-avatar"
+                  size={40}
+                />
+                <div style={{ minWidth: 0 }}>
+                  <h3 className="post-title">{r.displayName || r.uid}</h3>
+                  <p className="muted small">{r.email || "—"}</p>
+                </div>
               </div>
               <span className={r.isActive ? "meta-pill meta-pill--ok" : "meta-pill meta-pill--muted"}>
                 {r.isActive ? "نشط" : "موقوف"}

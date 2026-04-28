@@ -8,6 +8,7 @@ function mapAdminDoc(d: QueryDocumentSnapshot<DocumentData>): AdminRecord {
     uid: d.id,
     displayName: String(data.displayName ?? data.name ?? data.createdByName ?? d.id),
     email: data.email != null ? String(data.email) : undefined,
+    photoURL: data.photoURL != null ? String(data.photoURL) : data.imageUrl != null ? String(data.imageUrl) : undefined,
     isActive: Boolean(data.isActive ?? true),
     createdAt: data.createdAt,
   };

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { PageLoadHint } from "../components/ButtonBusyLabel";
-import { AlertMessage, ContentList, ContentListItem, EmptyState, PageToolbar, StatTile } from "../components/ui";
+import { AlertMessage, Avatar, ContentList, ContentListItem, EmptyState, PageToolbar, StatTile } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
 import { directoryService } from "../services/directoryService";
 import type { StudentRecord } from "../types";
@@ -101,11 +101,22 @@ export function AdminStudentsPage() {
             const pill = statusPill(s);
             return (
               <ContentListItem key={s.uid} className="user-row">
-                <div>
-                  <h3 className="post-title">{s.displayName || s.uid}</h3>
-                  <p className="muted small">
-                    {s.email || "—"} {s.phone ? `· ${s.phone}` : ""}
-                  </p>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", minWidth: 0 }}>
+                  <Avatar
+                    photoURL={s.photoURL}
+                    displayName={s.displayName}
+                    email={s.email}
+                    alt={s.displayName || "طالب"}
+                    imageClassName="user-avatar topbar-avatar"
+                    fallbackClassName="user-avatar-fallback topbar-avatar"
+                    size={40}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <h3 className="post-title">{s.displayName || s.uid}</h3>
+                    <p className="muted small">
+                      {s.email || "—"} {s.phone ? `· ${s.phone}` : ""}
+                    </p>
+                  </div>
                 </div>
                 <span className={pill.cls}>{pill.text}</span>
               </ContentListItem>

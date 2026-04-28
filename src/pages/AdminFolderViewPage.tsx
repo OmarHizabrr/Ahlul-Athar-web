@@ -6,6 +6,7 @@ import {
   AppModal,
   AppTabPanel,
   AppTabs,
+  Avatar,
   ContentList,
   ContentListItem,
   CoverImage,
@@ -24,6 +25,20 @@ import type { EnrollmentRequest, Folder, FolderFile, StudentRecord } from "../ty
 import { DashboardLayout } from "./DashboardLayout";
 
 type TabId = "files" | "members" | "requests";
+
+function FilePreview({ file }: { file: FolderFile }) {
+  const t = file.fileType ?? "other";
+  if (t === "audio") {
+    return <audio controls preload="none" src={file.downloadUrl} style={{ width: "100%" }} />;
+  }
+  if (t === "video") {
+    return <video controls preload="metadata" src={file.downloadUrl} style={{ width: "100%", maxHeight: "360px" }} />;
+  }
+  if (t === "image") {
+    return <img src={file.downloadUrl} alt={file.fileName} style={{ width: "100%", borderRadius: "12px" }} loading="lazy" />;
+  }
+  return null;
+}
 
 export function AdminFolderViewPage() {
   const { folderId } = useParams();
@@ -378,11 +393,14 @@ export function AdminFolderViewPage() {
               <ContentList>
                 {visibleFiles.map((f) => (
                   <ContentListItem key={f.id} className="file-row">
-                    <div>
+                    <div style={{ width: "100%" }}>
                       <h3 className="post-title">{f.fileName}</h3>
                       <p className="muted small">
                         {f.fileType ? `النوع: ${f.fileType}` : "—"} {typeof f.fileSize === "number" ? `· الحجم: ${Math.round(f.fileSize / 1024)} KB` : ""}
                       </p>
+                      <div style={{ marginTop: "0.6rem" }}>
+                        <FilePreview file={f} />
+                      </div>
                     </div>
                     <div className="course-actions">
                       <a className="ghost-btn toolbar-btn" href={f.downloadUrl} target="_blank" rel="noopener noreferrer">
@@ -411,11 +429,22 @@ export function AdminFolderViewPage() {
               <ContentList>
                 {visibleMembers.map((m) => (
                   <ContentListItem key={m.uid} className="user-row">
-                    <div>
-                      <h3 className="post-title">{m.displayName || m.uid}</h3>
-                      <p className="muted small">
-                        {m.email || "—"} {m.phone ? `· ${m.phone}` : ""}
-                      </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", minWidth: 0 }}>
+                      <Avatar
+                        photoURL={m.photoURL}
+                        displayName={m.displayName}
+                        email={m.email}
+                        alt={m.displayName || "عضو"}
+                        imageClassName="user-avatar topbar-avatar"
+                        fallbackClassName="user-avatar-fallback topbar-avatar"
+                        size={40}
+                      />
+                      <div style={{ minWidth: 0 }}>
+                        <h3 className="post-title">{m.displayName || m.uid}</h3>
+                        <p className="muted small">
+                          {m.email || "—"} {m.phone ? `· ${m.phone}` : ""}
+                        </p>
+                      </div>
                     </div>
                     <div className="course-actions">
                       {m.isActivated === false ? (
@@ -514,9 +543,22 @@ export function AdminFolderViewPage() {
             <ContentList>
               {visibleStudentsToAdd.slice(0, 30).map((s) => (
                 <ContentListItem key={s.uid} className="user-row">
-                  <div>
-                    <h4 className="post-title">{s.displayName || s.uid}</h4>
-                    <p className="muted small">{s.email || "—"} {s.phone ? `· ${s.phone}` : ""}</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", minWidth: 0 }}>
+                    <Avatar
+                      photoURL={s.photoURL}
+                      displayName={s.displayName}
+                      email={s.email}
+                      alt={s.displayName || "طالب"}
+                      imageClassName="user-avatar topbar-avatar"
+                      fallbackClassName="user-avatar-fallback topbar-avatar"
+                      size={40}
+                    />
+                    <div style={{ minWidth: 0 }}>
+                      <h4 className="post-title">{s.displayName || s.uid}</h4>
+                      <p className="muted small">
+                        {s.email || "—"} {s.phone ? `· ${s.phone}` : ""}
+                      </p>
+                    </div>
                   </div>
                   <button type="button" className="primary-btn toolbar-btn" onClick={() => void addMember(s)} disabled={busy}>
                     <ButtonBusyLabel busy={busy}>إضافة</ButtonBusyLabel>
