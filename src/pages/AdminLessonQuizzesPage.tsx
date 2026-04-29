@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
 import {
@@ -162,7 +162,7 @@ export function AdminLessonQuizzesPage() {
     );
   }
   if (!user) {
-    return null;
+    return <Navigate to="/role-selector" replace />;
   }
 
   return (

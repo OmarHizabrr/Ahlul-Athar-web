@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import {
   AlertMessage,
@@ -93,7 +93,7 @@ export function StudentEnrollmentRequestsPage() {
   }
 
   if (!user) {
-    return null;
+    return <Navigate to="/role-selector" replace />;
   }
 
   return (
@@ -149,7 +149,7 @@ export function StudentEnrollmentRequestsPage() {
         groupId={`student-requests-${user.uid}`}
         ariaLabel="نوع الطلبات"
         value={typeFilter}
-        onChange={setTypeFilter}
+        onChange={(id) => setTypeFilter(id as "all" | "course" | "folder")}
         tabs={[
           { id: "all", label: "الكل" },
           { id: "course", label: "الدورات" },

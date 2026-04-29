@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import {
   AlertMessage,
@@ -113,7 +113,7 @@ export function StudentCourseViewPage() {
   }
 
   if (!user) {
-    return null;
+    return <Navigate to="/role-selector" replace />;
   }
 
   const title = isAdminPreview
@@ -204,7 +204,7 @@ export function StudentCourseViewPage() {
                 groupId={`course-${courseId}`}
                 ariaLabel="أقسام المقرر"
                 value={courseTab}
-                onChange={setCourseTab}
+                onChange={(id) => setCourseTab(id as "overview" | "lessons")}
                 tabs={[
                   { id: "overview", label: "نظرة عامة" },
                   { id: "lessons", label: "الدروس" },

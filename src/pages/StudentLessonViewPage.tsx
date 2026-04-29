@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { LessonContentView } from "../components/LessonContentView";
 import { useIsAdminPreview } from "../context/AdminPreviewContext";
@@ -139,7 +139,7 @@ export function StudentLessonViewPage() {
   }
 
   if (!user) {
-    return null;
+    return <Navigate to="/role-selector" replace />;
   }
 
   return (
@@ -210,6 +210,7 @@ function StudentLessonBody({
   const [activeTab, setActiveTab] = useState<"view" | "attachments" | "comments" | "quizzes">("view");
   const [comments, setComments] = useState<LessonComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsError, setCommentsError] = useState("");
   const [commentBody, setCommentBody] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
 
@@ -221,11 +222,13 @@ function StudentLessonBody({
 
   const loadComments = useCallback(async () => {
     setCommentsLoading(true);
+    setCommentsError("");
     try {
       const rows = await lessonCommentsService.listByLesson(courseId, lessonId);
       setComments(rows);
     } catch {
       setComments([]);
+      setCommentsError("تعذر تحميل التعليقات حالياً.");
     } finally {
       setCommentsLoading(false);
     }
@@ -242,10 +245,13 @@ function StudentLessonBody({
       return;
     }
     setCommentSubmitting(true);
+    setCommentsError("");
     try {
       await lessonCommentsService.addComment(user as PlatformUser, courseId, lessonId, commentBody);
       setCommentBody("");
       await loadComments();
+    } catch {
+      setCommentsError("تعذر إرسال التعليق. تحقق من الاتصال ثم حاول مرة أخرى.");
     } finally {
       setCommentSubmitting(false);
     }
@@ -309,7 +315,7 @@ function StudentLessonBody({
         groupId={`lesson-${lessonId}`}
         ariaLabel="أقسام الدرس"
         value={activeTab}
-        onChange={setActiveTab}
+        onChange={(id) => setActiveTab(id as "view" | "attachments" | "comments" | "quizzes")}
         tabs={[
           { id: "view" as const, label: "المشاهدة" },
           { id: "attachments" as const, label: "المرفقات" },
@@ -367,6 +373,8 @@ function StudentLessonBody({
           </div>
           {commentsLoading ? (
             <PageLoadHint text="جاري تحميل التعليقات..." />
+          ) : commentsError ? (
+            <AlertMessage kind="error">{commentsError}</AlertMessage>
           ) : comments.length === 0 ? (
             <EmptyState message="لا توجد تعليقات بعد." />
           ) : (

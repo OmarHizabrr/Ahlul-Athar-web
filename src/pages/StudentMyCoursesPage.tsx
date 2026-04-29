@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import {
   AlertMessage,
@@ -69,7 +69,7 @@ export function StudentMyCoursesPage() {
   }
 
   if (!user) {
-    return null;
+    return <Navigate to="/role-selector" replace />;
   }
 
   return (

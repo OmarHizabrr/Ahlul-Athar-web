@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
 import { lessonsService } from "../services/lessonsService";
@@ -245,7 +245,7 @@ export function AdminCourseLessonsPage() {
   }
 
   if (!user) {
-    return null;
+    return <Navigate to="/role-selector" replace />;
   }
 
   return (

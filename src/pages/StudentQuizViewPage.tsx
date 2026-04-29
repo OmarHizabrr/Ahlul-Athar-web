@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import {
   canStudentOpenLesson,
@@ -158,55 +158,62 @@ export function StudentQuizViewPage() {
     }
     setLoading(true);
     setErr("");
-    if (!isAdminPreview) {
-      const en = await isStudentEnrolledInCourse(user.uid, courseId);
-      if (!en) {
-        setErr("لست مسجّلاً في هذا المقرر.");
+    try {
+      if (!isAdminPreview) {
+        const en = await isStudentEnrolledInCourse(user.uid, courseId);
+        if (!en) {
+          setErr("لست مسجّلاً في هذا المقرر.");
+          setQuiz(null);
+          setAnswer(null);
+          setRows([]);
+          setQuestionDefs([]);
+          return;
+        }
+        const acc = await canStudentOpenLesson(user.uid, courseId, lessonId);
+        if (!acc.ok) {
+          setErr(acc.message ?? "لا يمكن الوصول إلى هذا الدرس.");
+          setQuiz(null);
+          setAnswer(null);
+          setRows([]);
+          setQuestionDefs([]);
+          return;
+        }
+      }
+      const qd = await getQuizFileById(lessonId, quizId);
+      if (qd == null) {
+        setErr("الاختبار غير موجود.");
         setQuiz(null);
         setAnswer(null);
         setRows([]);
         setQuestionDefs([]);
-        setLoading(false);
-        return;
+      } else {
+        const asRecord = qd as Record<string, unknown>;
+        setQuiz(asRecord);
+        const a = isAdminPreview ? null : await getStudentAnswerForQuiz(quizId, user.uid);
+        setAnswer(a);
+
+        const fromSub = await getQuizQuestionsWithOptions(quizId);
+        const legacy = extractQuizRows(asRecord);
+        if (fromSub.length > 0) {
+          setQuestionDefs(fromSub);
+          setRows(questionDefsToWebRows(fromSub));
+        } else if (legacy.length > 0) {
+          setRows(legacy);
+          setQuestionDefs(webRowsToQuestionDefs(legacy));
+        } else {
+          setRows([]);
+          setQuestionDefs([]);
+        }
       }
-      const acc = await canStudentOpenLesson(user.uid, courseId, lessonId);
-      if (!acc.ok) {
-        setErr(acc.message ?? "لا يمكن الوصول إلى هذا الدرس.");
-        setQuiz(null);
-        setAnswer(null);
-        setRows([]);
-        setQuestionDefs([]);
-        setLoading(false);
-        return;
-      }
-    }
-    const qd = await getQuizFileById(lessonId, quizId);
-    if (qd == null) {
-      setErr("الاختبار غير موجود.");
+    } catch {
+      setErr("تعذر تحميل الاختبار. تحقق من الاتصال وصلاحيات الوصول.");
       setQuiz(null);
       setAnswer(null);
       setRows([]);
       setQuestionDefs([]);
-    } else {
-      const asRecord = qd as Record<string, unknown>;
-      setQuiz(asRecord);
-      const a = isAdminPreview ? null : await getStudentAnswerForQuiz(quizId, user.uid);
-      setAnswer(a);
-
-      const fromSub = await getQuizQuestionsWithOptions(quizId);
-      const legacy = extractQuizRows(asRecord);
-      if (fromSub.length > 0) {
-        setQuestionDefs(fromSub);
-        setRows(questionDefsToWebRows(fromSub));
-      } else if (legacy.length > 0) {
-        setRows(legacy);
-        setQuestionDefs(webRowsToQuestionDefs(legacy));
-      } else {
-        setRows([]);
-        setQuestionDefs([]);
-      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [user, courseId, lessonId, quizId, isAdminPreview]);
 
   useEffect(() => {
@@ -331,7 +338,7 @@ export function StudentQuizViewPage() {
   }
 
   if (!user) {
-    return null;
+    return <Navigate to="/role-selector" replace />;
   }
 
   const title = String(
@@ -378,7 +385,7 @@ export function StudentQuizViewPage() {
             groupId={`quiz-${quizId}`}
             ariaLabel="أقسام الاختبار"
             value={quizTab}
-            onChange={setQuizTab}
+            onChange={(id) => setQuizTab(id as "intro" | "questions")}
             tabs={[
               { id: "intro" as const, label: "المقدمة" },
               { id: "questions" as const, label: "الأسئلة" },
@@ -444,9 +451,7 @@ export function StudentQuizViewPage() {
               </>
             ) : (
               <p className="muted small quiz-hint">
-                لا تتوفر أسئلة لهذا الاختبار في{" "}
-                <code>quiz_questions</code> ولا مصفوفة <code>questions</code> داخل وثيقة الاختبار. راجع
-                الإدارة أو أضف الأسئلة من لوحة التحكم / التطبيق.
+                لا توجد أسئلة مضافة لهذا الاختبار حالياً. يرجى مراجعة الإدارة لإضافة الأسئلة ثم إعادة المحاولة.
               </p>
             )}
           </AppTabPanel>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   adminAddQuestion,
@@ -321,12 +321,12 @@ export function AdminQuizEditorPage() {
     );
   }
   if (!user) {
-    return null;
+    return <Navigate to="/role-selector" replace />;
   }
 
   return (
     <DashboardLayout role="admin" title="محرر الاختبار" lede={lede}>
-      <p>
+      <p className="admin-lessons-back-row">
         <Link to={`/admin/course/${courseId}/lessons/${lessonId}/quizzes`} className="inline-link">
           ← اختبارات {lesson ? `«${lesson.title}»` : "الدرس"}
         </Link>
@@ -338,7 +338,7 @@ export function AdminQuizEditorPage() {
       ) : (
         <>
           {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
-          <PageToolbar>
+          <PageToolbar className="admin-quiz-toolbar">
             <button type="button" className="primary-btn toolbar-btn" onClick={() => setMetaModalOpen(true)}>
               تعديل بيانات الاختبار
             </button>
@@ -445,7 +445,7 @@ export function AdminQuizEditorPage() {
                         ))}
                       </ul>
                     </details>
-                    <div className="admin-grade-row">
+                    <div className="admin-grade-row admin-grade-actions">
                       <label className="admin-grade-label">
                         <span>الدرجة (اختياري)</span>
                         <input

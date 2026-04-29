@@ -6,8 +6,12 @@ import { foldersService } from "../services/foldersService";
 import type { EnrollmentRequest } from "../types";
 import { AdminEnrollmentRequestsPanel } from "./course/AdminEnrollmentRequestsPanel";
 import { CourseActivationModal } from "./course/CourseActivationModal";
+import { useAuth } from "../context/AuthContext";
+import { PageLoadHint } from "../components/ButtonBusyLabel";
+import { Navigate } from "react-router-dom";
 
 export function AdminEnrollmentRequestsPage() {
+  const { user, ready } = useAuth();
   const [requests, setRequests] = useState<EnrollmentRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -34,8 +38,10 @@ export function AdminEnrollmentRequestsPage() {
   };
 
   useEffect(() => {
-    void loadRequests();
-  }, [requestFilter, typeFilter]);
+    if (ready && user) {
+      void loadRequests();
+    }
+  }, [requestFilter, typeFilter, ready, user]);
 
   const openActivationDialog = (req: EnrollmentRequest) => {
     setActivationTarget(req);
@@ -118,6 +124,22 @@ export function AdminEnrollmentRequestsPage() {
     }
   };
 
+  if (!ready) {
+    return (
+      <DashboardLayout
+        role="admin"
+        title="طلبات الالتحاق"
+        lede="قسم مستقل لمراجعة طلبات انضمام الطلاب للمقررات والمجلدات، مطابق لتدفق التطبيق."
+      >
+        <PageLoadHint text="جاري التهيئة..." />
+      </DashboardLayout>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/role-selector" replace />;
+  }
+
   return (
     <DashboardLayout
       role="admin"
@@ -125,14 +147,14 @@ export function AdminEnrollmentRequestsPage() {
       lede="قسم مستقل لمراجعة طلبات انضمام الطلاب للمقررات والمجلدات، مطابق لتدفق التطبيق."
     >
       {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
-      <div className="request-filters" style={{ marginBottom: "0.75rem" }}>
-        <button type="button" className={typeFilter === "all" ? "primary-btn" : "ghost-btn"} onClick={() => setTypeFilter("all")} disabled={submitting || requestsLoading}>
+      <div className="request-filters admin-requests-filters">
+        <button type="button" className={`${typeFilter === "all" ? "primary-btn" : "ghost-btn"} toolbar-btn`} onClick={() => setTypeFilter("all")} disabled={submitting || requestsLoading}>
           الكل
         </button>
-        <button type="button" className={typeFilter === "course" ? "primary-btn" : "ghost-btn"} onClick={() => setTypeFilter("course")} disabled={submitting || requestsLoading}>
+        <button type="button" className={`${typeFilter === "course" ? "primary-btn" : "ghost-btn"} toolbar-btn`} onClick={() => setTypeFilter("course")} disabled={submitting || requestsLoading}>
           الدورات
         </button>
-        <button type="button" className={typeFilter === "folder" ? "primary-btn" : "ghost-btn"} onClick={() => setTypeFilter("folder")} disabled={submitting || requestsLoading}>
+        <button type="button" className={`${typeFilter === "folder" ? "primary-btn" : "ghost-btn"} toolbar-btn`} onClick={() => setTypeFilter("folder")} disabled={submitting || requestsLoading}>
           المجلدات
         </button>
       </div>
