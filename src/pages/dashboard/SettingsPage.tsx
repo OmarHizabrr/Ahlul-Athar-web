@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
 import { AlertMessage } from "../../components/ui";
 import { Panel } from "../../components/ui";
@@ -18,6 +19,7 @@ export function SettingsPage({ role }: { role: UserRole }) {
   const [savingCode, setSavingCode] = useState(false);
   const [codeMessage, setCodeMessage] = useState<string | null>(null);
   const [codeError, setCodeError] = useState(false);
+  const [showAdminCode, setShowAdminCode] = useState(false);
   const base: "/admin" | "/student" = role === "admin" ? "/admin" : "/student";
 
   useEffect(() => {
@@ -140,11 +142,19 @@ export function SettingsPage({ role }: { role: UserRole }) {
             <label htmlFor="admin-access-code">رمز دخول الإدارة</label>
             <input
               id="admin-access-code"
-              type="password"
+              type={showAdminCode ? "text" : "password"}
               value={adminCode}
               onChange={(e) => setAdminCode(e.target.value)}
               placeholder="أدخل الرمز الجديد"
             />
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={() => setShowAdminCode((v) => !v)}
+              aria-label="إظهار أو إخفاء رمز الإدارة"
+            >
+              {showAdminCode ? <FiEyeOff /> : <FiEye />}
+            </button>
             <button
               type="button"
               className="primary-btn"

@@ -7,6 +7,7 @@ export interface PlatformUser {
   displayName?: string | null;
   phoneNumber?: string | null;
   photoURL?: string | null;
+  profileCompleted?: boolean;
 }
 
 export interface Course {

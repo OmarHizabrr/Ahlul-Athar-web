@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 import { authService } from "../../services/authService";
 import { userProfileService } from "../../services/userProfileService";
@@ -10,6 +12,7 @@ import type { UserFirestoreProfile, UserRole } from "../../types";
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
 export function ProfilePage({ role }: { role: UserRole }) {
+  const [searchParams] = useSearchParams();
   const { user: u, ready, syncUserFromStorage } = useAuth();
   const [profile, setProfile] = useState<UserFirestoreProfile | null>(null);
   const [displayName, setDisplayName] = useState("");
@@ -20,6 +23,9 @@ export function ProfilePage({ role }: { role: UserRole }) {
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [profileTab, setProfileTab] = useState<"card" | "edit">("card");
+  const [password, setPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const showMsg = (text: string, err: boolean) => {
@@ -45,6 +51,13 @@ export function ProfilePage({ role }: { role: UserRole }) {
       }
     })();
   }, [ready, u]);
+
+  useEffect(() => {
+    if (searchParams.get("complete") === "1") {
+      setProfileTab("edit");
+      showMsg("يرجى إكمال الملف الشخصي (الاسم + الجوال) قبل متابعة الاستخدام.", false);
+    }
+  }, [searchParams]);
 
   const effectivePhoto = u?.photoURL || profile?.photoURL || null;
   const emailDisplay = u?.email || profile?.email || "—";
@@ -105,6 +118,26 @@ export function ProfilePage({ role }: { role: UserRole }) {
   );
 
   const profileLede = "تعديل الاسم والجوال وصورة الملف — يطابق مستند المستخدم في Firestore وتطبيق الجوال.";
+
+  const onSavePassword = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!u) return;
+    const normalizedPhone = phoneNumber.replace(/[^\d]/g, "");
+    if (!normalizedPhone) {
+      showMsg("أدخل رقم الجوال أولاً ثم احفظه.", true);
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await authService.setPhonePasswordForCurrentUser(normalizedPhone, password);
+      setPassword("");
+      showMsg("تم ضبط كلمة المرور للدخول برقم الجوال بنجاح.", false);
+    } catch {
+      showMsg("تعذر ضبط كلمة المرور. أعد تسجيل الدخول وحاول مرة أخرى.", true);
+    } finally {
+      setSavingPassword(false);
+    }
+  };
 
   if (!ready) {
     return (
@@ -200,6 +233,27 @@ export function ProfilePage({ role }: { role: UserRole }) {
             </label>
             <button className="primary-btn" type="submit" disabled={saving} aria-busy={saving}>
               <ButtonBusyLabel busy={saving}>حفظ التعديلات</ButtonBusyLabel>
+            </button>
+          </FormPanel>
+          <FormPanel className="profile-form" onSubmit={onSavePassword}>
+            <SectionTitle as="h3">إعداد كلمة مرور دخول الجوال</SectionTitle>
+            <p className="muted small">بعد الدخول عبر Google، يمكنك تعيين كلمة مرور للدخول لاحقاً باستخدام الجوال + كلمة المرور.</p>
+            <label>
+              <span>كلمة المرور الجديدة</span>
+              <input
+                className="text-input"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={6}
+                required
+              />
+            </label>
+            <button type="button" className="ghost-btn" onClick={() => setShowPassword((v) => !v)} aria-label="إظهار أو إخفاء كلمة المرور">
+              {showPassword ? <FiEyeOff /> : <FiEye />}
+            </button>
+            <button className="primary-btn" type="submit" disabled={savingPassword} aria-busy={savingPassword}>
+              <ButtonBusyLabel busy={savingPassword}>حفظ كلمة المرور</ButtonBusyLabel>
             </button>
           </FormPanel>
           </AppTabPanel>

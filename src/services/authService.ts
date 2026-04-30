@@ -1,8 +1,11 @@
 import {
+  EmailAuthProvider,
   GoogleAuthProvider,
+  linkWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
+  updatePassword,
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
@@ -35,6 +38,12 @@ const createOrUpdateUserDoc = async (user: PlatformUser) => {
   const userRef = doc(db, "users", user.uid);
   const snapshot = await getDoc(userRef);
 
+  const prior = snapshot.exists() ? (snapshot.data() as Record<string, unknown>) : null;
+  const profileCompleted = Boolean(
+    prior?.profileCompleted ??
+      ((user.displayName?.trim() || "").length > 0 && (user.phoneNumber?.trim() || "").length > 0),
+  );
+
   await setDoc(
     userRef,
     {
@@ -45,7 +54,7 @@ const createOrUpdateUserDoc = async (user: PlatformUser) => {
       photoURL: user.photoURL ?? "",
       phoneNumber: user.phoneNumber ?? "",
       isActive: true,
-      profileCompleted: false,
+      profileCompleted,
       createdBy: user.uid,
       createdByName: user.displayName ?? "",
       createdAt: snapshot.exists() ? snapshot.data().createdAt : serverTimestamp(),
@@ -56,6 +65,37 @@ const createOrUpdateUserDoc = async (user: PlatformUser) => {
 };
 
 export const authService = {
+  async setPhonePasswordForCurrentUser(phone: string, password: string) {
+    const current = auth.currentUser;
+    if (!current) {
+      throw new Error("no-auth-user");
+    }
+    const normalized = phone.replace(/[^\d]/g, "");
+    if (!normalized) {
+      throw new Error("phone-required");
+    }
+    if (password.trim().length < 6) {
+      throw new Error("password-too-short");
+    }
+    const alias = phoneToEmailAliases(normalized)[0];
+    const credential = EmailAuthProvider.credential(alias, password);
+    try {
+      await linkWithCredential(current, credential);
+    } catch {
+      // if already linked, just update password
+      await updatePassword(current, password);
+    }
+    await setDoc(
+      doc(db, "users", current.uid),
+      { phoneNumber: normalized, phone: normalized, lastUpdatedAt: serverTimestamp() },
+      { merge: true },
+    );
+    const local = this.getLocalUser();
+    if (local?.uid === current.uid) {
+      this.persistLocalUser({ ...local, phoneNumber: normalized });
+    }
+  },
+
   async signInWithGoogle(role: UserRole) {
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);

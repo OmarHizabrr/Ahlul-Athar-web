@@ -7,8 +7,10 @@ import { ButtonBusyLabel } from "../components/ButtonBusyLabel";
 import { AlertMessage } from "../components/ui";
 import { FcGoogle } from "react-icons/fc";
 import { IoPhonePortraitOutline } from "react-icons/io5";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import { authService } from "../services/authService";
 import { adminSecurityService, DEFAULT_ADMIN_ACCESS_CODE } from "../services/adminSecurityService";
+import { userProfileService } from "../services/userProfileService";
 import type { UserRole } from "../types";
 
 export function LoginPage() {
@@ -21,6 +23,8 @@ export function LoginPage() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [adminCode, setAdminCode] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showAdminCode, setShowAdminCode] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingPhone, setLoadingPhone] = useState(false);
   const [message, setMessage] = useState("");
@@ -58,7 +62,12 @@ export function LoginPage() {
       const allowed = await verifyAdminCodeIfNeeded();
       if (!allowed) return;
       const user = await authService.signInWithGoogle(role);
-      navigate(`/${user.role}`, { replace: true });
+      const profile = await userProfileService.getProfile(user.uid, user.role);
+      if (!profile.profileCompleted || !profile.displayName.trim() || !profile.phoneNumber.trim()) {
+        navigate(`/${user.role}/profile?complete=1`, { replace: true });
+      } else {
+        navigate(`/${user.role}`, { replace: true });
+      }
     } catch (error) {
       showMessage("فشل تسجيل الدخول عبر Google. تأكد من إعداد Firebase.", true);
     } finally {
@@ -73,8 +82,13 @@ export function LoginPage() {
     try {
       const allowed = await verifyAdminCodeIfNeeded();
       if (!allowed) return;
-      await authService.signInWithPhoneAndPassword(role, phone, password);
-      navigate(`/${role}`, { replace: true });
+      const user = await authService.signInWithPhoneAndPassword(role, phone, password);
+      const profile = await userProfileService.getProfile(user.uid, user.role);
+      if (!profile.profileCompleted || !profile.displayName.trim() || !profile.phoneNumber.trim()) {
+        navigate(`/${user.role}/profile?complete=1`, { replace: true });
+      } else {
+        navigate(`/${role}`, { replace: true });
+      }
     } catch (error) {
       showMessage("فشل تسجيل الدخول برقم الهاتف وكلمة المرور.", true);
     } finally {
@@ -111,13 +125,16 @@ export function LoginPage() {
               <label htmlFor="admin-code">رمز دخول الإدارة</label>
               <input
                 id="admin-code"
-                type="password"
+                type={showAdminCode ? "text" : "password"}
                 placeholder="أدخل رمز الإدارة"
                 value={adminCode}
                 onChange={(event) => setAdminCode(event.target.value)}
                 required
               />
-              <p className="muted small">الرمز الافتراضي: {DEFAULT_ADMIN_ACCESS_CODE}</p>
+              <button type="button" className="ghost-btn" onClick={() => setShowAdminCode((v) => !v)} aria-label="إظهار أو إخفاء رمز الإدارة">
+                {showAdminCode ? <FiEyeOff /> : <FiEye />}
+              </button>
+              {/* <p className="muted small">الرمز الافتراضي: {DEFAULT_ADMIN_ACCESS_CODE}</p> */}
             </>
           ) : null}
           <label htmlFor="phone">رقم الهاتف</label>
@@ -136,12 +153,15 @@ export function LoginPage() {
           <label htmlFor="password">كلمة المرور</label>
           <input
             id="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="********"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
           />
+          <button type="button" className="ghost-btn" onClick={() => setShowPassword((v) => !v)} aria-label="إظهار أو إخفاء كلمة المرور">
+            {showPassword ? <FiEyeOff /> : <FiEye />}
+          </button>
 
           <button
             className="primary-btn"

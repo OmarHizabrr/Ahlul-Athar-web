@@ -44,7 +44,8 @@ export function StudentExplorePage() {
         foldersService.listMyFoldersForStudent(user.uid),
         coursesService.listStudentEnrollmentRequests(user.uid),
       ]);
-      setCourses(allCourses);
+      const publicCourses = allCourses.filter((c) => c.courseType === "public" && c.isActive !== false);
+      setCourses(publicCourses);
       setMyCourseIds(new Set(mineCourses.map((c) => c.courseId)));
       const latestByCourse = new Map<string, EnrollmentRequest>();
       for (const req of myReqs) {
@@ -56,7 +57,8 @@ export function StudentExplorePage() {
       setLatestCourseReqById(latestByCourse);
       const mineIds = new Set(myFolders.map((f) => f.id));
       setMyFolderIds(mineIds);
-      setFolders(allFolders.filter((f) => !mineIds.has(f.id)));
+      const publicFolders = allFolders.filter((f) => (f.folderType ?? "public") === "public" && f.isActive !== false);
+      setFolders(publicFolders.filter((f) => !mineIds.has(f.id)));
       setPendingFolderReqIds(
         new Set(myReqs.filter((r) => r.requestType === "folder" && r.status === "pending").map((r) => r.targetId)),
       );

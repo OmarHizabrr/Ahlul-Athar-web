@@ -21,6 +21,7 @@ function buildPlatformUser(fb: FirebaseUser, data: Record<string, unknown> | und
     displayName: fb.displayName ?? (data?.displayName != null ? String(data.displayName) : null) ?? null,
     phoneNumber: fb.phoneNumber ?? (data?.phoneNumber != null ? String(data.phoneNumber) : null) ?? null,
     photoURL: fb.photoURL ?? (data?.photoURL != null ? String(data.photoURL) : null) ?? null,
+    profileCompleted: Boolean(data?.profileCompleted ?? false),
   };
 }
 
