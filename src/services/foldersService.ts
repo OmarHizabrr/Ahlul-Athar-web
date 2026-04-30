@@ -34,10 +34,36 @@ function mapFolder(d: QueryDocumentSnapshot<DocumentData>): Folder {
   };
 }
 
+function firstNonEmptyUrl(data: DocumentData): string {
+  const keys = [
+    "downloadUrl",
+    "url",
+    "firebaseStorageUrl",
+    "downloadURL",
+    "fileUrl",
+    "link",
+    "publicUrl",
+  ] as const;
+  for (const k of keys) {
+    const v = data[k];
+    if (v != null && String(v).trim().length > 0) return String(v).trim();
+  }
+  return "";
+}
+
+function firstStoragePath(data: DocumentData): string | undefined {
+  const keys = ["storagePath", "firebaseStoragePath", "storage_path", "firebase_storage_path"] as const;
+  for (const k of keys) {
+    const v = data[k];
+    if (v != null && String(v).trim().length > 0) return String(v).trim();
+  }
+  return undefined;
+}
+
 function mapFolderFile(d: QueryDocumentSnapshot<DocumentData>): FolderFile {
   const data = d.data();
   const fileName = String(data.fileName ?? data.name ?? d.id);
-  const url = String(data.downloadUrl ?? data.url ?? "");
+  const url = firstNonEmptyUrl(data);
   const inferType = (): FolderFile["fileType"] | undefined => {
     const ext = (() => {
       const raw = (fileName || url).split("?")[0] ?? "";
@@ -55,7 +81,7 @@ function mapFolderFile(d: QueryDocumentSnapshot<DocumentData>): FolderFile {
     id: d.id,
     fileName,
     downloadUrl: url,
-    storagePath: data.storagePath != null ? String(data.storagePath) : undefined,
+    storagePath: firstStoragePath(data),
     fileType: data.fileType != null ? (String(data.fileType) as FolderFile["fileType"]) : inferType(),
     fileSize: typeof data.fileSize === "number" ? data.fileSize : undefined,
     isActive: data.isActive != null ? Boolean(data.isActive) : undefined,
@@ -180,7 +206,21 @@ export const foldersService = {
     } catch {
       docs = (await getDocs(col)).docs;
     }
-    return docs.map(mapFolderFile).filter((f) => f.downloadUrl.trim().length > 0);
+    const mapped = docs.map(mapFolderFile);
+    const withUrls = await Promise.all(
+      mapped.map(async (f) => {
+        if (f.downloadUrl.trim().length > 0) return f;
+        const path = f.storagePath?.trim();
+        if (!path) return f;
+        try {
+          const resolved = await getDownloadURL(ref(storage, path));
+          return { ...f, downloadUrl: resolved };
+        } catch {
+          return f;
+        }
+      }),
+    );
+    return withUrls.filter((f) => f.downloadUrl.trim().length > 0);
   },
 
   async listFolderMembers(folderId: string): Promise<StudentRecord[]> {
