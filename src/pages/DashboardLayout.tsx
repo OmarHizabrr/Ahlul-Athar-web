@@ -55,7 +55,7 @@ export function DashboardLayout({ role, title, lede, children }: DashboardLayout
             <IoCloseOutline size={24} />
           </button>
         </div>
-        <p className="badge">{role === "admin" ? "Admin" : "Student"}</p>
+        <p className="badge">{role === "admin" ? tr("مسؤول") : tr("طالب")}</p>
         <h3>{tr("المنصة الموحدة")}</h3>
         <nav className="nav-list">
           <Link to={base} onClick={() => setNavOpen(false)}>
