@@ -5,6 +5,7 @@ import { registerSW } from "virtual:pwa-register";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { I18nProvider } from "./context/I18nContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import "./app.css";
 
 registerSW({ immediate: true });
@@ -12,11 +13,13 @@ registerSW({ immediate: true });
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <I18nProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </I18nProvider>
+      <ThemeProvider>
+        <I18nProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </I18nProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>,
 );

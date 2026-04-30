@@ -31,20 +31,20 @@ function formatSize(bytes?: number): string {
 function FilePreview({ file }: { file: FolderFile }) {
   const t = file.fileType ?? "other";
   if (t === "audio") {
-    return <audio controls preload="none" src={file.downloadUrl} style={{ width: "100%" }} />;
+    return <audio controls preload="none" src={file.downloadUrl} className="file-preview-audio" />;
   }
   if (t === "video") {
-    return <video controls preload="metadata" src={file.downloadUrl} style={{ width: "100%", maxHeight: "360px" }} />;
+    return <video controls preload="metadata" src={file.downloadUrl} className="file-preview-video" />;
   }
   if (t === "image") {
-    return <img src={file.downloadUrl} alt={file.fileName} style={{ width: "100%", borderRadius: "12px" }} loading="lazy" />;
+    return <img src={file.downloadUrl} alt={file.fileName} className="file-preview-image" loading="lazy" />;
   }
   if (t === "pdf") {
     return (
       <iframe
         title={file.fileName}
         src={file.downloadUrl}
-        style={{ width: "100%", height: "420px", border: "1px solid rgba(51, 65, 85, 0.75)", borderRadius: "12px" }}
+        className="file-preview-pdf"
       />
     );
   }

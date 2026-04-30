@@ -38,6 +38,17 @@
     <meta name="twitter:title" content="أهل الأثر | منصة تعليمية متكاملة" />
     <meta name="twitter:description" content="منصة أهل الأثر: دورات، ملفات، منشورات، وإشعارات." />
     <meta name="twitter:image" content="__SITE_URL__/logo.png" />
+    <script>
+      (function () {
+        try {
+          var mode = localStorage.getItem("ah_theme_mode");
+          var isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var resolved = mode === "light" || mode === "dark" ? mode : (isDark ? "dark" : "light");
+          document.documentElement.dataset.theme = resolved;
+          document.documentElement.style.colorScheme = resolved;
+        } catch (_) {}
+      })();
+    </script>
 
     <script type="application/ld+json">
       {

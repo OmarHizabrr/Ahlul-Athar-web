@@ -5,6 +5,7 @@ import { ButtonBusyLabel } from "./ButtonBusyLabel";
 import { Avatar } from "./ui";
 import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../context/I18nContext";
+import { useTheme } from "../context/ThemeContext";
 import { authService } from "../services/authService";
 import { coursesService } from "../services/coursesService";
 import { notificationsService } from "../services/notificationsService";
@@ -14,6 +15,7 @@ import type { UserRole } from "../types";
 export function DashboardTopBar({ role }: { role: UserRole }) {
   const { user, ready } = useAuth();
   const { tr } = useI18n();
+  const { mode, setMode } = useTheme();
   const navigate = useNavigate();
   const base = role === "admin" ? "/admin" : "/student";
   const [unread, setUnread] = useState(0);
@@ -109,6 +111,19 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
   return (
     <header className="dashboard-topbar">
       <div className="topbar-trailing">
+        <label className="theme-switcher" title={tr("المظهر")}>
+          <span className="theme-switcher-label">{tr("المظهر")}</span>
+          <select
+            className="theme-switcher-select"
+            value={mode}
+            onChange={(e) => setMode(e.target.value as "light" | "dark" | "system")}
+            aria-label={tr("تبديل المظهر")}
+          >
+            <option value="system">{tr("تلقائي")}</option>
+            <option value="dark">{tr("ليلي")}</option>
+            <option value="light">{tr("نهاري")}</option>
+          </select>
+        </label>
         <LanguageSwitcher />
         <div className="user-menu-wrap" ref={menuRef}>
           <button
