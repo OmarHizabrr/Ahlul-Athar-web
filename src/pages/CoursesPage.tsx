@@ -208,6 +208,22 @@ export function CoursesPage({ role }: { role: UserRole }) {
     }
   };
 
+  const onDirectEnroll = async (course: Course) => {
+    if (!user) return;
+    setSubmitting(true);
+    try {
+      await coursesService.enrollStudentInPublicCourse(user, course);
+      setMessage("تم تسجيلك في المقرر مباشرة.");
+      setIsError(false);
+      await loadStudentCourseContext();
+    } catch {
+      setMessage("تعذر التسجيل المباشر في المقرر.");
+      setIsError(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const pageLede =
     role === "admin"
       ? "إنشاء وتعديل المقررات، إدارة طلبات الانضمام، وربط الدروس من صفحة «دروس المقرر»."
@@ -337,6 +353,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
                     req={latestReqByCourse.get(course.id)}
                     submitting={submitting}
                     onRequest={() => void onRequest(course)}
+                    onDirectEnroll={() => void onDirectEnroll(course)}
                   />
                 )}
               </div>
@@ -434,12 +451,14 @@ function StudentCourseRowActions({
   req,
   submitting,
   onRequest,
+  onDirectEnroll,
 }: {
   course: Course;
   enrolled: boolean;
   req: EnrollmentRequest | undefined;
   submitting: boolean;
   onRequest: () => void;
+  onDirectEnroll: () => void;
 }) {
   const openCourse = `/student/course/${course.id}`;
   if (enrolled) {
@@ -484,6 +503,25 @@ function StudentCourseRowActions({
           <ButtonBusyLabel busy={submitting}>
             {req.status === "rejected" ? "إعادة طلب الانضمام" : "طلب انضمام"}
           </ButtonBusyLabel>
+        </button>
+      </>
+    );
+  }
+  const isPublic = course.courseType !== "private";
+  if (isPublic) {
+    return (
+      <>
+        <Link to={openCourse} className="ghost-btn">
+          تفاصيل المقرر
+        </Link>
+        <button
+          type="button"
+          className="primary-btn"
+          onClick={onDirectEnroll}
+          disabled={submitting}
+          aria-busy={submitting}
+        >
+          <ButtonBusyLabel busy={submitting}>تسجيل مباشر</ButtonBusyLabel>
         </button>
       </>
     );
