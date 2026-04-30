@@ -529,24 +529,24 @@ export function AdminFolderViewPage() {
 
           <AppTabPanel tabId="files" groupId={`admin-folder-${folderId}`} hidden={tab !== "files"} className="lesson-tab-panel">
             <PageToolbar>
-              <select className="select" value={fileType} onChange={(e) => setFileType(e.target.value as typeof fileType)} aria-label="فلتر النوع">
-                <option value="all">كل الأنواع</option>
+              <select className="select" value={fileType} onChange={(e) => setFileType(e.target.value as typeof fileType)} aria-label={tr("فلتر النوع")}>
+                <option value="all">{tr("كل الأنواع")}</option>
                 <option value="pdf">PDF</option>
-                <option value="image">صور</option>
-                <option value="video">فيديو</option>
-                <option value="audio">صوت</option>
-                <option value="doc">مستند</option>
-                <option value="other">أخرى</option>
+                <option value="image">{tr("صور")}</option>
+                <option value="video">{tr("فيديو")}</option>
+                <option value="audio">{tr("صوت")}</option>
+                <option value="doc">{tr("مستند")}</option>
+                <option value="other">{tr("أخرى")}</option>
               </select>
-              <select className="select" value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} aria-label="ترتيب">
-                <option value="name">الاسم</option>
-                <option value="size">الحجم</option>
-                <option value="type">النوع</option>
-                <option value="date">التاريخ</option>
+              <select className="select" value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} aria-label={tr("ترتيب")}>
+                <option value="name">{tr("الاسم")}</option>
+                <option value="size">{tr("الحجم")}</option>
+                <option value="type">{tr("النوع")}</option>
+                <option value="date">{tr("التاريخ")}</option>
               </select>
-              <select className="select" value={sortDir} onChange={(e) => setSortDir(e.target.value as typeof sortDir)} aria-label="الاتجاه">
-                <option value="asc">تصاعدي</option>
-                <option value="desc">تنازلي</option>
+              <select className="select" value={sortDir} onChange={(e) => setSortDir(e.target.value as typeof sortDir)} aria-label={tr("الاتجاه")}>
+                <option value="asc">{tr("تصاعدي")}</option>
+                <option value="desc">{tr("تنازلي")}</option>
               </select>
             </PageToolbar>
             {!loading ? (
@@ -632,15 +632,15 @@ export function AdminFolderViewPage() {
 
           <AppTabPanel tabId="members" groupId={`admin-folder-${folderId}`} hidden={tab !== "members"} className="lesson-tab-panel">
             <PageToolbar>
-              <select className="select" value={memberStatusFilter} onChange={(e) => setMemberStatusFilter(e.target.value as typeof memberStatusFilter)} aria-label="فلتر الأعضاء">
-                <option value="all">كل الأعضاء</option>
-                <option value="active">المفعّلون</option>
-                <option value="suspended">الموقوفون</option>
-                <option value="notActivated">غير المفعّلين</option>
+              <select className="select" value={memberStatusFilter} onChange={(e) => setMemberStatusFilter(e.target.value as typeof memberStatusFilter)} aria-label={tr("فلتر الأعضاء")}>
+                <option value="all">{tr("كل الأعضاء")}</option>
+                <option value="active">{tr("المفعّلون")}</option>
+                <option value="suspended">{tr("الموقوفون")}</option>
+                <option value="notActivated">{tr("غير المفعّلين")}</option>
               </select>
-              <select className="select" value={memberSort} onChange={(e) => setMemberSort(e.target.value as typeof memberSort)} aria-label="ترتيب الأعضاء">
-                <option value="name">ترتيب بالاسم</option>
-                <option value="date">الأحدث انضمامًا</option>
+              <select className="select" value={memberSort} onChange={(e) => setMemberSort(e.target.value as typeof memberSort)} aria-label={tr("ترتيب الأعضاء")}>
+                <option value="name">{tr("ترتيب بالاسم")}</option>
+                <option value="date">{tr("الأحدث انضمامًا")}</option>
               </select>
             </PageToolbar>
             {!loading ? (
@@ -692,16 +692,16 @@ export function AdminFolderViewPage() {
 
           <AppTabPanel tabId="requests" groupId={`admin-folder-${folderId}`} hidden={tab !== "requests"} className="lesson-tab-panel">
             <PageToolbar>
-              <select className="select" value={requestTypeFilter} onChange={(e) => setRequestTypeFilter(e.target.value as typeof requestTypeFilter)} aria-label="فلتر الطلبات">
-                <option value="all">كل الحالات</option>
-                <option value="pending">قيد المراجعة</option>
-                <option value="approved">مقبولة</option>
-                <option value="rejected">مرفوضة</option>
-                <option value="expired">منتهية</option>
+              <select className="select" value={requestTypeFilter} onChange={(e) => setRequestTypeFilter(e.target.value as typeof requestTypeFilter)} aria-label={tr("فلتر الطلبات")}>
+                <option value="all">{tr("كل الحالات")}</option>
+                <option value="pending">{tr("قيد المراجعة")}</option>
+                <option value="approved">{tr("مقبولة")}</option>
+                <option value="rejected">{tr("مرفوضة")}</option>
+                <option value="expired">{tr("منتهية")}</option>
               </select>
-              <select className="select" value={requestSort} onChange={(e) => setRequestSort(e.target.value as typeof requestSort)} aria-label="ترتيب الطلبات">
-                <option value="latest">الأحدث أولاً</option>
-                <option value="oldest">الأقدم أولاً</option>
+              <select className="select" value={requestSort} onChange={(e) => setRequestSort(e.target.value as typeof requestSort)} aria-label={tr("ترتيب الطلبات")}>
+                <option value="latest">{tr("الأحدث أولاً")}</option>
+                <option value="oldest">{tr("الأقدم أولاً")}</option>
               </select>
             </PageToolbar>
             {!loading ? (
