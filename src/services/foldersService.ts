@@ -43,6 +43,7 @@ function firstNonEmptyUrl(data: DocumentData): string {
     "fileUrl",
     "link",
     "publicUrl",
+    "googleDriveUrl",
   ] as const;
   for (const k of keys) {
     const v = data[k];

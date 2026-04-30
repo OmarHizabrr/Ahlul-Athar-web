@@ -22,6 +22,7 @@ import { foldersService } from "../services/foldersService";
 import { directoryService } from "../services/directoryService";
 import { coursesService } from "../services/coursesService";
 import type { EnrollmentRequest, Folder, FolderFile, StudentRecord } from "../types";
+import { triggerBrowserDownloadFromUrl } from "../utils/downloadFile";
 import { DashboardLayout } from "./DashboardLayout";
 
 type TabId = "files" | "members" | "requests";
@@ -66,6 +67,7 @@ export function AdminFolderViewPage() {
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
   const [openPreviewIds, setOpenPreviewIds] = useState<Set<string>>(() => new Set());
+  const [downloadBusyId, setDownloadBusyId] = useState<string | null>(null);
 
   const [memberModalOpen, setMemberModalOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
@@ -439,6 +441,28 @@ export function AdminFolderViewPage() {
                           {openPreviewIds.has(f.id) ? "إخفاء المعاينة" : "معاينة"}
                         </button>
                       ) : null}
+                      <button
+                        type="button"
+                        className="ghost-btn toolbar-btn"
+                        disabled={downloadBusyId === f.id || busy}
+                        aria-busy={downloadBusyId === f.id}
+                        onClick={() =>
+                          void (async () => {
+                            setDownloadBusyId(f.id);
+                            setMessage(null);
+                            try {
+                              await triggerBrowserDownloadFromUrl(f.downloadUrl, f.fileName);
+                            } catch {
+                              window.open(f.downloadUrl, "_blank", "noopener,noreferrer");
+                              setMessage("تعذر إكمال التحميل كملف؛ تم فتح الرابط في تبويب جديد.");
+                            } finally {
+                              setDownloadBusyId(null);
+                            }
+                          })()
+                        }
+                      >
+                        <ButtonBusyLabel busy={downloadBusyId === f.id}>تحميل</ButtonBusyLabel>
+                      </button>
                       <a className="ghost-btn toolbar-btn" href={f.downloadUrl} target="_blank" rel="noopener noreferrer">
                         فتح
                       </a>
