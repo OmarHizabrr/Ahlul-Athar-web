@@ -81,7 +81,7 @@ export function StudentLessonViewPage() {
       }
       const access = await canStudentOpenLesson(user.uid, courseId, lessonId);
       if (!access.ok) {
-          setErr(access.message ?? tr("لا يمكن فتح هذا الدرس."));
+          setErr(tr(access.message ?? "لا يمكن فتح هذا الدرس."));
         setLesson(null);
         setQuizzes([]);
         if (mode === "initial") {
