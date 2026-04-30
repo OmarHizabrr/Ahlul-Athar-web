@@ -3686,6 +3686,11 @@
         "empty_req_default": "لا توجد طلبات.",
         "language_ar": "العربية",
         "language_en": "الإنجليزية",
-        "language_chichewa": "تشيشيوا"
+        "language_chichewa": "تشيشيوا",
+        "role_selector_title": "اختر نوع الحساب",
+        "role_selector_subtitle": "نفس تدفق تطبيق الجوال: طالب أو مسؤول، ثم تسجيل الدخول.",
+        "login_as_student": "دخول كطالب",
+        "login_as_admin": "دخول كمسؤول",
+        "splash_sync_account": "مزامنة الحساب مع نفس بيانات تطبيق الجوال"
     }
 }

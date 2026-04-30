@@ -7,7 +7,7 @@ import { useI18n } from "../context/I18nContext";
 export function SplashPage() {
   const navigate = useNavigate();
   const { ready, user } = useAuth();
-  const { tr } = useI18n();
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!ready) {
@@ -26,13 +26,13 @@ export function SplashPage() {
 
   return (
     <AuthPageShell>
-      <section className="card splash-card" aria-busy="true" aria-label={tr("جاري التحميل")}>
-        <p className="badge">{tr("أهل الأثر")}</p>
+      <section className="card splash-card" aria-busy="true" aria-label={t("common.loading", "جاري التحميل")}>
+        <p className="badge">{t("web_shell.app_badge", "أهل الأثر")}</p>
         <div className="splash-page-spinner" aria-hidden>
           <span className="btn-spinner" />
         </div>
-        <h1>{tr("جاري التهيئة...")}</h1>
-        <p className="muted">{tr("مزامنة الحساب مع نفس بيانات تطبيق الجوال")}</p>
+        <h1>{t("web_shell.auth_initializing", "جاري التهيئة...")}</h1>
+        <p className="muted">{t("web_shell.splash_sync_account", "مزامنة الحساب مع نفس بيانات تطبيق الجوال")}</p>
       </section>
     </AuthPageShell>
   );

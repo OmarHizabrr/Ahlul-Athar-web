@@ -3687,6 +3687,11 @@
         "empty_req_default": "No requests.",
         "language_ar": "Arabic",
         "language_en": "English",
-        "language_chichewa": "Chichewa"
+        "language_chichewa": "Chichewa",
+        "role_selector_title": "Choose account type",
+        "role_selector_subtitle": "Same flow as the mobile app: student or admin, then sign in.",
+        "login_as_student": "Sign in as student",
+        "login_as_admin": "Sign in as admin",
+        "splash_sync_account": "Syncing account with mobile app data"
     }
 }

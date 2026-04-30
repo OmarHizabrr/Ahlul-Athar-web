@@ -3130,6 +3130,11 @@
         "empty_req_default": "Palibe zopempha.",
         "language_ar": "Chiarabu",
         "language_en": "Chingerezi",
-        "language_chichewa": "Chichewa"
+        "language_chichewa": "Chichewa",
+        "role_selector_title": "Sankhani mtundu wa akaunti",
+        "role_selector_subtitle": "Njira yomweyo ngati app ya pa foni: wophunzira kapena admin, kenako lowani.",
+        "login_as_student": "Lowani ngati wophunzira",
+        "login_as_admin": "Lowani ngati admin",
+        "splash_sync_account": "Kusinthanitsa akaunti ndi deta ya app ya pa foni"
     }
 }
