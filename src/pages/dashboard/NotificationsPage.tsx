@@ -10,6 +10,7 @@ import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel"
 import {
   AlertMessage,
   AppModal,
+  AppTabs,
   ContentList,
   ContentListItem,
   CoverImage,
@@ -33,14 +34,17 @@ export function NotificationsPage({ role }: { role: UserRole }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [targetUid, setTargetUid] = useState("");
+  const [audience, setAudience] = useState<"single" | "students" | "admins" | "all">("single");
   const [nTitle, setNTitle] = useState("");
   const [nBody, setNBody] = useState("");
   const [nImageUrl, setNImageUrl] = useState("");
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [recipientSearch, setRecipientSearch] = useState("");
+  const [adminTab, setAdminTab] = useState<"sent" | "inbox">("sent");
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
+  const [sentItems, setSentItems] = useState<Awaited<ReturnType<typeof notificationsService.listSentByAdmin>>>([]);
 
   const load = useCallback(async () => {
     if (!u) {
@@ -48,15 +52,18 @@ export function NotificationsPage({ role }: { role: UserRole }) {
     }
     setLoading(true);
     try {
-      const data = await notificationsService.listForUser(u.uid);
-      setItems(data);
+      const inboxPromise = notificationsService.listForUser(u.uid);
+      const sentPromise = role === "admin" ? notificationsService.listSentByAdmin(u.uid) : Promise.resolve([]);
+      const [inboxData, sentData] = await Promise.all([inboxPromise, sentPromise]);
+      setItems(inboxData);
+      setSentItems(sentData);
     } catch {
       setMessage(tr("تعذر تحميل الإشعارات."));
       setIsError(true);
     } finally {
       setLoading(false);
     }
-  }, [u]);
+  }, [u, role]);
 
   useEffect(() => {
     if (!ready || !u) {
@@ -115,13 +122,24 @@ export function NotificationsPage({ role }: { role: UserRole }) {
     setSubmitting(true);
     setMessage("");
     try {
-      await notificationsService.sendToUser(role, u, targetUid, nTitle, nBody, nImageUrl);
+      const activeUsers = usersPick.filter((x) => x.isActive !== false);
+      const targetIds =
+        audience === "single"
+          ? [targetUid]
+          : audience === "students"
+            ? activeUsers.filter((x) => x.role === "student").map((x) => x.uid)
+            : audience === "admins"
+              ? activeUsers.filter((x) => x.role === "admin").map((x) => x.uid)
+              : activeUsers.map((x) => x.uid);
+      const sentCount = await notificationsService.sendToMany(role, u, targetIds, nTitle, nBody, nImageUrl);
       setNTitle("");
       setNBody("");
       setNImageUrl("");
       setSendModalOpen(false);
-      setMessage(tr("تم إرسال الإشعار."));
+      setMessage(`${tr("تم إرسال الإشعار.")} (${sentCount})`);
       setIsError(false);
+      await load();
+      window.dispatchEvent(new CustomEvent("ah:notifications-updated"));
     } catch {
       setMessage(tr("تعذر الإرسال. تأكد من معرّف المستخدم وصلاحياتك."));
       setIsError(true);
@@ -131,6 +149,15 @@ export function NotificationsPage({ role }: { role: UserRole }) {
   };
 
   const visibleItems = showUnreadOnly ? items.filter((n) => !n.read) : items;
+  const renderedItems = role === "admin" && adminTab === "sent" ? sentItems : visibleItems;
+  const statItems = role === "admin" && adminTab === "sent" ? sentItems : items;
+  const recipientNameMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const u of usersPick) {
+      m.set(u.uid, u.displayName || u.email || u.uid);
+    }
+    return m;
+  }, [usersPick]);
   const visibleRecipients = useMemo(() => {
     const q = recipientSearch.trim().toLowerCase();
     if (!q) {
@@ -172,41 +199,58 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
       {!loading ? (
         <div className="grid-2 home-stats-grid">
-          <StatTile title={tr("إجمالي الإشعارات")} highlight={items.length} />
-          <StatTile title={tr("غير المقروءة")} highlight={items.filter((n) => !n.read).length} />
-          <StatTile title={tr("بصور")} highlight={items.filter((n) => (n.imageUrl ?? "").trim().length > 0).length} />
+          <StatTile title={tr("إجمالي الإشعارات")} highlight={statItems.length} />
+          <StatTile title={tr("غير المقروءة")} highlight={statItems.filter((n) => !n.read).length} />
+          <StatTile title={tr("بصور")} highlight={statItems.filter((n) => (n.imageUrl ?? "").trim().length > 0).length} />
         </div>
       ) : null}
 
+      {role === "admin" ? (
+        <AppTabs
+          groupId="admin-notifications-tabs"
+          ariaLabel={tr("أقسام الإشعارات")}
+          value={adminTab}
+          onChange={(id) => setAdminTab(id as "sent" | "inbox")}
+          tabs={[
+            { id: "sent", label: tr("المرسلة") },
+            { id: "inbox", label: tr("الواردة لي") },
+          ]}
+        />
+      ) : null}
+
       <PageToolbar className="notif-toolbar">
-        <p className="muted">{tr("الإشعارات الخاصة بك")}</p>
-        <button
-          type="button"
-          className="ghost-btn toolbar-btn"
-          onClick={() => setShowUnreadOnly((v) => !v)}
-        >
-          {showUnreadOnly ? tr("عرض الكل") : tr("غير المقروء فقط")}
-        </button>
-        {items.some((i) => !i.read) ? (
-          <button
-            type="button"
-            className="ghost-btn toolbar-btn"
-            onClick={() => void onMarkAll()}
-            disabled={submitting}
-            aria-busy={submitting}
-          >
-            <ButtonBusyLabel busy={submitting}>{tr("تعليم الكل كمقروء")}</ButtonBusyLabel>
-          </button>
+        <p className="muted">{role === "admin" && adminTab === "sent" ? tr("الإشعارات المرسلة") : tr("الإشعارات الخاصة بك")}</p>
+        {role !== "admin" || adminTab === "inbox" ? (
+          <>
+            <button
+              type="button"
+              className="ghost-btn toolbar-btn"
+              onClick={() => setShowUnreadOnly((v) => !v)}
+            >
+              {showUnreadOnly ? tr("عرض الكل") : tr("غير المقروء فقط")}
+            </button>
+            {items.some((i) => !i.read) ? (
+              <button
+                type="button"
+                className="ghost-btn toolbar-btn"
+                onClick={() => void onMarkAll()}
+                disabled={submitting}
+                aria-busy={submitting}
+              >
+                <ButtonBusyLabel busy={submitting}>{tr("تعليم الكل كمقروء")}</ButtonBusyLabel>
+              </button>
+            ) : null}
+          </>
         ) : null}
       </PageToolbar>
 
       {loading ? (
         <PageLoadHint />
-      ) : visibleItems.length === 0 ? (
+      ) : renderedItems.length === 0 ? (
         <EmptyState message={tr("لا توجد إشعارات.")} />
       ) : (
         <ContentList>
-          {visibleItems.map((n) => {
+          {renderedItems.map((n) => {
             const hasImage = Boolean(n.imageUrl?.trim());
             return (
               <ContentListItem
@@ -227,10 +271,13 @@ export function NotificationsPage({ role }: { role: UserRole }) {
                     />
                     <p className="muted post-meta">
                       {(n.senderName?.trim() || tr("الإدارة"))} · {formatFirestoreTime(n.createdAt)}
+                      {role === "admin" && adminTab === "sent"
+                        ? ` · ${tr("إلى")}: ${recipientNameMap.get(n.userId) ?? n.userId}`
+                        : null}
                     </p>
                   </div>
                   <p className="post-body">{n.body}</p>
-                  {!n.read ? (
+                  {(role !== "admin" || adminTab === "inbox") && !n.read ? (
                     <div className="course-actions">
                       <button
                         type="button"
@@ -264,8 +311,17 @@ export function NotificationsPage({ role }: { role: UserRole }) {
           <FormPanel onSubmit={onSend} elevated={false} className="course-form-modal__form">
             <SectionTitle as="h4">{tr("إرسال إشعار")}</SectionTitle>
             <label>
+              <span>{tr("نوع الإرسال")}</span>
+              <select className="text-input" value={audience} onChange={(e) => setAudience(e.target.value as typeof audience)}>
+                <option value="single">{tr("مستخدم واحد")}</option>
+                <option value="students">{tr("كل الطلاب")}</option>
+                <option value="admins">{tr("كل المشرفين")}</option>
+                <option value="all">{tr("كل المستخدمين")}</option>
+              </select>
+            </label>
+            <label>
               <span>{tr("المستلم")}</span>
-              {usersPick.length > 0 ? (
+              {audience === "single" && usersPick.length > 0 ? (
                 <div className="recipient-picker">
                   <input
                     className="text-input"
@@ -299,7 +355,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
                     ))}
                   </div>
                 </div>
-              ) : (
+              ) : audience === "single" ? (
                 <input
                   className="text-input"
                   value={targetUid}
@@ -307,6 +363,14 @@ export function NotificationsPage({ role }: { role: UserRole }) {
                   placeholder="user UID"
                   required
                 />
+              ) : (
+                <p className="muted small">
+                  {audience === "students"
+                    ? tr("سيتم الإرسال لكل الطلاب النشطين.")
+                    : audience === "admins"
+                      ? tr("سيتم الإرسال لكل المشرفين النشطين.")
+                      : tr("سيتم الإرسال لكل المستخدمين النشطين.")}
+                </p>
               )}
             </label>
             <label>

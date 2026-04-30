@@ -71,6 +71,19 @@ export const notificationsService = {
     return all.filter((n) => !n.read).length;
   },
 
+  async listSentByAdmin(adminUid: string): Promise<UserNotification[]> {
+    try {
+      const q = query(notifCol, where("senderId", "==", adminUid), orderBy("createdAt", "desc"));
+      return (await getDocs(q)).docs.map(mapNotif);
+    } catch {
+      const q2 = query(notifCol, where("senderId", "==", adminUid));
+      const raw = (await getDocs(q2)).docs;
+      return raw
+        .map(mapNotif)
+        .sort((a, b) => timeMillisFromUnknown(b.createdAt) - timeMillisFromUnknown(a.createdAt));
+    }
+  },
+
   async markRead(notificationId: string) {
     await updateDoc(doc(db, "notifications", notificationId), {
       read: true,
@@ -108,5 +121,21 @@ export const notificationsService = {
       read: false,
       createdAt: serverTimestamp(),
     });
+  },
+
+  async sendToMany(
+    senderRole: UserRole,
+    sender: PlatformUser,
+    targetUserIds: string[],
+    title: string,
+    body: string,
+    imageUrl?: string,
+  ) {
+    const unique = Array.from(new Set(targetUserIds.map((x) => x.trim()).filter(Boolean)));
+    if (unique.length === 0) {
+      throw new Error("target_users_required");
+    }
+    await Promise.all(unique.map((uid) => this.sendToUser(senderRole, sender, uid, title, body, imageUrl)));
+    return unique.length;
   },
 };
