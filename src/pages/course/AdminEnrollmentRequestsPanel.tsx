@@ -8,6 +8,7 @@ import {
   PageToolbar,
   SectionTitle,
 } from "../../components/ui";
+import { useI18n } from "../../context/I18nContext";
 import type { EnrollmentRequest } from "../../types";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
 import { emptyRequestsMessage, requestStatusLabel } from "./EnrollmentRequestHelpers";
@@ -33,11 +34,12 @@ export function AdminEnrollmentRequestsPanel({
   onOpenActivation,
   onRejectRequest,
 }: AdminEnrollmentRequestsPanelProps) {
+  const { tr } = useI18n();
   const busy = submitting || requestsLoading;
   return (
     <section className="requests-panel">
       <div className="requests-header">
-        <SectionTitle as="h3">طلبات الانضمام للدورات</SectionTitle>
+        <SectionTitle as="h3">{tr("طلبات الانضمام للدورات")}</SectionTitle>
         <PageToolbar>
           <button
             type="button"
@@ -46,7 +48,7 @@ export function AdminEnrollmentRequestsPanel({
             disabled={busy}
             aria-busy={busy}
           >
-            <ButtonBusyLabel busy={busy}>تحديث الطلبات</ButtonBusyLabel>
+            <ButtonBusyLabel busy={busy}>{tr("تحديث الطلبات")}</ButtonBusyLabel>
           </button>
         </PageToolbar>
       </div>
@@ -67,13 +69,13 @@ export function AdminEnrollmentRequestsPanel({
             disabled={busy}
             type="button"
           >
-            {label}
+            {tr(label)}
           </button>
         ))}
       </div>
-      {requestsLoading ? <PageLoadHint text="جاري تحميل الطلبات..." /> : null}
+      {requestsLoading ? <PageLoadHint text={tr("جاري تحميل الطلبات...")} /> : null}
       {!requestsLoading && requests.length === 0 ? (
-        <EmptyState message={emptyRequestsMessage(requestFilter)} />
+        <EmptyState message={emptyRequestsMessage(requestFilter, tr)} />
       ) : (
         <ContentList>
           {requests.map((request) => {
@@ -95,16 +97,26 @@ export function AdminEnrollmentRequestsPanel({
               <div className="enrollment-req-item__body">
               <h3>{request.targetName}</h3>
               <p className="muted">
-                الطالب: {request.studentName || "غير معروف"} ({request.studentEmail || "بدون بريد"})
+                {tr("الطالب:")} {request.studentName || tr("غير معروف")} ({request.studentEmail || tr("بدون بريد")})
               </p>
-              <p className="muted">السبب: {request.reason || "—"}</p>
-              {request.adminNotes ? <p className="muted">ملاحظات الإدارة: {request.adminNotes}</p> : null}
               <p className="muted">
-                الحالة: <strong>{requestStatusLabel(request.status)}</strong>
+                {tr("السبب:")} {request.reason || tr("—")}
               </p>
-              <p className="muted">تاريخ الطلب: {formatFirestoreTime(request.requestedAt)}</p>
+              {request.adminNotes ? (
+                <p className="muted">
+                  {tr("ملاحظات الإدارة:")} {request.adminNotes}
+                </p>
+              ) : null}
+              <p className="muted">
+                {tr("الحالة:")} <strong>{requestStatusLabel(request.status, tr)}</strong>
+              </p>
+              <p className="muted">
+                {tr("تاريخ الطلب:")} {formatFirestoreTime(request.requestedAt)}
+              </p>
               {request.processedAt != null ? (
-                <p className="muted">تاريخ المعالجة: {formatFirestoreTime(request.processedAt)}</p>
+                <p className="muted">
+                  {tr("تاريخ المعالجة:")} {formatFirestoreTime(request.processedAt)}
+                </p>
               ) : null}
               <div className="course-actions">
                 {request.status === "pending" ? (
@@ -116,7 +128,7 @@ export function AdminEnrollmentRequestsPanel({
                       type="button"
                       aria-busy={busy}
                     >
-                      <ButtonBusyLabel busy={submitting}>قبول (تفعيل)</ButtonBusyLabel>
+                      <ButtonBusyLabel busy={submitting}>{tr("قبول (تفعيل)")}</ButtonBusyLabel>
                     </button>
                     <button
                       className="ghost-btn"
@@ -125,11 +137,11 @@ export function AdminEnrollmentRequestsPanel({
                       type="button"
                       aria-busy={busy}
                     >
-                      <ButtonBusyLabel busy={submitting}>رفض</ButtonBusyLabel>
+                      <ButtonBusyLabel busy={submitting}>{tr("رفض")}</ButtonBusyLabel>
                     </button>
                   </>
                 ) : (
-                  <span className="muted">تمت معالجة الطلب. عرض &quot;معلّقة&quot; للطلبات الجديدة.</span>
+                  <span className="muted">{tr("تمت معالجة الطلب. عرض \"معلّقة\" للطلبات الجديدة.")}</span>
                 )}
               </div>
               </div>

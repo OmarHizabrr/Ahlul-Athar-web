@@ -4,6 +4,7 @@ import { AuthPageShell } from "./components/AuthPageShell";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
 import { AdminPreviewProvider } from "./context/AdminPreviewContext";
 import { useAuth } from "./context/AuthContext";
+import { useI18n } from "./context/I18nContext";
 import type { UserRole } from "./types";
 
 const SplashPage = lazy(() => import("./pages/SplashPage").then((m) => ({ default: m.SplashPage })));
@@ -60,29 +61,31 @@ const AdminQuizEditorPage = lazy(() =>
 );
 
 function AuthLoading() {
+  const { tr } = useI18n();
   return (
     <AuthPageShell>
       <section className="card splash-card" aria-busy="true">
-        <p className="badge">أهل الأثر</p>
+        <p className="badge">{tr("أهل الأثر")}</p>
         <div className="splash-page-spinner" aria-hidden>
           <span className="btn-spinner" />
         </div>
-        <h1>جاري التهيئة...</h1>
-        <p className="muted">مزامنة الجلسة مع السحابة</p>
+        <h1>{tr("جاري التهيئة...")}</h1>
+        <p className="muted">{tr("مزامنة الجلسة مع السحابة")}</p>
       </section>
     </AuthPageShell>
   );
 }
 
 function RouteLoading() {
+  const { tr } = useI18n();
   return (
     <AuthPageShell>
       <section className="card splash-card" aria-busy="true">
-        <p className="badge">أهل الأثر</p>
+        <p className="badge">{tr("أهل الأثر")}</p>
         <div className="splash-page-spinner" aria-hidden>
           <span className="btn-spinner" />
         </div>
-        <h1>جاري فتح الصفحة...</h1>
+        <h1>{tr("جاري فتح الصفحة...")}</h1>
       </section>
     </AuthPageShell>
   );

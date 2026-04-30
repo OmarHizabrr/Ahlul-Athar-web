@@ -1,5 +1,6 @@
 import { ButtonBusyLabel } from "../../components/ButtonBusyLabel";
 import { AppModal } from "../../components/ui";
+import { useI18n } from "../../context/I18nContext";
 
 type CourseActivationModalProps = {
   submitting: boolean;
@@ -20,10 +21,11 @@ export function CourseActivationModal({
   onConfirm,
   onClose,
 }: CourseActivationModalProps) {
+  const { tr } = useI18n();
   return (
     <AppModal
       open
-      title="فترة تفعيل الدورة"
+      title={tr("فترة تفعيل الدورة")}
       onClose={() => {
         if (!submitting) {
           onClose();
@@ -33,7 +35,7 @@ export function CourseActivationModal({
     >
       <div>
         <p className="muted small-print">
-          نفس منطق تطبيق Flutter: اختر &quot;مدى الحياة&quot; أو عدد الأيام قبل انتهاء التفعيل.
+          {tr("نفس منطق تطبيق Flutter: اختر \"مدى الحياة\" أو عدد الأيام قبل انتهاء التفعيل.")}
         </p>
         <label className="switch-line">
           <input
@@ -42,11 +44,11 @@ export function CourseActivationModal({
             onChange={(e) => onLifetimeChange(e.target.checked)}
             disabled={submitting}
           />
-          <span>تفعيل مدى الحياة (بدون انتهاء)</span>
+          <span>{tr("تفعيل مدى الحياة (بدون انتهاء)")}</span>
         </label>
         {!isLifetimeActivation ? (
           <label className="field-block">
-            <span>عدد أيام التفعيل</span>
+            <span>{tr("عدد أيام التفعيل")}</span>
             <input
               type="number"
               min={1}
@@ -64,7 +66,7 @@ export function CourseActivationModal({
             disabled={submitting}
             aria-busy={submitting}
           >
-            <ButtonBusyLabel busy={submitting}>تأكيد القبول</ButtonBusyLabel>
+            <ButtonBusyLabel busy={submitting}>{tr("تأكيد القبول")}</ButtonBusyLabel>
           </button>
           <button
             type="button"
@@ -77,7 +79,7 @@ export function CourseActivationModal({
             disabled={submitting}
             aria-busy={submitting}
           >
-            <ButtonBusyLabel busy={submitting}>إلغاء</ButtonBusyLabel>
+            <ButtonBusyLabel busy={submitting}>{tr("إلغاء")}</ButtonBusyLabel>
           </button>
         </div>
       </div>

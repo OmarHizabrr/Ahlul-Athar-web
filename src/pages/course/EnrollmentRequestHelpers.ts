@@ -1,33 +1,33 @@
 import type { EnrollmentRequest } from "../../types";
 
-export function requestStatusLabel(status: EnrollmentRequest["status"]): string {
+export function requestStatusLabel(status: EnrollmentRequest["status"], tr: (s: string) => string): string {
   switch (status) {
     case "pending":
-      return "معلّق";
+      return tr("معلّق");
     case "approved":
-      return "مقبول";
+      return tr("مقبول");
     case "rejected":
-      return "مرفوض";
+      return tr("مرفوض");
     case "expired":
-      return "منتهي الصلاحية";
+      return tr("منتهي الصلاحية");
     default:
       return status;
   }
 }
 
-export function emptyRequestsMessage(filter: "all" | EnrollmentRequest["status"]): string {
+export function emptyRequestsMessage(filter: "all" | EnrollmentRequest["status"], tr: (s: string) => string): string {
   switch (filter) {
     case "pending":
-      return "لا توجد طلبات معلّقة.";
+      return tr("لا توجد طلبات معلّقة.");
     case "approved":
-      return "لا توجد طلبات مقبولة في هذا العرض.";
+      return tr("لا توجد طلبات مقبولة في هذا العرض.");
     case "rejected":
-      return "لا توجد طلبات مرفوضة في هذا العرض.";
+      return tr("لا توجد طلبات مرفوضة في هذا العرض.");
     case "expired":
-      return "لا توجد طلبات منتهية في هذا العرض.";
+      return tr("لا توجد طلبات منتهية في هذا العرض.");
     case "all":
-      return "لا توجد أي طلبات انضمام حتى الآن.";
+      return tr("لا توجد أي طلبات انضمام حتى الآن.");
     default:
-      return "لا توجد طلبات.";
+      return tr("لا توجد طلبات.");
   }
 }
