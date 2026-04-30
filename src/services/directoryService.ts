@@ -114,5 +114,25 @@ export const directoryService = {
     });
     await setDoc(doc(db, "students", uid), payload, { merge: true }).catch(() => undefined);
   },
+
+  async setStudentFlags(
+    uid: string,
+    flags: {
+      isActive?: boolean;
+      isSuspended?: boolean;
+      isActivated?: boolean;
+    },
+  ) {
+    const payload = {
+      ...(flags.isActive != null ? { isActive: flags.isActive } : {}),
+      ...(flags.isSuspended != null ? { isSuspended: flags.isSuspended } : {}),
+      ...(flags.isActivated != null ? { isActivated: flags.isActivated } : {}),
+      updatedAt: serverTimestamp(),
+    };
+    await updateDoc(doc(db, "users", uid), payload).catch(async () => {
+      await setDoc(doc(db, "users", uid), payload, { merge: true });
+    });
+    await setDoc(doc(db, "students", uid), payload, { merge: true }).catch(() => undefined);
+  },
 };
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { PageLoadHint } from "../components/ButtonBusyLabel";
+import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { AlertMessage, Avatar, ContentList, ContentListItem, EmptyState, PageToolbar, StatTile } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
 import { directoryService } from "../services/directoryService";
@@ -25,6 +25,9 @@ export function AdminStudentsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "inactive" | "suspended" | "notActivated">("all");
+  const [sortBy, setSortBy] = useState<"name" | "date">("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -55,14 +58,38 @@ export function AdminStudentsPage() {
       });
     }
     const q = search.trim().toLowerCase();
-    if (!q) return out;
-    return out.filter((s) => {
-      const name = (s.displayName ?? "").toLowerCase();
-      const email = (s.email ?? "").toLowerCase();
-      const phone = (s.phone ?? "").toLowerCase();
-      return name.includes(q) || email.includes(q) || phone.includes(q) || s.uid.toLowerCase().includes(q);
+    if (q) {
+      out = out.filter((s) => {
+        const name = (s.displayName ?? "").toLowerCase();
+        const email = (s.email ?? "").toLowerCase();
+        const phone = (s.phone ?? "").toLowerCase();
+        return name.includes(q) || email.includes(q) || phone.includes(q) || s.uid.toLowerCase().includes(q);
+      });
+    }
+    out = out.slice().sort((a, b) => {
+      if (sortBy === "date") {
+        const ad = Number((a.createdAt as { toMillis?: () => number } | undefined)?.toMillis?.() ?? 0);
+        const bd = Number((b.createdAt as { toMillis?: () => number } | undefined)?.toMillis?.() ?? 0);
+        return sortDir === "asc" ? ad - bd : bd - ad;
+      }
+      const cmp = String(a.displayName ?? "").localeCompare(String(b.displayName ?? ""), "ar");
+      return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [rows, search, filter]);
+    return out;
+  }, [rows, search, filter, sortBy, sortDir]);
+
+  const patchFlags = async (uid: string, flags: { isActive?: boolean; isSuspended?: boolean; isActivated?: boolean }) => {
+    setBusyId(uid);
+    setMessage(null);
+    try {
+      await directoryService.setStudentFlags(uid, flags);
+      await load();
+    } catch {
+      setMessage("تعذر تحديث حالة الطالب.");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   return (
     <DashboardLayout role="admin" title="الطلاب" lede="قائمة الطلاب مع بحث وفلتر حالة — مكافئ لتبويب «الطلاب» في التطبيق." >
@@ -76,6 +103,14 @@ export function AdminStudentsPage() {
           <option value="inactive">غير نشط</option>
           <option value="suspended">موقوف</option>
           <option value="notActivated">غير مُفعّل</option>
+        </select>
+        <select className="select" value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} aria-label="ترتيب الطلاب">
+          <option value="name">ترتيب: الاسم</option>
+          <option value="date">ترتيب: الأحدث</option>
+        </select>
+        <select className="select" value={sortDir} onChange={(e) => setSortDir(e.target.value as typeof sortDir)} aria-label="اتجاه الترتيب">
+          <option value="asc">تصاعدي</option>
+          <option value="desc">تنازلي</option>
         </select>
         <input
           className="text-input"
@@ -121,6 +156,22 @@ export function AdminStudentsPage() {
                 </div>
                 <div className="course-actions">
                   <span className={pill.cls}>{pill.text}</span>
+                  <button
+                    type="button"
+                    className="ghost-btn toolbar-btn"
+                    disabled={busyId === s.uid || loading}
+                    onClick={() => void patchFlags(s.uid, { isSuspended: !Boolean(s.isSuspended), isActive: true })}
+                  >
+                    <ButtonBusyLabel busy={busyId === s.uid}>{s.isSuspended ? "رفع الإيقاف" : "إيقاف"}</ButtonBusyLabel>
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-btn toolbar-btn"
+                    disabled={busyId === s.uid || loading}
+                    onClick={() => void patchFlags(s.uid, { isActivated: s.isActivated === false })}
+                  >
+                    <ButtonBusyLabel busy={busyId === s.uid}>{s.isActivated === false ? "تفعيل" : "تعطيل"}</ButtonBusyLabel>
+                  </button>
                   <Link className="ghost-btn toolbar-btn" to={`/admin/student/${s.uid}`}>
                     فتح الملف
                   </Link>
