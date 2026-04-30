@@ -1,17 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import JSZip from "jszip";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { AlertMessage, ContentList, ContentListItem, EmptyState, PageToolbar, Panel, SectionTitle, StatTile } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { coursesService } from "../services/coursesService";
 import { foldersService } from "../services/foldersService";
 import type { Folder, FolderFile } from "../types";
+import { formatFirestoreTime } from "../utils/firestoreTime";
 import { triggerBrowserDownloadFromUrl } from "../utils/downloadFile";
 import { DashboardLayout } from "./DashboardLayout";
 
 function isPreviewable(file: FolderFile) {
   const t = file.fileType ?? "other";
   return t === "audio" || t === "video" || t === "image" || t === "pdf";
+}
+
+function formatSize(bytes?: number): string {
+  if (typeof bytes !== "number" || Number.isNaN(bytes) || bytes < 0) return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  const mb = kb / 1024;
+  if (mb < 1024) return `${mb.toFixed(1)} MB`;
+  const gb = mb / 1024;
+  return `${gb.toFixed(1)} GB`;
 }
 
 function FilePreview({ file }: { file: FolderFile }) {
@@ -48,9 +61,12 @@ export function StudentFolderViewPage() {
   const [allowed, setAllowed] = useState(true);
   const [requesting, setRequesting] = useState(false);
   const [fileType, setFileType] = useState<FolderFile["fileType"] | "all">("all");
-  const [sortBy, setSortBy] = useState<"name" | "size" | "type">("name");
+  const [sortBy, setSortBy] = useState<"name" | "size" | "type" | "date">("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [openPreviewIds, setOpenPreviewIds] = useState<Set<string>>(() => new Set());
   const [downloadBusyId, setDownloadBusyId] = useState<string | null>(null);
+  const [shareBusyId, setShareBusyId] = useState<string | null>(null);
+  const [downloadFolderBusy, setDownloadFolderBusy] = useState(false);
 
   const load = async (id: string) => {
     setLoading(true);
@@ -94,15 +110,74 @@ export function StudentFolderViewPage() {
       if (sortBy === "size") {
         const as = typeof a.fileSize === "number" ? a.fileSize : 0;
         const bs = typeof b.fileSize === "number" ? b.fileSize : 0;
-        return bs - as;
+        return sortDir === "asc" ? as - bs : bs - as;
       }
       if (sortBy === "type") {
-        return String(a.fileType ?? "other").localeCompare(String(b.fileType ?? "other"), "ar");
+        const cmp = String(a.fileType ?? "other").localeCompare(String(b.fileType ?? "other"), "ar");
+        return sortDir === "asc" ? cmp : -cmp;
       }
-      return a.fileName.localeCompare(b.fileName, "ar");
+      if (sortBy === "date") {
+        const ad = Number((a.createdAt as { toMillis?: () => number } | undefined)?.toMillis?.() ?? 0);
+        const bd = Number((b.createdAt as { toMillis?: () => number } | undefined)?.toMillis?.() ?? 0);
+        return sortDir === "asc" ? ad - bd : bd - ad;
+      }
+      const cmp = a.fileName.localeCompare(b.fileName, "ar");
+      return sortDir === "asc" ? cmp : -cmp;
     });
     return out;
-  }, [files, search, fileType, sortBy]);
+  }, [files, search, fileType, sortBy, sortDir]);
+
+  const downloadFolderAsZip = async () => {
+    if (!folder || files.length === 0) return;
+    setDownloadFolderBusy(true);
+    setMessage(null);
+    try {
+      const zip = new JSZip();
+      const usedNames = new Map<string, number>();
+      await Promise.all(
+        files.map(async (f) => {
+          const res = await fetch(f.downloadUrl, { mode: "cors", credentials: "omit", cache: "no-store" });
+          if (!res.ok) return;
+          const blob = await res.blob();
+          const base = f.fileName || f.id;
+          const count = usedNames.get(base) ?? 0;
+          usedNames.set(base, count + 1);
+          const finalName = count === 0 ? base : `${base.replace(/(\.[^.]+)?$/, "")} (${count})${base.match(/(\.[^.]+)$/)?.[1] ?? ""}`;
+          zip.file(finalName, blob);
+        }),
+      );
+      const content = await zip.generateAsync({ type: "blob" });
+      const href = URL.createObjectURL(content);
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = `${folder.name || "folder"}-files.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(href);
+    } catch {
+      setMessage("تعذر تنزيل المجلد كاملاً. يمكن تنزيل الملفات بشكل فردي.");
+    } finally {
+      setDownloadFolderBusy(false);
+    }
+  };
+
+  const shareFile = async (f: FolderFile) => {
+    setShareBusyId(f.id);
+    setMessage(null);
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: f.fileName, text: f.fileName, url: f.downloadUrl });
+        return;
+      }
+      await navigator.clipboard.writeText(f.downloadUrl);
+      setMessage("تم نسخ رابط الملف للمشاركة.");
+    } catch {
+      setMessage("تعذر مشاركة الملف من المتصفح الحالي.");
+    } finally {
+      setShareBusyId(null);
+    }
+  };
 
   if (!folderId) {
     return (
@@ -186,7 +261,15 @@ export function StudentFolderViewPage() {
               <option value="name">ترتيب: الاسم</option>
               <option value="size">ترتيب: الحجم</option>
               <option value="type">ترتيب: النوع</option>
+              <option value="date">ترتيب: التاريخ</option>
             </select>
+            <select className="select" value={sortDir} onChange={(e) => setSortDir(e.target.value as typeof sortDir)} aria-label="اتجاه الترتيب">
+              <option value="asc">تصاعدي</option>
+              <option value="desc">تنازلي</option>
+            </select>
+            <button type="button" className="ghost-btn toolbar-btn" onClick={() => void downloadFolderAsZip()} disabled={downloadFolderBusy || files.length === 0} aria-busy={downloadFolderBusy}>
+              <ButtonBusyLabel busy={downloadFolderBusy}>تحميل المجلد كامل</ButtonBusyLabel>
+            </button>
           </PageToolbar>
           <div className="grid-2 home-stats-grid">
             <StatTile title="إجمالي الملفات" highlight={files.length} />
@@ -204,7 +287,7 @@ export function StudentFolderViewPage() {
                   <div style={{ width: "100%" }}>
                     <h3 className="post-title">{f.fileName}</h3>
                     <p className="muted small">
-                      {f.fileType ? `النوع: ${f.fileType}` : "—"} {typeof f.fileSize === "number" ? `· الحجم: ${Math.round(f.fileSize / 1024)} KB` : ""}
+                      {f.fileType ? `النوع: ${f.fileType}` : "—"} · الحجم: {formatSize(f.fileSize)} · {formatFirestoreTime(f.createdAt)}
                     </p>
                     {canPreview && isOpen ? (
                       <div style={{ marginTop: "0.6rem" }}>
@@ -257,6 +340,9 @@ export function StudentFolderViewPage() {
                     <a className="ghost-btn" href={f.downloadUrl} target="_blank" rel="noopener noreferrer">
                       فتح
                     </a>
+                    <button type="button" className="ghost-btn" onClick={() => void shareFile(f)} disabled={shareBusyId === f.id} aria-busy={shareBusyId === f.id}>
+                      <ButtonBusyLabel busy={shareBusyId === f.id}>مشاركة</ButtonBusyLabel>
+                    </button>
                   </div>
                 </ContentListItem>
               );
