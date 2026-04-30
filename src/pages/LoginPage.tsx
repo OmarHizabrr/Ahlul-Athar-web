@@ -8,6 +8,7 @@ import { AlertMessage } from "../components/ui";
 import { FcGoogle } from "react-icons/fc";
 import { IoPhonePortraitOutline } from "react-icons/io5";
 import { authService } from "../services/authService";
+import { adminSecurityService, DEFAULT_ADMIN_ACCESS_CODE } from "../services/adminSecurityService";
 import type { UserRole } from "../types";
 
 export function LoginPage() {
@@ -19,6 +20,7 @@ export function LoginPage() {
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [adminCode, setAdminCode] = useState("");
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingPhone, setLoadingPhone] = useState(false);
   const [message, setMessage] = useState("");
@@ -35,10 +37,26 @@ export function LoginPage() {
     }
   }, [ready, sessionUser, navigate]);
 
+  const verifyAdminCodeIfNeeded = async (): Promise<boolean> => {
+    if (role !== "admin") return true;
+    if (!adminCode.trim()) {
+      showMessage("أدخل رمز دخول الإدارة.", true);
+      return false;
+    }
+    const ok = await adminSecurityService.verifyAdminAccessCode(adminCode);
+    if (!ok) {
+      showMessage("رمز دخول الإدارة غير صحيح.", true);
+      return false;
+    }
+    return true;
+  };
+
   const onGoogleLogin = async () => {
     setLoadingGoogle(true);
     showMessage("");
     try {
+      const allowed = await verifyAdminCodeIfNeeded();
+      if (!allowed) return;
       const user = await authService.signInWithGoogle(role);
       navigate(`/${user.role}`, { replace: true });
     } catch (error) {
@@ -53,6 +71,8 @@ export function LoginPage() {
     setLoadingPhone(true);
     showMessage("");
     try {
+      const allowed = await verifyAdminCodeIfNeeded();
+      if (!allowed) return;
       await authService.signInWithPhoneAndPassword(role, phone, password);
       navigate(`/${role}`, { replace: true });
     } catch (error) {
@@ -86,6 +106,20 @@ export function LoginPage() {
         </div>
 
         <form className="form" onSubmit={onPhoneLogin}>
+          {role === "admin" ? (
+            <>
+              <label htmlFor="admin-code">رمز دخول الإدارة</label>
+              <input
+                id="admin-code"
+                type="password"
+                placeholder="أدخل رمز الإدارة"
+                value={adminCode}
+                onChange={(event) => setAdminCode(event.target.value)}
+                required
+              />
+              <p className="muted small">الرمز الافتراضي: {DEFAULT_ADMIN_ACCESS_CODE}</p>
+            </>
+          ) : null}
           <label htmlFor="phone">رقم الهاتف</label>
           <div className="input-wrap">
             <IoPhonePortraitOutline size={20} />

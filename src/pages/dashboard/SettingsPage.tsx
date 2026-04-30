@@ -1,17 +1,40 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
+import { AlertMessage } from "../../components/ui";
 import { Panel } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { DashboardLayout } from "../DashboardLayout";
 import { authService } from "../../services/authService";
+import { adminSecurityService, DEFAULT_ADMIN_ACCESS_CODE } from "../../services/adminSecurityService";
 import type { UserRole } from "../../types";
 
 export function SettingsPage({ role }: { role: UserRole }) {
   const { user, ready } = useAuth();
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [adminCode, setAdminCode] = useState(DEFAULT_ADMIN_ACCESS_CODE);
+  const [loadingCode, setLoadingCode] = useState(false);
+  const [savingCode, setSavingCode] = useState(false);
+  const [codeMessage, setCodeMessage] = useState<string | null>(null);
+  const [codeError, setCodeError] = useState(false);
   const base: "/admin" | "/student" = role === "admin" ? "/admin" : "/student";
+
+  useEffect(() => {
+    if (role !== "admin" || !ready) return;
+    void (async () => {
+      setLoadingCode(true);
+      try {
+        const code = await adminSecurityService.getAdminAccessCode();
+        setAdminCode(code);
+      } catch {
+        setCodeMessage("تعذر تحميل رمز الإدارة الحالي، سيتم استخدام الافتراضي.");
+        setCodeError(true);
+      } finally {
+        setLoadingCode(false);
+      }
+    })();
+  }, [role, ready]);
 
   const logout = async () => {
     setLoggingOut(true);
@@ -20,6 +43,28 @@ export function SettingsPage({ role }: { role: UserRole }) {
       navigate("/role-selector", { replace: true });
     } finally {
       setLoggingOut(false);
+    }
+  };
+
+  const saveAdminCode = async () => {
+    if (!user?.uid) return;
+    const value = adminCode.trim();
+    if (!value) {
+      setCodeError(true);
+      setCodeMessage("رمز الإدارة مطلوب.");
+      return;
+    }
+    setSavingCode(true);
+    setCodeMessage(null);
+    try {
+      await adminSecurityService.updateAdminAccessCode(value, user.uid);
+      setCodeError(false);
+      setCodeMessage("تم حفظ رمز دخول الإدارة بنجاح.");
+    } catch {
+      setCodeError(true);
+      setCodeMessage("تعذر حفظ رمز الإدارة حالياً.");
+    } finally {
+      setSavingCode(false);
     }
   };
 
@@ -86,6 +131,33 @@ export function SettingsPage({ role }: { role: UserRole }) {
           </li>
         </ul>
       </Panel>
+      {role === "admin" ? (
+        <Panel className="settings-card">
+          <h3 style={{ marginTop: 0 }}>أمان الإدارة</h3>
+          <p className="muted small">رمز دخول الأدمن مطلوب عند تسجيل الدخول كمسؤول. الرمز الافتراضي: {DEFAULT_ADMIN_ACCESS_CODE}</p>
+          {loadingCode ? <PageLoadHint text="جاري تحميل رمز الإدارة..." /> : null}
+          <div className="form" style={{ marginTop: "0.75rem" }}>
+            <label htmlFor="admin-access-code">رمز دخول الإدارة</label>
+            <input
+              id="admin-access-code"
+              type="password"
+              value={adminCode}
+              onChange={(e) => setAdminCode(e.target.value)}
+              placeholder="أدخل الرمز الجديد"
+            />
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={() => void saveAdminCode()}
+              disabled={savingCode || loadingCode}
+              aria-busy={savingCode}
+            >
+              <ButtonBusyLabel busy={savingCode}>حفظ رمز الإدارة</ButtonBusyLabel>
+            </button>
+          </div>
+          {codeMessage ? <AlertMessage kind={codeError ? "error" : "success"}>{codeMessage}</AlertMessage> : null}
+        </Panel>
+      ) : null}
       <div className="settings-meta">
         <p className="muted small">
           الحساب: {user?.email || "—"} · الدور: {role === "admin" ? "مسؤول" : "طالب"}
