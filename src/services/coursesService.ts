@@ -209,6 +209,46 @@ export const coursesService = {
     });
   },
 
+  async enrollStudentInPublicCourse(user: PlatformUser, course: Course) {
+    const courseId = course.id;
+    const studentId = user.uid;
+    const courseRef = doc(db, "courses", courseId);
+    const numbersRef = doc(db, "numbers", courseId, "numbers", studentId);
+    const myCourseRef = doc(db, "Mycourses", studentId, "Mycourses", courseId);
+    const existing = await getDoc(numbersRef);
+    const alreadyEnrolled = existing.exists();
+    const enrollmentPayload = {
+      studentId,
+      studentName: user.displayName ?? "",
+      studentEmail: user.email ?? "",
+      studentPhone: user.phoneNumber ?? null,
+      studentPhotoURL: user.photoURL ?? null,
+      enrolledAt: serverTimestamp(),
+      isActivated: true,
+      isLifetime: true,
+      expiresAt: null,
+      activationDays: 30,
+      activatedAt: serverTimestamp(),
+    };
+    const myCoursePayload = {
+      courseId,
+      courseTitle: course.title,
+      courseDescription: course.description ?? "",
+      courseImageURL: course.imageUrl ?? null,
+      enrolledAt: serverTimestamp(),
+      isActivated: true,
+      isLifetime: true,
+      expiresAt: null,
+      activationDays: 30,
+      activatedAt: serverTimestamp(),
+    };
+    await setDoc(numbersRef, enrollmentPayload, { merge: true });
+    await setDoc(myCourseRef, myCoursePayload, { merge: true });
+    if (!alreadyEnrolled) {
+      await updateDoc(courseRef, { studentCount: increment(1), updatedAt: serverTimestamp() }).catch(() => undefined);
+    }
+  },
+
   async requestFolderEnrollment(user: PlatformUser, folder: Folder, reason = "طلب انضمام لمجلد") {
     const requestId = `${user.uid}_${folder.id}_${Date.now()}`;
     const reqRef = doc(db, "enrollment_requests", requestId);

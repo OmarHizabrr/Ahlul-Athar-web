@@ -44,8 +44,7 @@ export function StudentExplorePage() {
         foldersService.listMyFoldersForStudent(user.uid),
         coursesService.listStudentEnrollmentRequests(user.uid),
       ]);
-      const publicCourses = allCourses.filter((c) => c.courseType === "public" && c.isActive !== false);
-      setCourses(publicCourses);
+      setCourses(allCourses.filter((c) => c.isActive !== false));
       setMyCourseIds(new Set(mineCourses.map((c) => c.courseId)));
       const latestByCourse = new Map<string, EnrollmentRequest>();
       for (const req of myReqs) {
@@ -57,8 +56,7 @@ export function StudentExplorePage() {
       setLatestCourseReqById(latestByCourse);
       const mineIds = new Set(myFolders.map((f) => f.id));
       setMyFolderIds(mineIds);
-      const publicFolders = allFolders.filter((f) => (f.folderType ?? "public") === "public" && f.isActive !== false);
-      setFolders(publicFolders.filter((f) => !mineIds.has(f.id)));
+      setFolders(allFolders.filter((f) => f.isActive !== false && !mineIds.has(f.id)));
       setPendingFolderReqIds(
         new Set(myReqs.filter((r) => r.requestType === "folder" && r.status === "pending").map((r) => r.targetId)),
       );
@@ -154,6 +152,45 @@ export function StudentExplorePage() {
     }
   };
 
+  const enrollPublicCourse = async (course: Course) => {
+    if (!user) return;
+    setRequestingCourseId(course.id);
+    setMessage(null);
+    try {
+      await coursesService.enrollStudentInPublicCourse(user, course);
+      setMyCourseIds((prev) => new Set([...prev, course.id]));
+    } catch {
+      setMessage("تعذر التسجيل المباشر في الدورة.");
+    } finally {
+      setRequestingCourseId(null);
+    }
+  };
+
+  const enrollPublicFolder = async (folder: Folder) => {
+    if (!user) return;
+    setRequestingFolderId(folder.id);
+    setMessage(null);
+    try {
+      await foldersService.addMemberToFolder({
+        folder,
+        member: {
+          uid: user.uid,
+          displayName: user.displayName ?? "طالب",
+          email: user.email ?? undefined,
+          phone: user.phoneNumber ?? undefined,
+          photoURL: user.photoURL ?? undefined,
+        },
+        activation: { isLifetime: true, days: 30, expiresAt: null },
+      });
+      setMyFolderIds((prev) => new Set([...prev, folder.id]));
+      setFolders((prev) => prev.filter((f) => f.id !== folder.id));
+    } catch {
+      setMessage("تعذر التسجيل المباشر في المجلد.");
+    } finally {
+      setRequestingFolderId(null);
+    }
+  };
+
   if (!ready) {
     return (
       <DashboardLayout role="student" title="الاستكشاف" lede="تبويب موحّد للدورات والملفات مثل التطبيق، لكن بتخطيط مناسب للويب.">
@@ -182,7 +219,7 @@ export function StudentExplorePage() {
       <AppTabPanel tabId="courses" groupId={groupId} hidden={tab !== "courses"} className="lesson-tab-panel">
         <Panel className="card-elevated">
           <SectionTitle as="h3">استكشاف الدورات</SectionTitle>
-          <p className="muted small">تصفح الدورات المفتوحة، أو أرسل طلب انضمام للدورات الخاصة.</p>
+          <p className="muted small">الدورات العامة: تسجيل مباشر. الدورات الخاصة: طلب انضمام.</p>
           <PageToolbar>
             <button type="button" className="ghost-btn toolbar-btn" onClick={() => void load()} disabled={loading} aria-busy={loading}>
               <ButtonBusyLabel busy={loading}>تحديث</ButtonBusyLabel>
@@ -212,7 +249,8 @@ export function StudentExplorePage() {
             {visibleCourses.map((course) => {
               const req = latestCourseReqById.get(course.id);
               const isEnrolled = myCourseIds.has(course.id);
-              const canOpen = isEnrolled || req?.status === "approved" || course.courseType === "public";
+              const canOpen = isEnrolled || req?.status === "approved";
+              const isPublic = course.courseType !== "private";
               return (
                 <ContentListItem key={course.id} className="mycourse-card">
                   <div>
@@ -229,6 +267,16 @@ export function StudentExplorePage() {
                       <Link to={`/student/course/${course.id}`} className="primary-btn">
                         فتح
                       </Link>
+                    ) : isPublic ? (
+                      <button
+                        type="button"
+                        className="primary-btn"
+                        onClick={() => void enrollPublicCourse(course)}
+                        disabled={requestingCourseId === course.id}
+                        aria-busy={requestingCourseId === course.id}
+                      >
+                        <ButtonBusyLabel busy={requestingCourseId === course.id}>تسجيل مباشر</ButtonBusyLabel>
+                      </button>
                     ) : (
                       <button
                         type="button"
@@ -238,7 +286,7 @@ export function StudentExplorePage() {
                         aria-busy={requestingCourseId === course.id}
                       >
                         <ButtonBusyLabel busy={requestingCourseId === course.id}>
-                          {req?.status === "rejected" ? "إعادة طلب الانضمام" : "طلب الانضمام"}
+                          {req?.status === "rejected" ? "إعادة طلب الانضمام" : "طلب انضمام"}
                         </ButtonBusyLabel>
                       </button>
                     )}
@@ -254,7 +302,7 @@ export function StudentExplorePage() {
         <Panel className="card-elevated">
           <SectionTitle as="h3">استكشاف الملفات</SectionTitle>
           <p className="muted small">
-            مجلدات متاحة (عام/خاص). المجلدات التي أنت عضو فيها تظهر ضمن «ملفاتي».
+            المجلدات العامة: تسجيل مباشر. المجلدات الخاصة: طلب انضمام.
           </p>
           <PageToolbar>
             <button type="button" className="ghost-btn toolbar-btn" onClick={() => void load()} disabled={loading} aria-busy={loading}>
@@ -291,7 +339,7 @@ export function StudentExplorePage() {
                     {f.folderType === "private" ? "خاص" : "عام"}
                   </p>
                 </div>
-                {f.folderType === "private" ? (
+                {(f.folderType ?? "public") === "private" ? (
                   pendingFolderReqIds.has(f.id) ? (
                     <span className="meta-pill meta-pill--info">تم إرسال طلب</span>
                   ) : (
@@ -316,13 +364,19 @@ export function StudentExplorePage() {
                       disabled={requestingFolderId === f.id}
                       aria-busy={requestingFolderId === f.id}
                     >
-                      <ButtonBusyLabel busy={requestingFolderId === f.id}>طلب الانضمام</ButtonBusyLabel>
+                      <ButtonBusyLabel busy={requestingFolderId === f.id}>طلب انضمام</ButtonBusyLabel>
                     </button>
                   )
                 ) : (
-                  <Link className="primary-btn" to={`/student/folder/${f.id}`}>
-                    فتح
-                  </Link>
+                  <button
+                    type="button"
+                    className="primary-btn"
+                    onClick={() => void enrollPublicFolder(f)}
+                    disabled={requestingFolderId === f.id}
+                    aria-busy={requestingFolderId === f.id}
+                  >
+                    <ButtonBusyLabel busy={requestingFolderId === f.id}>تسجيل مباشر</ButtonBusyLabel>
+                  </button>
                 )}
               </ContentListItem>
             ))}
