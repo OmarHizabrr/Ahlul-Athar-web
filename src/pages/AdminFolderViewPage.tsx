@@ -100,6 +100,10 @@ export function AdminFolderViewPage() {
 
   const [requests, setRequests] = useState<EnrollmentRequest[]>([]);
   const [requestFilter, setRequestFilter] = useState<"all" | EnrollmentRequest["status"]>("pending");
+  const [memberStatusFilter, setMemberStatusFilter] = useState<"all" | "active" | "suspended" | "notActivated">("all");
+  const [requestTypeFilter, setRequestTypeFilter] = useState<"all" | EnrollmentRequest["status"]>("all");
+  const [memberSort, setMemberSort] = useState<"name" | "date">("name");
+  const [requestSort, setRequestSort] = useState<"latest" | "oldest">("latest");
   const [activationReqOpen, setActivationReqOpen] = useState(false);
   const [activationReqTarget, setActivationReqTarget] = useState<EnrollmentRequest | null>(null);
 
@@ -209,28 +213,57 @@ export function AdminFolderViewPage() {
 
   const visibleMembers = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return members;
-    return members.filter((m) => {
-      return (
-        (m.displayName ?? "").toLowerCase().includes(q) ||
-        (m.email ?? "").toLowerCase().includes(q) ||
-        (m.phone ?? "").toLowerCase().includes(q) ||
-        m.uid.toLowerCase().includes(q)
-      );
+    let out = members;
+    if (memberStatusFilter !== "all") {
+      out = out.filter((m) => {
+        if (memberStatusFilter === "suspended") return Boolean(m.isSuspended);
+        if (memberStatusFilter === "notActivated") return m.isActivated === false;
+        return m.isActivated !== false && !m.isSuspended;
+      });
+    }
+    if (q) {
+      out = out.filter((m) => {
+        return (
+          (m.displayName ?? "").toLowerCase().includes(q) ||
+          (m.email ?? "").toLowerCase().includes(q) ||
+          (m.phone ?? "").toLowerCase().includes(q) ||
+          m.uid.toLowerCase().includes(q)
+        );
+      });
+    }
+    out = out.slice().sort((a, b) => {
+      if (memberSort === "date") {
+        const ad = Number((a.createdAt as { toMillis?: () => number } | undefined)?.toMillis?.() ?? 0);
+        const bd = Number((b.createdAt as { toMillis?: () => number } | undefined)?.toMillis?.() ?? 0);
+        return bd - ad;
+      }
+      return String(a.displayName ?? "").localeCompare(String(b.displayName ?? ""), "ar");
     });
-  }, [members, search]);
+    return out;
+  }, [members, search, memberStatusFilter, memberSort]);
 
   const visibleRequests = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return requests;
-    return requests.filter((r) => {
-      return (
-        r.studentName.toLowerCase().includes(q) ||
-        r.studentEmail.toLowerCase().includes(q) ||
-        r.studentId.toLowerCase().includes(q)
-      );
+    let out = requests;
+    if (requestTypeFilter !== "all") {
+      out = out.filter((r) => r.status === requestTypeFilter);
+    }
+    if (q) {
+      out = out.filter((r) => {
+        return (
+          r.studentName.toLowerCase().includes(q) ||
+          r.studentEmail.toLowerCase().includes(q) ||
+          r.studentId.toLowerCase().includes(q)
+        );
+      });
+    }
+    out = out.slice().sort((a, b) => {
+      const at = Number(((a.requestedAt ?? a.processedAt) as { toMillis?: () => number } | undefined)?.toMillis?.() ?? 0);
+      const bt = Number(((b.requestedAt ?? b.processedAt) as { toMillis?: () => number } | undefined)?.toMillis?.() ?? 0);
+      return requestSort === "latest" ? bt - at : at - bt;
     });
-  }, [requests, search]);
+    return out;
+  }, [requests, search, requestTypeFilter, requestSort]);
 
   const visibleStudentsToAdd = useMemo(() => {
     const q = memberSearch.trim().toLowerCase();
@@ -596,6 +629,18 @@ export function AdminFolderViewPage() {
           </AppTabPanel>
 
           <AppTabPanel tabId="members" groupId={`admin-folder-${folderId}`} hidden={tab !== "members"} className="lesson-tab-panel">
+            <PageToolbar>
+              <select className="select" value={memberStatusFilter} onChange={(e) => setMemberStatusFilter(e.target.value as typeof memberStatusFilter)} aria-label="فلتر الأعضاء">
+                <option value="all">كل الأعضاء</option>
+                <option value="active">المفعّلون</option>
+                <option value="suspended">الموقوفون</option>
+                <option value="notActivated">غير المفعّلين</option>
+              </select>
+              <select className="select" value={memberSort} onChange={(e) => setMemberSort(e.target.value as typeof memberSort)} aria-label="ترتيب الأعضاء">
+                <option value="name">ترتيب بالاسم</option>
+                <option value="date">الأحدث انضمامًا</option>
+              </select>
+            </PageToolbar>
             {!loading ? (
               <div className="grid-2 home-stats-grid">
                 <StatTile title="إجمالي الأعضاء" highlight={members.length} />
@@ -644,6 +689,19 @@ export function AdminFolderViewPage() {
           </AppTabPanel>
 
           <AppTabPanel tabId="requests" groupId={`admin-folder-${folderId}`} hidden={tab !== "requests"} className="lesson-tab-panel">
+            <PageToolbar>
+              <select className="select" value={requestTypeFilter} onChange={(e) => setRequestTypeFilter(e.target.value as typeof requestTypeFilter)} aria-label="فلتر الطلبات">
+                <option value="all">كل الحالات</option>
+                <option value="pending">قيد المراجعة</option>
+                <option value="approved">مقبولة</option>
+                <option value="rejected">مرفوضة</option>
+                <option value="expired">منتهية</option>
+              </select>
+              <select className="select" value={requestSort} onChange={(e) => setRequestSort(e.target.value as typeof requestSort)} aria-label="ترتيب الطلبات">
+                <option value="latest">الأحدث أولاً</option>
+                <option value="oldest">الأقدم أولاً</option>
+              </select>
+            </PageToolbar>
             {!loading ? (
               <div className="grid-2 home-stats-grid">
                 <StatTile title="الطلبات" highlight={requests.length} />
