@@ -5,6 +5,7 @@ import { AlertMessage, ShortcutNav, StatTile, WelcomeHeading } from "../../compo
 import { useAuth } from "../../context/AuthContext";
 import { DashboardLayout } from "../DashboardLayout";
 import { coursesService } from "../../services/coursesService";
+import { foldersService } from "../../services/foldersService";
 import { myCoursesService } from "../../services/myCoursesService";
 import { notificationsService } from "../../services/notificationsService";
 import { postsService } from "../../services/postsService";
@@ -38,6 +39,8 @@ export function HomePage({ role }: { role: UserRole }) {
   const [myLessonsCount, setMyLessonsCount] = useState(0);
   const [myActiveCoursesCount, setMyActiveCoursesCount] = useState(0);
   const [pendingEnrollmentCount, setPendingEnrollmentCount] = useState(0);
+  const [myFoldersCount, setMyFoldersCount] = useState(0);
+  const [myFilesCount, setMyFilesCount] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const base = role === "admin" ? "/admin" : "/student";
 
@@ -64,6 +67,8 @@ export function HomePage({ role }: { role: UserRole }) {
         });
         setPendingCount(pending.length);
         setPendingEnrollmentCount(0);
+        setMyFoldersCount(0);
+        setMyFilesCount(0);
       } else {
         setPendingCount(0);
         const mine = await myCoursesService.listForStudent(user.uid).catch(() => {
@@ -80,6 +85,23 @@ export function HomePage({ role }: { role: UserRole }) {
           return [] as EnrollmentRequest[];
         });
         setPendingEnrollmentCount(myReqs.filter((r) => r.status === "pending").length);
+
+        const myFolders = await foldersService.listMyFoldersForStudent(user.uid).catch(() => {
+          hasPartialFailure = true;
+          return [];
+        });
+        setMyFoldersCount(myFolders.length);
+        const filesTotal = await Promise.all(
+          myFolders.map(async (f) => {
+            if (typeof f.fileCount === "number") return f.fileCount;
+            const files = await foldersService.listFolderFiles(f.id).catch(() => {
+              hasPartialFailure = true;
+              return [];
+            });
+            return files.length;
+          }),
+        );
+        setMyFilesCount(filesTotal.reduce((sum, n) => sum + n, 0));
       }
       const u = await notificationsService.countUnread(user.uid).catch(() => {
         hasPartialFailure = true;
@@ -164,6 +186,18 @@ export function HomePage({ role }: { role: UserRole }) {
             )}
             {role === "student" ? <StatTile title="إجمالي دروس مقرراتي" highlight={myLessonsCount} /> : null}
             {role === "student" ? <StatTile title="المقررات المفعّلة" highlight={myActiveCoursesCount} /> : null}
+            {role === "student" ? (
+              <StatTile
+                title="مجلداتي"
+                highlight={myFoldersCount}
+                action={
+                  <Link to="/student/myfiles" className="inline-link">
+                    فتح ملفاتي
+                  </Link>
+                }
+              />
+            ) : null}
+            {role === "student" ? <StatTile title="إجمالي ملفاتي" highlight={myFilesCount} /> : null}
             {role === "admin" ? (
               <StatTile title="إجمالي الطلاب" highlight={totalStudents} />
             ) : null}
