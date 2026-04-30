@@ -19,6 +19,7 @@ import {
   cn,
 } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import { foldersService } from "../services/foldersService";
 import { directoryService } from "../services/directoryService";
 import { coursesService } from "../services/coursesService";
@@ -71,6 +72,7 @@ function FilePreview({ file }: { file: FolderFile }) {
 export function AdminFolderViewPage() {
   const { folderId } = useParams();
   const { user, ready } = useAuth();
+  const { tr } = useI18n();
   const [folder, setFolder] = useState<Folder | null>(null);
   const [files, setFiles] = useState<FolderFile[]>([]);
   const [members, setMembers] = useState<StudentRecord[]>([]);
@@ -122,7 +124,7 @@ export function AdminFolderViewPage() {
       setMembers(ms);
       setRequests(reqs);
     } catch {
-      setMessage("تعذر تحميل تفاصيل المجلد. تحقق من القواعد أو الفهارس.");
+      setMessage(tr("تعذر تحميل تفاصيل المجلد. تحقق من القواعد أو الفهارس."));
     } finally {
       setLoading(false);
     }
@@ -188,7 +190,7 @@ export function AdminFolderViewPage() {
       a.remove();
       URL.revokeObjectURL(href);
     } catch {
-      setMessage("تعذر تنزيل المجلد كاملاً.");
+      setMessage(tr("تعذر تنزيل المجلد كاملاً."));
     } finally {
       setDownloadFolderBusy(false);
     }
@@ -202,10 +204,10 @@ export function AdminFolderViewPage() {
         await navigator.share({ title: f.fileName, text: f.fileName, url: f.downloadUrl });
       } else {
         await navigator.clipboard.writeText(f.downloadUrl);
-        setMessage("تم نسخ رابط الملف للمشاركة.");
+        setMessage(tr("تم نسخ رابط الملف للمشاركة."));
       }
     } catch {
-      setMessage("تعذر مشاركة الملف من المتصفح الحالي.");
+      setMessage(tr("تعذر مشاركة الملف من المتصفح الحالي."));
     } finally {
       setShareBusyId(null);
     }
@@ -329,23 +331,23 @@ export function AdminFolderViewPage() {
       window.dispatchEvent(new CustomEvent("ah:enrollment-requests-updated"));
       await load(folderId);
     } catch {
-      setMessage("تعذر قبول طلب الانضمام للمجلد.");
+      setMessage(tr("تعذر قبول طلب الانضمام للمجلد."));
     } finally {
       setBusy(false);
     }
   };
 
   const rejectRequest = async (req: EnrollmentRequest) => {
-    if (!window.confirm(`رفض الطلب للطالب «${req.studentName}»؟`)) return;
+    if (!window.confirm(`${tr("رفض الطلب للطالب")} «${req.studentName}»؟`)) return;
     if (!folderId) return;
     setBusy(true);
     setMessage(null);
     try {
-      await coursesService.rejectEnrollmentRequest(req.id, "مرفوض");
+      await coursesService.rejectEnrollmentRequest(req.id, tr("مرفوض"));
       window.dispatchEvent(new CustomEvent("ah:enrollment-requests-updated"));
       await load(folderId);
     } catch {
-      setMessage("تعذر رفض الطلب.");
+      setMessage(tr("تعذر رفض الطلب."));
     } finally {
       setBusy(false);
     }
@@ -367,7 +369,7 @@ export function AdminFolderViewPage() {
       setMemberModalOpen(false);
       await load(folderId);
     } catch {
-      setMessage("تعذر إضافة العضو للمجلد. تحقق من القواعد/الصلاحيات.");
+      setMessage(tr("تعذر إضافة العضو للمجلد. تحقق من القواعد/الصلاحيات."));
     } finally {
       setBusy(false);
     }
@@ -375,14 +377,14 @@ export function AdminFolderViewPage() {
 
   const removeMember = async (memberId: string) => {
     if (!folderId) return;
-    if (!window.confirm("هل تريد إزالة العضو من المجلد؟")) return;
+    if (!window.confirm(tr("هل تريد إزالة العضو من المجلد؟"))) return;
     setBusy(true);
     setMessage(null);
     try {
       await foldersService.removeMemberFromFolder(folderId, memberId);
       await load(folderId);
     } catch {
-      setMessage("تعذر إزالة العضو.");
+      setMessage(tr("تعذر إزالة العضو."));
     } finally {
       setBusy(false);
     }
@@ -392,7 +394,7 @@ export function AdminFolderViewPage() {
     if (!folderId || !user) return;
     const file = fileInputRef.current?.files?.[0];
     if (!file) {
-      setMessage("اختر ملفاً أولاً.");
+      setMessage(tr("اختر ملفاً أولاً."));
       return;
     }
     setBusy(true);
@@ -411,7 +413,7 @@ export function AdminFolderViewPage() {
       if (fileInputRef.current) fileInputRef.current.value = "";
       await load(folderId);
     } catch {
-      setMessage("تعذر رفع الملف. تحقق من صلاحيات Storage و Firestore.");
+      setMessage(tr("تعذر رفع الملف. تحقق من صلاحيات Storage و Firestore."));
     } finally {
       setBusy(false);
     }
@@ -419,14 +421,14 @@ export function AdminFolderViewPage() {
 
   const removeFile = async (f: FolderFile) => {
     if (!folderId) return;
-    if (!window.confirm(`حذف الملف «${f.fileName}»؟`)) return;
+    if (!window.confirm(`${tr("حذف الملف")} «${f.fileName}»؟`)) return;
     setBusy(true);
     setMessage(null);
     try {
       await foldersService.removeFileFromFolder(folderId, f);
       await load(folderId);
     } catch {
-      setMessage("تعذر حذف الملف.");
+      setMessage(tr("تعذر حذف الملف."));
     } finally {
       setBusy(false);
     }
@@ -434,61 +436,61 @@ export function AdminFolderViewPage() {
 
   if (!folderId) {
     return (
-      <DashboardLayout role="admin" title="المجلد" lede="—">
-        <AlertMessage kind="error">معرّف المجلد غير صحيح.</AlertMessage>
+      <DashboardLayout role="admin" title={tr("المجلد")} lede={tr("—")}>
+        <AlertMessage kind="error">{tr("معرّف المجلد غير صحيح.")}</AlertMessage>
       </DashboardLayout>
     );
   }
 
   if (!ready) {
     return (
-      <DashboardLayout role="admin" title="تفاصيل المجلد" lede="—">
-        <PageLoadHint text="جاري التهيئة..." />
+      <DashboardLayout role="admin" title={tr("تفاصيل المجلد")} lede={tr("—")}>
+        <PageLoadHint text={tr("جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout role="admin" title={folder?.name || "تفاصيل المجلد"} lede="إدارة ملفات وأعضاء المجلد عبر تبويبات (ويب) — مطابق لعمل التطبيق." >
+    <DashboardLayout role="admin" title={folder?.name || tr("تفاصيل المجلد")} lede={tr("إدارة ملفات وأعضاء المجلد عبر تبويبات (ويب) — مطابق لعمل التطبيق.")} >
       <PageToolbar>
         <Link to="/admin/folders" className="ghost-btn toolbar-btn">
-          ← الرجوع للمجلدات
+          {tr("← الرجوع للمجلدات")}
         </Link>
         <button type="button" className="ghost-btn toolbar-btn" onClick={() => void load(folderId)} disabled={loading || busy} aria-busy={loading || busy}>
-          <ButtonBusyLabel busy={loading || busy}>تحديث</ButtonBusyLabel>
+          <ButtonBusyLabel busy={loading || busy}>{tr("تحديث")}</ButtonBusyLabel>
         </button>
         {tab === "members" ? (
           <button type="button" className="primary-btn toolbar-btn" onClick={() => void openMemberModal()} disabled={busy || loading}>
-            إضافة عضو
+            {tr("إضافة عضو")}
           </button>
         ) : tab === "requests" ? (
           <button type="button" className="ghost-btn toolbar-btn" onClick={() => setRequestFilter((f) => (f === "pending" ? "approved" : f === "approved" ? "rejected" : f === "rejected" ? "expired" : f === "expired" ? "all" : "pending"))} disabled={busy || loading}>
             {requestFilter === "all"
-              ? "كل الحالات"
+              ? tr("كل الحالات")
               : requestFilter === "pending"
-                ? "قيد المراجعة"
+                ? tr("قيد المراجعة")
                 : requestFilter === "approved"
-                  ? "المقبولة"
+                  ? tr("المقبولة")
                   : requestFilter === "rejected"
-                    ? "المرفوضة"
-                    : "المنتهية"}
+                    ? tr("المرفوضة")
+                    : tr("المنتهية")}
           </button>
         ) : (
           <button type="button" className="primary-btn toolbar-btn" onClick={() => setUploadModalOpen(true)} disabled={busy || loading}>
-            رفع ملف
+            {tr("رفع ملف")}
           </button>
         )}
         {tab === "files" ? (
           <button type="button" className="ghost-btn toolbar-btn" onClick={() => void downloadFolderAsZip()} disabled={downloadFolderBusy || files.length === 0}>
-            <ButtonBusyLabel busy={downloadFolderBusy}>تحميل المجلد كامل</ButtonBusyLabel>
+            <ButtonBusyLabel busy={downloadFolderBusy}>{tr("تحميل المجلد كامل")}</ButtonBusyLabel>
           </button>
         ) : null}
         <input
           className="text-input"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={tab === "files" ? "بحث في الملفات" : "بحث في الأعضاء"}
-          aria-label={tab === "files" ? "بحث في الملفات" : "بحث في الأعضاء"}
+          placeholder={tab === "files" ? tr("بحث في الملفات") : tr("بحث في الأعضاء")}
+          aria-label={tab === "files" ? tr("بحث في الملفات") : tr("بحث في الأعضاء")}
         />
       </PageToolbar>
 
@@ -497,7 +499,7 @@ export function AdminFolderViewPage() {
       {loading ? (
         <PageLoadHint />
       ) : folder == null ? (
-        <EmptyState message="لم يتم العثور على المجلد." />
+        <EmptyState message={tr("لم يتم العثور على المجلد.")} />
       ) : (
         <>
           <Panel className={cn("course-hero", folder.coverImageUrl && "course-hero--img")}>
@@ -506,22 +508,22 @@ export function AdminFolderViewPage() {
               <SectionTitle as="h2">{folder.name}</SectionTitle>
               {folder.description ? <p className="muted course-hero-lead">{folder.description}</p> : null}
               <div className="course-meta lesson-course-meta">
-                <span>{typeof folder.fileCount === "number" ? `${folder.fileCount} ملف` : `${files.length} ملف`}</span>
-                <span>{typeof folder.memberCount === "number" ? `${folder.memberCount} عضو` : `${members.length} عضو`}</span>
-                <span>{folder.folderType === "private" ? "خاص" : "عام"}</span>
+                <span>{typeof folder.fileCount === "number" ? `${folder.fileCount} ${tr("ملف")}` : `${files.length} ${tr("ملف")}`}</span>
+                <span>{typeof folder.memberCount === "number" ? `${folder.memberCount} ${tr("عضو")}` : `${members.length} ${tr("عضو")}`}</span>
+                <span>{folder.folderType === "private" ? tr("خاص") : tr("عام")}</span>
               </div>
             </div>
           </Panel>
 
           <AppTabs
             groupId={`admin-folder-${folderId}`}
-            ariaLabel="أقسام المجلد"
+            ariaLabel={tr("أقسام المجلد")}
             value={tab}
             onChange={(id) => setTab(id as TabId)}
             tabs={[
-              { id: "files", label: "الملفات" },
-              { id: "members", label: "الأعضاء" },
-              { id: "requests", label: "طلبات" },
+              { id: "files", label: tr("الملفات") },
+              { id: "members", label: tr("الأعضاء") },
+              { id: "requests", label: tr("طلبات") },
             ]}
           />
 
@@ -549,12 +551,12 @@ export function AdminFolderViewPage() {
             </PageToolbar>
             {!loading ? (
               <div className="grid-2 home-stats-grid">
-                <StatTile title="إجمالي الملفات" highlight={files.length} />
-                <StatTile title="النتائج" highlight={visibleFiles.length} />
+                <StatTile title={tr("إجمالي الملفات")} highlight={files.length} />
+                <StatTile title={tr("النتائج")} highlight={visibleFiles.length} />
               </div>
             ) : null}
             {visibleFiles.length === 0 ? (
-              <EmptyState message="لا توجد ملفات في هذا المجلد." />
+              <EmptyState message={tr("لا توجد ملفات في هذا المجلد.")} />
             ) : (
               <ContentList>
                 {visibleFiles.map((f) => (
@@ -562,7 +564,7 @@ export function AdminFolderViewPage() {
                     <div style={{ width: "100%" }}>
                       <h3 className="post-title">{f.fileName}</h3>
                       <p className="muted small">
-                        {f.fileType ? `النوع: ${f.fileType}` : "—"} · الحجم: {formatSize(f.fileSize)} · {formatFirestoreTime(f.createdAt)}
+                        {f.fileType ? `${tr("النوع")}: ${f.fileType}` : tr("—")} · {tr("الحجم")}: {formatSize(f.fileSize)} · {formatFirestoreTime(f.createdAt)}
                       </p>
                       {isPreviewable(f) && openPreviewIds.has(f.id) ? (
                         <div style={{ marginTop: "0.6rem" }}>
@@ -587,7 +589,7 @@ export function AdminFolderViewPage() {
                             })
                           }
                         >
-                          {openPreviewIds.has(f.id) ? "إخفاء المعاينة" : "معاينة"}
+                          {openPreviewIds.has(f.id) ? tr("إخفاء المعاينة") : tr("معاينة")}
                         </button>
                       ) : null}
                       <button
@@ -603,23 +605,23 @@ export function AdminFolderViewPage() {
                               await triggerBrowserDownloadFromUrl(f.downloadUrl, f.fileName);
                             } catch {
                               window.open(f.downloadUrl, "_blank", "noopener,noreferrer");
-                              setMessage("تعذر إكمال التحميل كملف؛ تم فتح الرابط في تبويب جديد.");
+                              setMessage(tr("تعذر إكمال التحميل كملف؛ تم فتح الرابط في تبويب جديد."));
                             } finally {
                               setDownloadBusyId(null);
                             }
                           })()
                         }
                       >
-                        <ButtonBusyLabel busy={downloadBusyId === f.id}>تحميل</ButtonBusyLabel>
+                        <ButtonBusyLabel busy={downloadBusyId === f.id}>{tr("تحميل")}</ButtonBusyLabel>
                       </button>
                       <a className="ghost-btn toolbar-btn" href={f.downloadUrl} target="_blank" rel="noopener noreferrer">
-                        فتح
+                        {tr("فتح")}
                       </a>
                       <button type="button" className="ghost-btn toolbar-btn" onClick={() => void shareFile(f)} disabled={shareBusyId === f.id || busy}>
-                        <ButtonBusyLabel busy={shareBusyId === f.id}>مشاركة</ButtonBusyLabel>
+                        <ButtonBusyLabel busy={shareBusyId === f.id}>{tr("مشاركة")}</ButtonBusyLabel>
                       </button>
                       <button type="button" className="ghost-btn toolbar-btn" onClick={() => void removeFile(f)} disabled={busy}>
-                        حذف
+                        {tr("حذف")}
                       </button>
                     </div>
                   </ContentListItem>
@@ -643,12 +645,12 @@ export function AdminFolderViewPage() {
             </PageToolbar>
             {!loading ? (
               <div className="grid-2 home-stats-grid">
-                <StatTile title="إجمالي الأعضاء" highlight={members.length} />
-                <StatTile title="النتائج" highlight={visibleMembers.length} />
+                <StatTile title={tr("إجمالي الأعضاء")} highlight={members.length} />
+                <StatTile title={tr("النتائج")} highlight={visibleMembers.length} />
               </div>
             ) : null}
             {visibleMembers.length === 0 ? (
-              <EmptyState message="لا يوجد أعضاء في هذا المجلد." />
+              <EmptyState message={tr("لا يوجد أعضاء في هذا المجلد.")} />
             ) : (
               <ContentList>
                 {visibleMembers.map((m) => (
@@ -658,7 +660,7 @@ export function AdminFolderViewPage() {
                         photoURL={m.photoURL}
                         displayName={m.displayName}
                         email={m.email}
-                        alt={m.displayName || "عضو"}
+                        alt={m.displayName || tr("عضو")}
                         imageClassName="user-avatar topbar-avatar"
                         fallbackClassName="user-avatar-fallback topbar-avatar"
                         size={40}
@@ -666,20 +668,20 @@ export function AdminFolderViewPage() {
                       <div style={{ minWidth: 0 }}>
                         <h3 className="post-title">{m.displayName || m.uid}</h3>
                         <p className="muted small">
-                          {m.email || "—"} {m.phone ? `· ${m.phone}` : ""}
+                          {m.email || tr("—")} {m.phone ? `· ${m.phone}` : ""}
                         </p>
                       </div>
                     </div>
                     <div className="course-actions">
                       {m.isActivated === false ? (
-                        <span className="meta-pill meta-pill--muted">غير مُفعّل</span>
+                        <span className="meta-pill meta-pill--muted">{tr("غير مُفعّل")}</span>
                       ) : m.isSuspended ? (
-                        <span className="meta-pill meta-pill--warn">موقوف</span>
+                        <span className="meta-pill meta-pill--warn">{tr("موقوف")}</span>
                       ) : (
-                        <span className="meta-pill meta-pill--ok">مفعّل</span>
+                        <span className="meta-pill meta-pill--ok">{tr("مفعّل")}</span>
                       )}
                       <button type="button" className="ghost-btn toolbar-btn" onClick={() => void removeMember(m.uid)} disabled={busy}>
-                        إزالة
+                        {tr("إزالة")}
                       </button>
                     </div>
                   </ContentListItem>
@@ -704,29 +706,29 @@ export function AdminFolderViewPage() {
             </PageToolbar>
             {!loading ? (
               <div className="grid-2 home-stats-grid">
-                <StatTile title="الطلبات" highlight={requests.length} />
-                <StatTile title="النتائج" highlight={visibleRequests.length} />
+                <StatTile title={tr("الطلبات")} highlight={requests.length} />
+                <StatTile title={tr("النتائج")} highlight={visibleRequests.length} />
               </div>
             ) : null}
             {visibleRequests.length === 0 ? (
-              <EmptyState message="لا توجد طلبات لهذا المجلد." />
+              <EmptyState message={tr("لا توجد طلبات لهذا المجلد.")} />
             ) : (
               <ContentList>
                 {visibleRequests.map((r) => (
                   <ContentListItem key={r.id} className="user-row">
                     <div>
                       <h3 className="post-title">{r.studentName || r.studentId}</h3>
-                      <p className="muted small">{r.studentEmail || "—"} {r.studentPhone ? `· ${r.studentPhone}` : ""}</p>
-                      <p className="muted small">الحالة: {r.status}</p>
+                      <p className="muted small">{r.studentEmail || tr("—")} {r.studentPhone ? `· ${r.studentPhone}` : ""}</p>
+                      <p className="muted small">{tr("الحالة")}: {r.status}</p>
                     </div>
                     <div className="course-actions">
                       {r.status === "pending" ? (
                         <>
                           <button type="button" className="primary-btn toolbar-btn" onClick={() => openApproveRequest(r)} disabled={busy}>
-                            قبول
+                            {tr("قبول")}
                           </button>
                           <button type="button" className="ghost-btn toolbar-btn" onClick={() => void rejectRequest(r)} disabled={busy}>
-                            رفض
+                            {tr("رفض")}
                           </button>
                         </>
                       ) : (
@@ -743,22 +745,22 @@ export function AdminFolderViewPage() {
         </>
       )}
 
-      <AppModal open={memberModalOpen} title="إضافة عضو للمجلد" onClose={() => (busy ? null : setMemberModalOpen(false))}>
+      <AppModal open={memberModalOpen} title={tr("إضافة عضو للمجلد")} onClose={() => (busy ? null : setMemberModalOpen(false))}>
         <div className="course-form-modal__form">
           <label className="muted small" htmlFor="memberSearch">
-            بحث عن طالب لإضافته
+            {tr("بحث عن طالب لإضافته")}
           </label>
           <input
             id="memberSearch"
             className="text-input"
             value={memberSearch}
             onChange={(e) => setMemberSearch(e.target.value)}
-            placeholder="اكتب الاسم/البريد/الجوال/المعرّف"
+            placeholder={tr("اكتب الاسم/البريد/الجوال/المعرّف")}
           />
 
           <div className="form-row-2">
             <label className="muted small">
-              <input type="checkbox" checked={activationLifetime} onChange={(e) => setActivationLifetime(e.target.checked)} /> تفعيل مدى الحياة
+              <input type="checkbox" checked={activationLifetime} onChange={(e) => setActivationLifetime(e.target.checked)} /> {tr("تفعيل مدى الحياة")}
             </label>
             {!activationLifetime ? (
               <input
@@ -767,15 +769,15 @@ export function AdminFolderViewPage() {
                 min={1}
                 value={activationDays}
                 onChange={(e) => setActivationDays(Number(e.target.value || 30))}
-                aria-label="أيام التفعيل"
+                aria-label={tr("أيام التفعيل")}
               />
             ) : (
-              <span className="muted small">—</span>
+              <span className="muted small">{tr("—")}</span>
             )}
           </div>
 
           {visibleStudentsToAdd.length === 0 ? (
-            <EmptyState message="لا توجد نتائج لإضافتها." />
+            <EmptyState message={tr("لا توجد نتائج لإضافتها.")} />
           ) : (
             <ContentList>
               {visibleStudentsToAdd.slice(0, 30).map((s) => (
@@ -785,7 +787,7 @@ export function AdminFolderViewPage() {
                       photoURL={s.photoURL}
                       displayName={s.displayName}
                       email={s.email}
-                      alt={s.displayName || "طالب"}
+                      alt={s.displayName || tr("طالب")}
                       imageClassName="user-avatar topbar-avatar"
                       fallbackClassName="user-avatar-fallback topbar-avatar"
                       size={40}
@@ -793,12 +795,12 @@ export function AdminFolderViewPage() {
                     <div style={{ minWidth: 0 }}>
                       <h4 className="post-title">{s.displayName || s.uid}</h4>
                       <p className="muted small">
-                        {s.email || "—"} {s.phone ? `· ${s.phone}` : ""}
+                        {s.email || tr("—")} {s.phone ? `· ${s.phone}` : ""}
                       </p>
                     </div>
                   </div>
                   <button type="button" className="primary-btn toolbar-btn" onClick={() => void addMember(s)} disabled={busy}>
-                    <ButtonBusyLabel busy={busy}>إضافة</ButtonBusyLabel>
+                    <ButtonBusyLabel busy={busy}>{tr("إضافة")}</ButtonBusyLabel>
                   </button>
                 </ContentListItem>
               ))}
@@ -807,52 +809,52 @@ export function AdminFolderViewPage() {
 
           <div className="course-actions">
             <button type="button" className="ghost-btn" onClick={() => setMemberModalOpen(false)} disabled={busy}>
-              إغلاق
+              {tr("إغلاق")}
             </button>
           </div>
         </div>
       </AppModal>
 
-      <AppModal open={uploadModalOpen} title="رفع ملف للمجلد" onClose={() => (busy ? null : setUploadModalOpen(false))}>
+      <AppModal open={uploadModalOpen} title={tr("رفع ملف للمجلد")} onClose={() => (busy ? null : setUploadModalOpen(false))}>
         <div className="course-form-modal__form">
           <label className="muted small" htmlFor="uploadName">
-            اسم الملف (اختياري)
+            {tr("اسم الملف (اختياري)")}
           </label>
-          <input id="uploadName" className="text-input" value={uploadName} onChange={(e) => setUploadName(e.target.value)} placeholder="اتركه ليأخذ اسم الملف" />
+          <input id="uploadName" className="text-input" value={uploadName} onChange={(e) => setUploadName(e.target.value)} placeholder={tr("اتركه ليأخذ اسم الملف")} />
 
           <label className="muted small" htmlFor="uploadType">
-            النوع
+            {tr("النوع")}
           </label>
           <select id="uploadType" className="select" value={uploadType} onChange={(e) => setUploadType(e.target.value as FolderFile["fileType"])}>
             <option value="pdf">PDF</option>
-            <option value="image">صورة</option>
-            <option value="video">فيديو</option>
-            <option value="audio">صوت</option>
-            <option value="doc">مستند</option>
-            <option value="other">أخرى</option>
+            <option value="image">{tr("صورة")}</option>
+            <option value="video">{tr("فيديو")}</option>
+            <option value="audio">{tr("صوت")}</option>
+            <option value="doc">{tr("مستند")}</option>
+            <option value="other">{tr("أخرى")}</option>
           </select>
 
           <input ref={fileInputRef} type="file" />
 
           <div className="course-actions">
             <button type="button" className="ghost-btn" onClick={() => setUploadModalOpen(false)} disabled={busy}>
-              إلغاء
+              {tr("إلغاء")}
             </button>
             <button type="button" className="primary-btn" onClick={() => void uploadFile()} disabled={busy || !user}>
-              <ButtonBusyLabel busy={busy}>رفع</ButtonBusyLabel>
+              <ButtonBusyLabel busy={busy}>{tr("رفع")}</ButtonBusyLabel>
             </button>
           </div>
         </div>
       </AppModal>
 
-      <AppModal open={activationReqOpen} title="قبول طلب الانضمام" onClose={() => (busy ? null : setActivationReqOpen(false))}>
+      <AppModal open={activationReqOpen} title={tr("قبول طلب الانضمام")} onClose={() => (busy ? null : setActivationReqOpen(false))}>
         <div className="course-form-modal__form">
           <p className="muted small">
-            الطالب: <strong>{activationReqTarget?.studentName || "—"}</strong>
+            {tr("الطالب")}: <strong>{activationReqTarget?.studentName || tr("—")}</strong>
           </p>
           <div className="form-row-2">
             <label className="muted small">
-              <input type="checkbox" checked={activationLifetime} onChange={(e) => setActivationLifetime(e.target.checked)} /> تفعيل مدى الحياة
+              <input type="checkbox" checked={activationLifetime} onChange={(e) => setActivationLifetime(e.target.checked)} /> {tr("تفعيل مدى الحياة")}
             </label>
             {!activationLifetime ? (
               <input
@@ -861,18 +863,18 @@ export function AdminFolderViewPage() {
                 min={1}
                 value={activationDays}
                 onChange={(e) => setActivationDays(Number(e.target.value || 30))}
-                aria-label="أيام التفعيل"
+                aria-label={tr("أيام التفعيل")}
               />
             ) : (
-              <span className="muted small">—</span>
+              <span className="muted small">{tr("—")}</span>
             )}
           </div>
           <div className="course-actions">
             <button type="button" className="ghost-btn" onClick={() => setActivationReqOpen(false)} disabled={busy}>
-              إلغاء
+              {tr("إلغاء")}
             </button>
             <button type="button" className="primary-btn" onClick={() => void approveRequest()} disabled={busy}>
-              <ButtonBusyLabel busy={busy}>تأكيد القبول</ButtonBusyLabel>
+              <ButtonBusyLabel busy={busy}>{tr("تأكيد القبول")}</ButtonBusyLabel>
             </button>
           </div>
         </div>

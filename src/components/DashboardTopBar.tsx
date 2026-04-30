@@ -4,13 +4,16 @@ import { Link, useNavigate } from "react-router-dom";
 import { ButtonBusyLabel } from "./ButtonBusyLabel";
 import { Avatar } from "./ui";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import { authService } from "../services/authService";
 import { coursesService } from "../services/coursesService";
 import { notificationsService } from "../services/notificationsService";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import type { UserRole } from "../types";
 
 export function DashboardTopBar({ role }: { role: UserRole }) {
   const { user, ready } = useAuth();
+  const { tr } = useI18n();
   const navigate = useNavigate();
   const base = role === "admin" ? "/admin" : "/student";
   const [unread, setUnread] = useState(0);
@@ -100,12 +103,13 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
     return null;
   }
 
-  const name = user.displayName || user.email || "مستخدم";
+  const name = user.displayName || user.email || tr("مستخدم");
   const photo = user.photoURL;
 
   return (
-    <header className="dashboard-topbar" dir="rtl">
+    <header className="dashboard-topbar">
       <div className="topbar-trailing">
+        <LanguageSwitcher />
         <div className="user-menu-wrap" ref={menuRef}>
           <button
             type="button"
@@ -133,7 +137,7 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
                 role="menuitem"
                 onClick={() => setMenuOpen(false)}
               >
-                الملف الشخصي
+                {tr("الملف الشخصي")}
               </Link>
               <Link
                 to={`${base}/settings`}
@@ -141,7 +145,7 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
                 role="menuitem"
                 onClick={() => setMenuOpen(false)}
               >
-                الإعدادات
+                {tr("الإعدادات")}
               </Link>
               <Link
                 to={`${base}/notifications`}
@@ -149,7 +153,7 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
                 role="menuitem"
                 onClick={() => setMenuOpen(false)}
               >
-                الإشعارات
+                {tr("الإشعارات")}
               </Link>
               <button
                 type="button"
@@ -159,7 +163,7 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
                 aria-busy={loggingOut}
                 onClick={() => void onLogout()}
               >
-                <ButtonBusyLabel busy={loggingOut}>تسجيل الخروج</ButtonBusyLabel>
+                <ButtonBusyLabel busy={loggingOut}>{tr("تسجيل الخروج")}</ButtonBusyLabel>
               </button>
             </div>
           ) : null}
@@ -168,8 +172,8 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
         <Link
           to={`${base}/notifications`}
           className="topbar-notif-btn"
-          title="الإشعارات"
-          aria-label="الإشعارات"
+          title={tr("الإشعارات")}
+          aria-label={tr("الإشعارات")}
         >
           <span className="topbar-notif-icon-wrap">
             <IoNotificationsOutline className="topbar-notif-icon" />
@@ -179,11 +183,11 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
         <Link
           to={role === "admin" ? "/admin/enrollment-requests" : "/student/enrollment-requests"}
           className="topbar-notif-btn"
-          title={role === "admin" ? "طلبات الالتحاق" : "طلباتي"}
-          aria-label={role === "admin" ? "طلبات الالتحاق" : "طلباتي"}
+          title={role === "admin" ? tr("طلبات الالتحاق") : tr("طلباتي")}
+          aria-label={role === "admin" ? tr("طلبات الالتحاق") : tr("طلباتي")}
         >
           <span className="topbar-notif-icon-wrap topbar-notif-icon-wrap--text">
-            <span className="topbar-mini-label">{role === "admin" ? "طلبات" : "طلباتي"}</span>
+            <span className="topbar-mini-label">{role === "admin" ? tr("طلبات") : tr("طلباتي")}</span>
             {pendingEnrollments > 0 ? (
               <span className="notif-badge">{pendingEnrollments > 99 ? "99+" : pendingEnrollments}</span>
             ) : null}

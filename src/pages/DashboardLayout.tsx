@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { IoCloseOutline, IoMenuOutline } from "react-icons/io5";
 import { Link, useLocation } from "react-router-dom";
 import { DashboardTopBar } from "../components/DashboardTopBar";
+import { useI18n } from "../context/I18nContext";
 import type { UserRole } from "../types";
 
 interface DashboardLayoutProps {
@@ -13,6 +14,7 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ role, title, lede, children }: DashboardLayoutProps) {
+  const { tr } = useI18n();
   const base = role === "admin" ? "/admin" : "/student";
   const location = useLocation();
   const [navOpen, setNavOpen] = useState(false);
@@ -42,73 +44,73 @@ export function DashboardLayout({ role, title, lede, children }: DashboardLayout
           onClick={() => setNavOpen(false)}
         />
       ) : null}
-      <aside className="sidebar" aria-label="قائمة التنقل">
+      <aside className="sidebar" aria-label={tr("قائمة التنقل")}>
         <div className="sidebar-top">
           <button
             type="button"
             className="sidebar-close-btn"
             onClick={() => setNavOpen(false)}
-            aria-label="إغلاق القائمة"
+            aria-label={tr("إغلاق القائمة")}
           >
             <IoCloseOutline size={24} />
           </button>
         </div>
         <p className="badge">{role === "admin" ? "Admin" : "Student"}</p>
-        <h3>المنصة الموحدة</h3>
+        <h3>{tr("المنصة الموحدة")}</h3>
         <nav className="nav-list">
           <Link to={base} onClick={() => setNavOpen(false)}>
-            الرئيسية
+            {tr("الرئيسية")}
           </Link>
           {role === "admin" ? (
             <Link to="/admin/admins" onClick={() => setNavOpen(false)}>
-              المشرفون
+              {tr("المشرفون")}
             </Link>
           ) : null}
           {role === "admin" ? (
             <Link to="/admin/students" onClick={() => setNavOpen(false)}>
-              الطلاب
+              {tr("الطلاب")}
             </Link>
           ) : null}
           <Link to={`${base}/courses`} onClick={() => setNavOpen(false)}>
-            الدورات
+            {tr("الدورات")}
           </Link>
           {role === "admin" ? (
             <Link to="/admin/folders" onClick={() => setNavOpen(false)}>
-              المجلدات
+              {tr("المجلدات")}
             </Link>
           ) : null}
           {role === "admin" ? (
             <Link to="/admin/enrollment-requests" onClick={() => setNavOpen(false)}>
-              طلبات الالتحاق
+              {tr("طلبات الالتحاق")}
             </Link>
           ) : null}
           {role === "student" ? (
             <>
               <Link to="/student/mycourses" onClick={() => setNavOpen(false)}>
-                مقرراتي
+                {tr("مقرراتي")}
               </Link>
               <Link to="/student/myfiles" onClick={() => setNavOpen(false)}>
-                ملفاتي
+                {tr("ملفاتي")}
               </Link>
               <Link to="/student/explore" onClick={() => setNavOpen(false)}>
-                الاستكشاف
+                {tr("الاستكشاف")}
               </Link>
               <Link to="/student/enrollment-requests" onClick={() => setNavOpen(false)}>
-                طلباتي
+                {tr("طلباتي")}
               </Link>
             </>
           ) : null}
           <Link to={`${base}/posts`} onClick={() => setNavOpen(false)}>
-            المنشورات
+            {tr("المنشورات")}
           </Link>
           <Link to={`${base}/notifications`} onClick={() => setNavOpen(false)}>
-            الإشعارات
+            {tr("الإشعارات")}
           </Link>
           <Link to={`${base}/settings`} onClick={() => setNavOpen(false)}>
-            الإعدادات
+            {tr("الإعدادات")}
           </Link>
         </nav>
-        <p className="muted small sidebar-hint">الملف والجلسة من الشريط العلوي</p>
+        <p className="muted small sidebar-hint">{tr("الملف والجلسة من الشريط العلوي")}</p>
       </aside>
 
       <div className="dashboard-main">
@@ -117,7 +119,7 @@ export function DashboardLayout({ role, title, lede, children }: DashboardLayout
             type="button"
             className="mobile-menu-btn"
             onClick={() => setNavOpen(true)}
-            aria-label="فتح القائمة"
+            aria-label={tr("فتح القائمة")}
             aria-expanded={navOpen}
           >
             <IoMenuOutline size={28} />

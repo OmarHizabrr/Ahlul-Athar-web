@@ -2,24 +2,26 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { AlertMessage, Avatar, ContentList, ContentListItem, EmptyState, PageToolbar, StatTile } from "../components/ui";
+import { useI18n } from "../context/I18nContext";
 import { DashboardLayout } from "./DashboardLayout";
 import { directoryService } from "../services/directoryService";
 import type { StudentRecord } from "../types";
 
-function statusPill(s: StudentRecord) {
+function statusPill(s: StudentRecord, tr: (text: string) => string) {
   if (s.isSuspended) {
-    return { text: "موقوف", cls: "meta-pill meta-pill--warn" };
+    return { text: tr("موقوف"), cls: "meta-pill meta-pill--warn" };
   }
   if (s.isActivated === false) {
-    return { text: "غير مُفعّل", cls: "meta-pill meta-pill--muted" };
+    return { text: tr("غير مُفعّل"), cls: "meta-pill meta-pill--muted" };
   }
   if (s.isActive === false) {
-    return { text: "غير نشط", cls: "meta-pill meta-pill--muted" };
+    return { text: tr("غير نشط"), cls: "meta-pill meta-pill--muted" };
   }
-  return { text: "نشط", cls: "meta-pill meta-pill--ok" };
+  return { text: tr("نشط"), cls: "meta-pill meta-pill--ok" };
 }
 
 export function AdminStudentsPage() {
+  const { tr } = useI18n();
   const [rows, setRows] = useState<StudentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export function AdminStudentsPage() {
       const data = await directoryService.listStudents();
       setRows(data);
     } catch {
-      setMessage("تعذر تحميل قائمة الطلاب. تحقق من صلاحيات Firestore.");
+      setMessage(tr("تعذر تحميل قائمة الطلاب. تحقق من صلاحيات Firestore."));
       setRows([]);
     } finally {
       setLoading(false);
@@ -85,56 +87,56 @@ export function AdminStudentsPage() {
       await directoryService.setStudentFlags(uid, flags);
       await load();
     } catch {
-      setMessage("تعذر تحديث حالة الطالب.");
+      setMessage(tr("تعذر تحديث حالة الطالب."));
     } finally {
       setBusyId(null);
     }
   };
 
   return (
-    <DashboardLayout role="admin" title="الطلاب" lede="قائمة الطلاب مع بحث وفلتر حالة — مكافئ لتبويب «الطلاب» في التطبيق." >
+    <DashboardLayout role="admin" title={tr("الطلاب")} lede={tr("قائمة الطلاب مع بحث وفلتر حالة — مكافئ لتبويب «الطلاب» في التطبيق.")} >
       <PageToolbar>
         <button type="button" className="ghost-btn toolbar-btn" onClick={() => void load()} disabled={loading} aria-busy={loading}>
-          تحديث
+          {tr("تحديث")}
         </button>
-        <select className="select" value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} aria-label="فلتر حالة الطالب">
-          <option value="all">كل الحالات</option>
-          <option value="active">النشطون</option>
-          <option value="inactive">غير نشط</option>
-          <option value="suspended">موقوف</option>
-          <option value="notActivated">غير مُفعّل</option>
+        <select className="select" value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} aria-label={tr("فلتر حالة الطالب")}>
+          <option value="all">{tr("كل الحالات")}</option>
+          <option value="active">{tr("النشطون")}</option>
+          <option value="inactive">{tr("غير نشط")}</option>
+          <option value="suspended">{tr("موقوف")}</option>
+          <option value="notActivated">{tr("غير مُفعّل")}</option>
         </select>
-        <select className="select" value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} aria-label="ترتيب الطلاب">
-          <option value="name">ترتيب: الاسم</option>
-          <option value="date">ترتيب: الأحدث</option>
+        <select className="select" value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} aria-label={tr("ترتيب الطلاب")}>
+          <option value="name">{tr("ترتيب: الاسم")}</option>
+          <option value="date">{tr("ترتيب: الأحدث")}</option>
         </select>
-        <select className="select" value={sortDir} onChange={(e) => setSortDir(e.target.value as typeof sortDir)} aria-label="اتجاه الترتيب">
-          <option value="asc">تصاعدي</option>
-          <option value="desc">تنازلي</option>
+        <select className="select" value={sortDir} onChange={(e) => setSortDir(e.target.value as typeof sortDir)} aria-label={tr("اتجاه الترتيب")}>
+          <option value="asc">{tr("تصاعدي")}</option>
+          <option value="desc">{tr("تنازلي")}</option>
         </select>
         <input
           className="text-input"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="بحث بالاسم/البريد/الجوال/المعرّف"
-          aria-label="بحث في الطلاب"
+          placeholder={tr("بحث بالاسم/البريد/الجوال/المعرّف")}
+          aria-label={tr("بحث في الطلاب")}
         />
       </PageToolbar>
       {message ? <AlertMessage kind="error">{message}</AlertMessage> : null}
       {!loading ? (
         <div className="grid-2 home-stats-grid">
-          <StatTile title="الإجمالي" highlight={rows.length} />
-          <StatTile title="النتائج" highlight={visible.length} />
+          <StatTile title={tr("الإجمالي")} highlight={rows.length} />
+          <StatTile title={tr("النتائج")} highlight={visible.length} />
         </div>
       ) : null}
       {loading ? (
         <PageLoadHint />
       ) : visible.length === 0 ? (
-        <EmptyState message="لا توجد نتائج مطابقة." />
+        <EmptyState message={tr("لا توجد نتائج مطابقة.")} />
       ) : (
         <ContentList>
           {visible.map((s) => {
-            const pill = statusPill(s);
+            const pill = statusPill(s, tr);
             return (
               <ContentListItem key={s.uid} className="user-row">
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", minWidth: 0 }}>
@@ -142,7 +144,7 @@ export function AdminStudentsPage() {
                     photoURL={s.photoURL}
                     displayName={s.displayName}
                     email={s.email}
-                    alt={s.displayName || "طالب"}
+                    alt={s.displayName || tr("طالب")}
                     imageClassName="user-avatar topbar-avatar"
                     fallbackClassName="user-avatar-fallback topbar-avatar"
                     size={40}
@@ -150,7 +152,7 @@ export function AdminStudentsPage() {
                   <div style={{ minWidth: 0 }}>
                     <h3 className="post-title">{s.displayName || s.uid}</h3>
                     <p className="muted small">
-                      {s.email || "—"} {s.phone ? `· ${s.phone}` : ""}
+                      {s.email || tr("—")} {s.phone ? `· ${s.phone}` : ""}
                     </p>
                   </div>
                 </div>
@@ -162,7 +164,7 @@ export function AdminStudentsPage() {
                     disabled={busyId === s.uid || loading}
                     onClick={() => void patchFlags(s.uid, { isSuspended: !Boolean(s.isSuspended), isActive: true })}
                   >
-                    <ButtonBusyLabel busy={busyId === s.uid}>{s.isSuspended ? "رفع الإيقاف" : "إيقاف"}</ButtonBusyLabel>
+                    <ButtonBusyLabel busy={busyId === s.uid}>{s.isSuspended ? tr("رفع الإيقاف") : tr("إيقاف")}</ButtonBusyLabel>
                   </button>
                   <button
                     type="button"
@@ -170,10 +172,10 @@ export function AdminStudentsPage() {
                     disabled={busyId === s.uid || loading}
                     onClick={() => void patchFlags(s.uid, { isActivated: s.isActivated === false })}
                   >
-                    <ButtonBusyLabel busy={busyId === s.uid}>{s.isActivated === false ? "تفعيل" : "تعطيل"}</ButtonBusyLabel>
+                    <ButtonBusyLabel busy={busyId === s.uid}>{s.isActivated === false ? tr("تفعيل") : tr("تعطيل")}</ButtonBusyLabel>
                   </button>
                   <Link className="ghost-btn toolbar-btn" to={`/admin/student/${s.uid}`}>
-                    فتح الملف
+                    {tr("فتح الملف")}
                   </Link>
                 </div>
               </ContentListItem>

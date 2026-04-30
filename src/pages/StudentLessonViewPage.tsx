@@ -4,6 +4,7 @@ import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { LessonContentView } from "../components/LessonContentView";
 import { useIsAdminPreview } from "../context/AdminPreviewContext";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import {
   canStudentOpenLesson,
   getLessonQuizzesForAdminPreview,
@@ -34,6 +35,7 @@ export function StudentLessonViewPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [err, setErr] = useState("");
+  const { tr } = useI18n();
 
   const runLoad = useCallback(
     async (mode: "initial" | "refresh") => {
@@ -53,7 +55,7 @@ export function StudentLessonViewPage() {
           const qz = await getLessonQuizzesForAdminPreview(lessonId);
           setQuizzes(qz);
         } catch {
-          setErr("تعذر تحميل الدرس (صلاحيات أو الدرس غير موجود).");
+          setErr(tr("تعذر تحميل الدرس (صلاحيات أو الدرس غير موجود)."));
           setLesson(null);
           setQuizzes([]);
         } finally {
@@ -67,7 +69,7 @@ export function StudentLessonViewPage() {
       }
       const ok = await isStudentEnrolledInCourse(user.uid, courseId);
       if (!ok) {
-        setErr("ليس لديك صلاحية لعرض دروس هذا المقرر.");
+        setErr(tr("ليس لديك صلاحية لعرض دروس هذا المقرر."));
         setLesson(null);
         setQuizzes([]);
         if (mode === "initial") {
@@ -79,7 +81,7 @@ export function StudentLessonViewPage() {
       }
       const access = await canStudentOpenLesson(user.uid, courseId, lessonId);
       if (!access.ok) {
-        setErr(access.message ?? "لا يمكن فتح هذا الدرس.");
+          setErr(access.message ?? tr("لا يمكن فتح هذا الدرس."));
         setLesson(null);
         setQuizzes([]);
         if (mode === "initial") {
@@ -95,7 +97,7 @@ export function StudentLessonViewPage() {
         const qz = await getLessonQuizzesForStudent(user.uid, lessonId);
         setQuizzes(qz);
       } catch {
-        setErr("تعذر تحميل الدرس (صلاحيات أو الدرس غير موجود).");
+        setErr(tr("تعذر تحميل الدرس (صلاحيات أو الدرس غير موجود)."));
         setLesson(null);
         setQuizzes([]);
       } finally {
@@ -132,8 +134,8 @@ export function StudentLessonViewPage() {
 
   if (!ready) {
     return (
-      <DashboardLayout role={layoutRole} title="درس" lede={undefined}>
-        <PageLoadHint text="جاري التهيئة..." />
+      <DashboardLayout role={layoutRole} title={tr("درس")} lede={undefined}>
+        <PageLoadHint text={tr("جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -148,23 +150,23 @@ export function StudentLessonViewPage() {
       title={
         isAdminPreview
           ? lesson?.title
-            ? `معاينة: ${lesson.title}`
-            : "معاينة درس"
-          : (lesson?.title ?? (loading ? "…" : "درس"))
+            ? `${tr("معاينة")}: ${lesson.title}`
+            : tr("معاينة درس")
+          : (lesson?.title ?? (loading ? "…" : tr("درس")))
       }
-      lede={isAdminPreview ? "معاينة واجهة الطالب (مشرف)." : undefined}
+      lede={isAdminPreview ? tr("معاينة واجهة الطالب (مشرف).") : undefined}
     >
       {isAdminPreview ? (
         <p className="admin-preview-banner" role="status">
-          <strong>معاينة واجهة الطالب</strong> —{" "}
+          <strong>{tr("معاينة واجهة الطالب")}</strong> —{" "}
           <Link to={`/admin/course/${courseId}/lessons`} className="inline-link">
-            إدارة الدروس
+            {tr("إدارة الدروس")}
           </Link>
         </p>
       ) : null}
       <p className="lesson-back">
         <Link to={courseListHref} className="inline-link">
-          ← العودة لقائمة دروس المقرر
+          {tr("← العودة لقائمة دروس المقرر")}
         </Link>
       </p>
       {loading ? (
@@ -172,7 +174,7 @@ export function StudentLessonViewPage() {
       ) : err ? (
         <AlertMessage kind="error">{err}</AlertMessage>
       ) : !lesson ? (
-        <EmptyState message="الدرس غير موجود أو أُزيل." />
+        <EmptyState message={tr("الدرس غير موجود أو أُزيل.")} />
       ) : (
         <StudentLessonBody
           courseId={courseId}
@@ -203,6 +205,7 @@ function StudentLessonBody({
   refreshing: boolean;
 }) {
   const { user } = useAuth();
+  const { tr } = useI18n();
   const isAdminPreview = useIsAdminPreview();
   const viewRoot = isAdminPreview ? "/admin/preview" : "/student";
   const ct = lesson.contentType?.trim().toLowerCase() ?? "";
@@ -215,9 +218,9 @@ function StudentLessonBody({
   const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   const mediaItems = [
-    { key: "video", label: "فيديو", value: lesson.videoUrl },
+    { key: "video", label: tr("فيديو"), value: lesson.videoUrl },
     { key: "pdf", label: "PDF", value: lesson.pdfUrl },
-    { key: "audio", label: "صوت", value: lesson.audioUrl },
+    { key: "audio", label: tr("صوت"), value: lesson.audioUrl },
   ].filter((x) => Boolean(x.value && String(x.value).trim()));
 
   const loadComments = useCallback(async () => {
@@ -228,7 +231,7 @@ function StudentLessonBody({
       setComments(rows);
     } catch {
       setComments([]);
-      setCommentsError("تعذر تحميل التعليقات حالياً.");
+      setCommentsError(tr("تعذر تحميل التعليقات حالياً."));
     } finally {
       setCommentsLoading(false);
     }
@@ -251,7 +254,7 @@ function StudentLessonBody({
       setCommentBody("");
       await loadComments();
     } catch {
-      setCommentsError("تعذر إرسال التعليق. تحقق من الاتصال ثم حاول مرة أخرى.");
+      setCommentsError(tr("تعذر إرسال التعليق. تحقق من الاتصال ثم حاول مرة أخرى."));
     } finally {
       setCommentSubmitting(false);
     }
@@ -267,7 +270,7 @@ function StudentLessonBody({
           disabled={refreshing}
           aria-busy={refreshing}
         >
-          <ButtonBusyLabel busy={refreshing}>تحديث</ButtonBusyLabel>
+          <ButtonBusyLabel busy={refreshing}>{tr("تحديث")}</ButtonBusyLabel>
         </button>
       </PageToolbar>
 
@@ -285,17 +288,17 @@ function StudentLessonBody({
         ) : null}
         <div className="lesson-hero-inner">
           {lesson.description ? <p className="lesson-hero-sub">{lesson.description}</p> : null}
-          <div className="lesson-chips" aria-label="معلومات الدرس">
+          <div className="lesson-chips" aria-label={tr("معلومات الدرس")}>
             {typeLabel ? (
-              <span className="meta-pill meta-pill--info" title="نوع المحتوى">
-                {typeLabel}
+              <span className="meta-pill meta-pill--info" title={tr("نوع المحتوى")}>
+                {typeLabel ? tr(typeLabel) : typeLabel}
               </span>
             ) : null}
-            {lesson.duration != null ? <span className="meta-pill meta-pill--muted">{lesson.duration} دقيقة</span> : null}
-            {lesson.difficulty ? <span className="meta-pill meta-pill--muted">{lesson.difficulty}</span> : null}
+            {lesson.duration != null ? <span className="meta-pill meta-pill--muted">{lesson.duration} {tr("دقيقة")}</span> : null}
+            {lesson.difficulty ? <span className="meta-pill meta-pill--muted">{tr(lesson.difficulty)}</span> : null}
             {lesson.hasMandatoryQuiz ? (
-              <span className="meta-pill meta-pill--ok" title="للمتابعة إلى الدرس التالي">
-                اختبار إجباري
+              <span className="meta-pill meta-pill--ok" title={tr("للمتابعة إلى الدرس التالي")}>
+                {tr("اختبار إجباري")}
               </span>
             ) : null}
           </div>
@@ -308,19 +311,19 @@ function StudentLessonBody({
 
       {lesson.hasMandatoryQuiz ? (
         <p className="lesson-mandatory-hint muted small" role="note">
-          قد يُطلب اجتياز اختبار هذا الدرس حسب إعدادات المقرر للانتقال للدرس التالي.
+          {tr("قد يُطلب اجتياز اختبار هذا الدرس حسب إعدادات المقرر للانتقال للدرس التالي.")}
         </p>
       ) : null}
       <AppTabs
         groupId={`lesson-${lessonId}`}
-        ariaLabel="أقسام الدرس"
+        ariaLabel={tr("أقسام الدرس")}
         value={activeTab}
         onChange={(id) => setActiveTab(id as "view" | "attachments" | "comments" | "quizzes")}
         tabs={[
-          { id: "view" as const, label: "المشاهدة" },
-          { id: "attachments" as const, label: "المرفقات" },
-          { id: "comments" as const, label: "التعليقات" },
-          { id: "quizzes" as const, label: "الاختبارات" },
+          { id: "view" as const, label: tr("المشاهدة") },
+          { id: "attachments" as const, label: tr("المرفقات") },
+          { id: "comments" as const, label: tr("التعليقات") },
+          { id: "quizzes" as const, label: tr("الاختبارات") },
         ]}
       />
 
@@ -334,16 +337,16 @@ function StudentLessonBody({
       </AppTabPanel>
 
       <AppTabPanel tabId="attachments" groupId={`lesson-${lessonId}`} hidden={activeTab !== "attachments"} className="lesson-tab-panel">
-          <SectionTitle as="h3">مرفقات الدرس</SectionTitle>
+          <SectionTitle as="h3">{tr("مرفقات الدرس")}</SectionTitle>
           {mediaItems.length === 0 ? (
-            <EmptyState message="لا توجد مرفقات مباشرة لهذا الدرس." />
+            <EmptyState message={tr("لا توجد مرفقات مباشرة لهذا الدرس.")} />
           ) : (
             <ul className="lesson-attachments-list">
               {mediaItems.map((m) => (
                 <li key={m.key} className="lesson-attachment-item">
                   <span className="meta-pill meta-pill--muted">{m.label}</span>
                   <a className="inline-link" href={String(m.value)} target="_blank" rel="noopener noreferrer">
-                    فتح المرفق
+                    {tr("فتح المرفق")}
                   </a>
                 </li>
               ))}
@@ -352,14 +355,14 @@ function StudentLessonBody({
       </AppTabPanel>
 
       <AppTabPanel tabId="comments" groupId={`lesson-${lessonId}`} hidden={activeTab !== "comments"} className="lesson-tab-panel">
-          <SectionTitle as="h3">تعليقات الدرس</SectionTitle>
+          <SectionTitle as="h3">{tr("تعليقات الدرس")}</SectionTitle>
           <div className="lesson-comment-box">
             <textarea
               className="text-input textarea"
               rows={3}
               value={commentBody}
               onChange={(e) => setCommentBody(e.target.value)}
-              placeholder="اكتب تعليقك هنا..."
+              placeholder={tr("اكتب تعليقك هنا...")}
             />
             <button
               type="button"
@@ -368,15 +371,15 @@ function StudentLessonBody({
               disabled={commentSubmitting || !commentBody.trim()}
               aria-busy={commentSubmitting}
             >
-              <ButtonBusyLabel busy={commentSubmitting}>إرسال التعليق</ButtonBusyLabel>
+              <ButtonBusyLabel busy={commentSubmitting}>{tr("إرسال التعليق")}</ButtonBusyLabel>
             </button>
           </div>
           {commentsLoading ? (
-            <PageLoadHint text="جاري تحميل التعليقات..." />
+            <PageLoadHint text={tr("جاري تحميل التعليقات...")} />
           ) : commentsError ? (
             <AlertMessage kind="error">{commentsError}</AlertMessage>
           ) : comments.length === 0 ? (
-            <EmptyState message="لا توجد تعليقات بعد." />
+            <EmptyState message={tr("لا توجد تعليقات بعد.")} />
           ) : (
             <ul className="lesson-comments-list">
               {comments.map((c) => (
@@ -392,7 +395,7 @@ function StudentLessonBody({
       </AppTabPanel>
 
       <AppTabPanel tabId="quizzes" groupId={`lesson-${lessonId}`} hidden={activeTab !== "quizzes"} className="lesson-quiz-section lesson-tab-panel">
-          <SectionTitle as="h3">اختبارات الدرس</SectionTitle>
+          <SectionTitle as="h3">{tr("اختبارات الدرس")}</SectionTitle>
           {quizzes.length > 0 ? (
             <ul className="lesson-quiz-list">
               {quizzes.map((q) => (
@@ -401,23 +404,23 @@ function StudentLessonBody({
                     <span className="lesson-quiz-title">{q.title}</span>
                     <span className="lesson-quiz-pill" data-st={q.status === "none" ? "none" : q.status}>
                       {q.status === "graded"
-                        ? "مُتاح / مقيّم"
+                        ? tr("مُتاح / مقيّم")
                         : q.status === "pending"
-                          ? "مُرسل — بانتظار التصحيح"
-                          : "لم يُرسل بعد"}
+                          ? tr("مُرسل — بانتظار التصحيح")
+                          : tr("لم يُرسل بعد")}
                     </span>
                     <Link
                       className="ghost-btn"
                       to={`${viewRoot}/course/${courseId}/lesson/${lessonId}/quiz/${q.quizFileId}`}
                     >
-                      فتح الاختبار
+                      {tr("فتح الاختبار")}
                     </Link>
                   </div>
                 </li>
               ))}
             </ul>
           ) : (
-            <EmptyState message="لا توجد اختبارات لهذا الدرس بعد." />
+            <EmptyState message={tr("لا توجد اختبارات لهذا الدرس بعد.")} />
           )}
       </AppTabPanel>
     </article>

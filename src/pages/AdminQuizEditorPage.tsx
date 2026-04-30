@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import {
   adminAddQuestion,
   adminDeleteQuestion,
@@ -48,12 +49,12 @@ function parseOptionLines(s: string): string[] {
     .filter((x) => x.length > 0);
 }
 
-function formatAnswerPreview(v: unknown): string {
+function formatAnswerPreview(v: unknown, tr: (text: string) => string): string {
   if (typeof v === "boolean") {
-    return v ? "صح" : "خطأ";
+    return v ? tr("صح") : tr("خطأ");
   }
   if (v == null) {
-    return "—";
+    return tr("—");
   }
   return String(v);
 }
@@ -87,6 +88,7 @@ export function AdminQuizEditorPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [metaModalOpen, setMetaModalOpen] = useState(false);
   const [questionModalOpen, setQuestionModalOpen] = useState(false);
+  const { tr } = useI18n();
 
   const load = useCallback(async () => {
     if (!courseId || !lessonId || !quizId) {
@@ -101,7 +103,7 @@ export function AdminQuizEditorPage() {
       if (qd == null) {
         setQuiz(null);
         setQuestions([]);
-        setMessage("الاختبار غير موجود.");
+        setMessage(tr("الاختبار غير موجود."));
         setIsError(true);
         return;
       }
@@ -129,7 +131,7 @@ export function AdminQuizEditorPage() {
       }
       setScoreDraft(draft);
     } catch {
-      setMessage("تعذر التحميل.");
+      setMessage(tr("تعذر التحميل."));
       setIsError(true);
       setQuestions([]);
       setSubmissions([]);
@@ -172,7 +174,7 @@ export function AdminQuizEditorPage() {
       return;
     }
     if (metaHasSched && (!metaSchedStart.trim() || !metaSchedEnd.trim())) {
-      setMessage("عند تفعيل الجدولة: حدّد تاريخي البداية والنهاية.");
+      setMessage(tr("عند تفعيل الجدولة: حدّد تاريخي البداية والنهاية."));
       setIsError(true);
       return;
     }
@@ -187,15 +189,15 @@ export function AdminQuizEditorPage() {
         videoUrl: metaVideo,
         schedule: { hasScheduledTime: metaHasSched, start: metaSchedStart, end: metaSchedEnd },
       });
-      setMessage("تم حفظ بيانات الاختبار.");
+      setMessage(tr("تم حفظ بيانات الاختبار."));
       setIsError(false);
       await load();
       dispatchQuizUpdated();
     } catch (err) {
       setMessage(
         err instanceof Error && err.message === "invalid schedule"
-          ? "تعذر حفظ الجدولة. تحقق من التواريخ."
-          : "فشل حفظ بيانات الاختبار.",
+          ? tr("تعذر حفظ الجدولة. تحقق من التواريخ.")
+          : tr("فشل حفظ بيانات الاختبار."),
       );
       setIsError(true);
     } finally {
@@ -206,13 +208,13 @@ export function AdminQuizEditorPage() {
   const onSaveQuestion = async (e: FormEvent) => {
     e.preventDefault();
     if (!user || !qTitle.trim() || !qBody.trim()) {
-      setMessage("عنوان السؤال ونص السؤال مطلوبان.");
+      setMessage(tr("عنوان السؤال ونص السؤال مطلوبان."));
       setIsError(true);
       return;
     }
     const lines = parseOptionLines(qOpts);
     if (kind === "multiple_choice" && lines.length < 2) {
-      setMessage("للاختيار من متعدد أضف سطرين على الأقل (خيار لكل سطر).");
+      setMessage(tr("للاختيار من متعدد أضف سطرين على الأقل (خيار لكل سطر)."));
       setIsError(true);
       return;
     }
@@ -221,17 +223,17 @@ export function AdminQuizEditorPage() {
     try {
       if (editingId) {
         await adminUpdateQuestion(lessonId, quizId, user, editingId, kind, qTitle, qBody, lines);
-        setMessage("تم تحديث السؤال.");
+        setMessage(tr("تم تحديث السؤال."));
       } else {
         await adminAddQuestion(lessonId, quizId, user, kind, qTitle, qBody, lines);
-        setMessage("تمت إضافة السؤال.");
+        setMessage(tr("تمت إضافة السؤال."));
       }
       setIsError(false);
       resetQuestionForm();
       await load();
       dispatchQuizUpdated();
     } catch {
-      setMessage("فشل حفظ السؤال.");
+      setMessage(tr("فشل حفظ السؤال."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -242,7 +244,7 @@ export function AdminQuizEditorPage() {
     if (!user) {
       return;
     }
-    if (!window.confirm("حذف هذا السؤال وخياراته؟")) {
+    if (!window.confirm(tr("حذف هذا السؤال وخياراته؟"))) {
       return;
     }
     setSubmitting(true);
@@ -251,12 +253,12 @@ export function AdminQuizEditorPage() {
       if (editingId === Q.id) {
         resetQuestionForm();
       }
-      setMessage("تم حذف السؤال.");
+      setMessage(tr("تم حذف السؤال."));
       setIsError(false);
       await load();
       dispatchQuizUpdated();
     } catch {
-      setMessage("فشل الحذف.");
+      setMessage(tr("فشل الحذف."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -274,12 +276,12 @@ export function AdminQuizEditorPage() {
     const score = n != null && Number.isFinite(n) ? n : null;
     try {
       await adminGradeQuizAnswer(quizId, row.id, user, score);
-      setMessage("تم اعتماد التصحيح. تُقفل/تُفتح الدروس حسب منطق الاجتياز لدى الطالب.");
+      setMessage(tr("تم اعتماد التصحيح. تُقفل/تُفتح الدروس حسب منطق الاجتياز لدى الطالب."));
       setIsError(false);
       await load();
       dispatchQuizUpdated();
     } catch {
-      setMessage("تعذر حفظ التصحيح. تحقق من القواعد.");
+      setMessage(tr("تعذر حفظ التصحيح. تحقق من القواعد."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -287,19 +289,19 @@ export function AdminQuizEditorPage() {
   };
 
   const onReopen = async (row: AdminQuizAnswerRow) => {
-    if (!window.confirm(`إرجاع إجابة «${row.studentName}» إلى وضع «مُرسل»؟`)) {
+    if (!window.confirm(`${tr("إرجاع إجابة")} «${row.studentName}» ${tr("إلى وضع «مُرسل»؟")}`)) {
       return;
     }
     setSubmitting(true);
     setMessage("");
     try {
       await adminReopenQuizAnswer(quizId, row.id);
-      setMessage("أُعيدت الإجابة — يمكن للطالب الاطلاع وتحديثها إن سمحت القواعد.");
+      setMessage(tr("أُعيدت الإجابة — يمكن للطالب الاطلاع وتحديثها إن سمحت القواعد."));
       setIsError(false);
       await load();
       dispatchQuizUpdated();
     } catch {
-      setMessage("تعذر التحديث.");
+      setMessage(tr("تعذر التحديث."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -315,8 +317,8 @@ export function AdminQuizEditorPage() {
 
   if (!ready) {
     return (
-      <DashboardLayout role="admin" title="محرر الاختبار" lede={lede}>
-        <PageLoadHint text="جاري التهيئة..." />
+      <DashboardLayout role="admin" title={tr("محرر الاختبار")} lede={tr(lede)}>
+        <PageLoadHint text={tr("جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -325,22 +327,22 @@ export function AdminQuizEditorPage() {
   }
 
   return (
-    <DashboardLayout role="admin" title="محرر الاختبار" lede={lede}>
+    <DashboardLayout role="admin" title={tr("محرر الاختبار")} lede={tr(lede)}>
       <p className="admin-lessons-back-row">
         <Link to={`/admin/course/${courseId}/lessons/${lessonId}/quizzes`} className="inline-link">
-          ← اختبارات {lesson ? `«${lesson.title}»` : "الدرس"}
+          {tr("← اختبارات")} {lesson ? `«${lesson.title}»` : tr("الدرس")}
         </Link>
       </p>
       {loading ? (
         <PageLoadHint />
       ) : !quiz ? (
-        <AlertMessage kind="error">{message || "الاختبار غير موجود."}</AlertMessage>
+        <AlertMessage kind="error">{message || tr("الاختبار غير موجود.")}</AlertMessage>
       ) : (
         <>
           {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
           <PageToolbar className="admin-quiz-toolbar">
             <button type="button" className="primary-btn toolbar-btn" onClick={() => setMetaModalOpen(true)}>
-              تعديل بيانات الاختبار
+              {tr("تعديل بيانات الاختبار")}
             </button>
             <button
               type="button"
@@ -354,23 +356,23 @@ export function AdminQuizEditorPage() {
                 setQuestionModalOpen(true);
               }}
             >
-              إضافة سؤال
+              {tr("إضافة سؤال")}
             </button>
           </PageToolbar>
           <div className="grid-2 home-stats-grid admin-lessons-stats">
-            <StatTile title="إجمالي الأسئلة" highlight={questions.length} />
-            <StatTile title="اختيار من متعدد" highlight={mcqQuestions} />
-            <StatTile title="صح/خطأ" highlight={trueFalseQuestions} />
-            <StatTile title="مفتوحة" highlight={openQuestions} />
-            <StatTile title="إجابات الطلاب" highlight={submissions.length} />
-            <StatTile title="مصحّحة/معلّقة" highlight={`${gradedSubmissions}/${pendingSubmissions}`} />
+            <StatTile title={tr("إجمالي الأسئلة")} highlight={questions.length} />
+            <StatTile title={tr("اختيار من متعدد")} highlight={mcqQuestions} />
+            <StatTile title={tr("صح/خطأ")} highlight={trueFalseQuestions} />
+            <StatTile title={tr("مفتوحة")} highlight={openQuestions} />
+            <StatTile title={tr("إجابات الطلاب")} highlight={submissions.length} />
+            <StatTile title={tr("مصحّحة/معلّقة")} highlight={`${gradedSubmissions}/${pendingSubmissions}`} />
           </div>
 
           <SectionTitle as="h3" className="form-section-title--spaced-15">
-            الأسئلة
+            {tr("الأسئلة")}
           </SectionTitle>
           {questions.length === 0 ? (
-            <EmptyState message="لا أسئلة بعد. أضف سؤالاً أدناه." />
+            <EmptyState message={tr("لا أسئلة بعد. أضف سؤالاً أدناه.")} />
           ) : (
             <ul className="admin-quiz-question-list">
               {questions.map((Q) => {
@@ -378,8 +380,8 @@ export function AdminQuizEditorPage() {
                 return (
                   <li key={Q.id} className="admin-quiz-question-item">
                     <div>
-                      <strong>{String(Q.data.title ?? "—")}</strong>
-                      <p className="muted small">نوع: {ty}</p>
+                      <strong>{String(Q.data.title ?? tr("—"))}</strong>
+                      <p className="muted small">{tr("نوع")}: {tr(ty)}</p>
                       <p className="admin-quiz-qpreview">{String(Q.data.question ?? "").slice(0, 200)}</p>
                     </div>
                     <div className="course-actions lesson-admin-actions">
@@ -388,20 +390,20 @@ export function AdminQuizEditorPage() {
                         className="icon-tool-btn"
                         onClick={() => startEdit(Q)}
                         disabled={submitting}
-                        title="تعديل"
+                        title={tr("تعديل")}
                       >
                         <IoPencil size={18} />
-                        <span className="icon-tool-label">تعديل</span>
+                        <span className="icon-tool-label">{tr("تعديل")}</span>
                       </button>
                       <button
                         type="button"
                         className="icon-tool-btn danger"
                         onClick={() => void onDeleteQ(Q)}
                         disabled={submitting}
-                        title="حذف"
+                        title={tr("حذف")}
                       >
                         <IoTrashOutline size={18} />
-                        <span className="icon-tool-label">حذف</span>
+                        <span className="icon-tool-label">{tr("حذف")}</span>
                       </button>
                     </div>
                   </li>
@@ -411,14 +413,13 @@ export function AdminQuizEditorPage() {
           )}
 
           <SectionTitle as="h3" className="form-section-title--spaced-175">
-            إجابات الطلاب والتصحيح
+            {tr("إجابات الطلاب والتصحيح")}
           </SectionTitle>
           <p className="muted small">
-            باعتماد حالة <strong>graded</strong> يُحتسب اجتياز الاختبار لفتح الدرس التالي عند تفعيل «اختبار
-            إجباري».
+            {tr("باعتماد حالة")} <strong>graded</strong> {tr("يُحتسب اجتياز الاختبار لفتح الدرس التالي عند تفعيل «اختبار إجباري».")}
           </p>
           {submissions.length === 0 ? (
-            <EmptyState message="لا إجابات مُرسلة بعد." />
+            <EmptyState message={tr("لا إجابات مُرسلة بعد.")} />
           ) : (
             <ul className="admin-submissions-list">
               {submissions.map((S) => {
@@ -427,27 +428,27 @@ export function AdminQuizEditorPage() {
                   <li key={S.id} className="admin-submission-card">
                     <div className="admin-submission-head">
                       <div>
-                        <strong>{S.studentName || "طالب"}</strong>
+                        <strong>{S.studentName || tr("طالب")}</strong>
                         <span className="muted small"> · {S.studentId || S.id}</span>
                       </div>
                       <span className="lesson-quiz-pill" data-st={isGraded ? "graded" : "pending"}>
-                        {isGraded ? "مُصحَّح" : S.status || "—"}
+                        {isGraded ? tr("مُصحَّح") : (S.status ? tr(S.status) : tr("—"))}
                       </span>
                     </div>
-                    <p className="muted small">إرسال: {formatFirestoreTime(S.submittedAt)}</p>
+                    <p className="muted small">{tr("إرسال")}: {formatFirestoreTime(S.submittedAt)}</p>
                     <details className="admin-answer-details">
-                      <summary>عرض الإجابات</summary>
+                      <summary>{tr("عرض الإجابات")}</summary>
                       <ul className="admin-answer-kv">
                         {Object.entries(S.answers).map(([k, v]) => (
                           <li key={k}>
-                            <code>{k}</code>: {formatAnswerPreview(v)}
+                            <code>{k}</code>: {formatAnswerPreview(v, tr)}
                           </li>
                         ))}
                       </ul>
                     </details>
                     <div className="admin-grade-row admin-grade-actions">
                       <label className="admin-grade-label">
-                        <span>الدرجة (اختياري)</span>
+                        <span>{tr("الدرجة (اختياري)")}</span>
                         <input
                           className="text-input"
                           type="number"
@@ -455,7 +456,7 @@ export function AdminQuizEditorPage() {
                           value={scoreDraft[S.id] ?? ""}
                           onChange={(e) => setScoreDraft((p) => ({ ...p, [S.id]: e.target.value }))}
                           disabled={submitting}
-                          placeholder="—"
+                          placeholder={tr("—")}
                         />
                       </label>
                       <button
@@ -466,7 +467,7 @@ export function AdminQuizEditorPage() {
                         aria-busy={submitting}
                       >
                         <ButtonBusyLabel busy={submitting}>
-                          {isGraded ? "حفظ الدرجة" : "اعتماد التصحيح"}
+                          {isGraded ? tr("حفظ الدرجة") : tr("اعتماد التصحيح")}
                         </ButtonBusyLabel>
                       </button>
                       {isGraded ? (
@@ -477,7 +478,7 @@ export function AdminQuizEditorPage() {
                           disabled={submitting}
                           aria-busy={submitting}
                         >
-                          <ButtonBusyLabel busy={submitting}>إعادة فتح</ButtonBusyLabel>
+                          <ButtonBusyLabel busy={submitting}>{tr("إعادة فتح")}</ButtonBusyLabel>
                         </button>
                       ) : null}
                     </div>
@@ -489,7 +490,7 @@ export function AdminQuizEditorPage() {
 
           <AppModal
             open={metaModalOpen}
-            title="بيانات الاختبار"
+            title={tr("بيانات الاختبار")}
             onClose={() => {
               if (!submitting) {
                 setMetaModalOpen(false);
@@ -498,9 +499,9 @@ export function AdminQuizEditorPage() {
             contentClassName="course-form-modal"
           >
             <FormPanel onSubmit={onSaveMeta} elevated={false} className="course-form-modal__form">
-              <SectionTitle as="h4">تحديث بيانات الاختبار</SectionTitle>
+              <SectionTitle as="h4">{tr("تحديث بيانات الاختبار")}</SectionTitle>
               <label>
-                <span>العنوان</span>
+                <span>{tr("العنوان")}</span>
                 <input
                   className="text-input"
                   value={metaTitle}
@@ -509,7 +510,7 @@ export function AdminQuizEditorPage() {
                 />
               </label>
               <label>
-                <span>الوصف</span>
+                <span>{tr("الوصف")}</span>
                 <textarea
                   className="text-input textarea"
                   rows={2}
@@ -519,7 +520,7 @@ export function AdminQuizEditorPage() {
               </label>
               <div className="form-row-2">
                 <label>
-                  <span>المدة (دقائق)</span>
+                  <span>{tr("المدة (دقائق)")}</span>
                   <input
                     className="text-input"
                     type="number"
@@ -529,7 +530,7 @@ export function AdminQuizEditorPage() {
                   />
                 </label>
                 <label>
-                  <span>رابط فيديو</span>
+                  <span>{tr("رابط فيديو")}</span>
                   <input
                     className="text-input"
                     type="url"
@@ -542,9 +543,9 @@ export function AdminQuizEditorPage() {
               {metaVideo.trim() ? (
                 <Panel className="admin-quiz-video-preview">
                   <p className="muted small" style={{ margin: "0 0 0.5rem" }}>
-                    معاينة الفيديو (نفس الظهور لدى الطالب):
+                    {tr("معاينة الفيديو (نفس الظهور لدى الطالب):")}
                   </p>
-                  <VideoIntroBlock mediaUrl={metaVideo} title="معاينة فيديو الاختبار" compact />
+                  <VideoIntroBlock mediaUrl={metaVideo} title={tr("معاينة فيديو الاختبار")} compact />
                 </Panel>
               ) : null}
               <label className="switch-line">
@@ -553,12 +554,12 @@ export function AdminQuizEditorPage() {
                   checked={metaHasSched}
                   onChange={(e) => setMetaHasSched(e.target.checked)}
                 />
-                <span>فترة زمنية للاختبار (تُطبَّق عند حلول الطالب)</span>
+                <span>{tr("فترة زمنية للاختبار (تُطبَّق عند حلول الطالب)")}</span>
               </label>
               {metaHasSched ? (
                 <div className="form-row-2">
                   <label>
-                    <span>بداية النافذة</span>
+                    <span>{tr("بداية النافذة")}</span>
                     <input
                       className="text-input"
                       type="datetime-local"
@@ -568,7 +569,7 @@ export function AdminQuizEditorPage() {
                     />
                   </label>
                   <label>
-                    <span>نهاية النافذة</span>
+                    <span>{tr("نهاية النافذة")}</span>
                     <input
                       className="text-input"
                       type="datetime-local"
@@ -581,10 +582,10 @@ export function AdminQuizEditorPage() {
               ) : null}
               <div className="course-actions">
                 <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
-                  <ButtonBusyLabel busy={submitting}>حفظ بيانات الاختبار</ButtonBusyLabel>
+                  <ButtonBusyLabel busy={submitting}>{tr("حفظ بيانات الاختبار")}</ButtonBusyLabel>
                 </button>
                 <button type="button" className="ghost-btn" onClick={() => setMetaModalOpen(false)} disabled={submitting}>
-                  إلغاء
+                  {tr("إلغاء")}
                 </button>
               </div>
             </FormPanel>
@@ -592,7 +593,7 @@ export function AdminQuizEditorPage() {
 
           <AppModal
             open={questionModalOpen}
-            title={editingId ? "تعديل سؤال" : "إضافة سؤال جديد"}
+            title={editingId ? tr("تعديل سؤال") : tr("إضافة سؤال جديد")}
             onClose={() => {
               if (!submitting) {
                 resetQuestionForm();
@@ -601,27 +602,27 @@ export function AdminQuizEditorPage() {
             contentClassName="course-form-modal"
           >
             <FormPanel onSubmit={onSaveQuestion} elevated={false} className="course-form-modal__form">
-              <SectionTitle as="h4">{editingId ? "تحديث السؤال" : "سؤال جديد"}</SectionTitle>
+              <SectionTitle as="h4">{editingId ? tr("تحديث السؤال") : tr("سؤال جديد")}</SectionTitle>
               <label>
-                <span>نوع السؤال</span>
+                <span>{tr("نوع السؤال")}</span>
                 <select
                   className="text-input"
                   value={kind}
                   onChange={(e) => setKind(e.target.value as QuizQuestionKind)}
                 >
-                  {KINDS.map((k) => (
+                      {KINDS.map((k) => (
                     <option key={k.v} value={k.v}>
-                      {k.label}
+                      {tr(k.label)}
                     </option>
                   ))}
                 </select>
               </label>
               <label>
-                <span>عنوان السؤال (قصير)</span>
+                <span>{tr("عنوان السؤال (قصير)")}</span>
                 <input className="text-input" value={qTitle} onChange={(e) => setQTitle(e.target.value)} required />
               </label>
               <label>
-                <span>نص السؤال</span>
+                <span>{tr("نص السؤال")}</span>
                 <textarea
                   className="text-input textarea"
                   rows={3}
@@ -632,13 +633,13 @@ export function AdminQuizEditorPage() {
               </label>
               {kind === "multiple_choice" ? (
                 <label>
-                  <span>الخيارات (سطر لكل خيار)</span>
+                  <span>{tr("الخيارات (سطر لكل خيار)")}</span>
                   <textarea
                     className="text-input textarea"
                     rows={5}
                     value={qOpts}
                     onChange={(e) => setQOpts(e.target.value)}
-                    placeholder={"الخيار 1\nالخيار 2\nالخيار 3"}
+                    placeholder={`${tr("الخيار")} 1\n${tr("الخيار")} 2\n${tr("الخيار")} 3`}
                     required
                   />
                 </label>
@@ -646,11 +647,11 @@ export function AdminQuizEditorPage() {
               <div className="course-actions">
                 <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
                   <ButtonBusyLabel busy={submitting}>
-                    {editingId ? "حفظ التعديل" : "إضافة السؤال"}
+                    {editingId ? tr("حفظ التعديل") : tr("إضافة السؤال")}
                   </ButtonBusyLabel>
                 </button>
                 <button type="button" className="ghost-btn" onClick={resetQuestionForm} disabled={submitting}>
-                  إلغاء
+                  {tr("إلغاء")}
                 </button>
               </div>
             </FormPanel>

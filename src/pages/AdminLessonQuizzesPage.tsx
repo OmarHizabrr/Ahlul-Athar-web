@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import { coursesService } from "../services/coursesService";
 import {
   adminCreateQuizFile,
@@ -44,6 +45,7 @@ export function AdminLessonQuizzesPage() {
   const [schedStart, setSchedStart] = useState("");
   const [schedEnd, setSchedEnd] = useState("");
   const [quizModalOpen, setQuizModalOpen] = useState(false);
+  const { tr } = useI18n();
 
   const load = useCallback(async () => {
     if (!courseId || !lessonId) {
@@ -60,7 +62,7 @@ export function AdminLessonQuizzesPage() {
       setLesson(L);
       setQuizzes(list);
     } catch {
-      setMessage("تعذر تحميل بيانات الدرس أو الاختبارات.");
+      setMessage(tr("تعذر تحميل بيانات الدرس أو الاختبارات."));
       setIsError(true);
     } finally {
       setLoading(false);
@@ -82,7 +84,7 @@ export function AdminLessonQuizzesPage() {
     setMessage("");
     const d = duration.trim() ? Number(duration) : 0;
     if (hasSched && (!schedStart.trim() || !schedEnd.trim())) {
-      setMessage("عند تفعيل الجدولة: حدّد تاريخي البداية والنهاية (مع الوقت).");
+      setMessage(tr("عند تفعيل الجدولة: حدّد تاريخي البداية والنهاية (مع الوقت)."));
       setIsError(true);
       setSubmitting(false);
       return;
@@ -95,7 +97,7 @@ export function AdminLessonQuizzesPage() {
         videoUrl: videoUrl.trim(),
         schedule: { hasScheduledTime: hasSched, start: schedStart, end: schedEnd },
       });
-      setMessage("تم إنشاء الاختبار. يمكنك فتح «الأسئلة والتعديل» لإضافة الأسئلة.");
+      setMessage(tr("تم إنشاء الاختبار. يمكنك فتح «الأسئلة والتعديل» لإضافة الأسئلة."));
       setIsError(false);
       setTitle("");
       setDescription("");
@@ -110,8 +112,8 @@ export function AdminLessonQuizzesPage() {
     } catch (err) {
       setMessage(
         err instanceof Error && err.message === "invalid schedule"
-          ? "تعذر حفظ الجدولة. تحقق من التواريخ."
-          : "فشل إنشاء الاختبار. تحقق من القواعد وصلاحيات المشرف.",
+          ? tr("تعذر حفظ الجدولة. تحقق من التواريخ.")
+          : tr("فشل إنشاء الاختبار. تحقق من القواعد وصلاحيات المشرف."),
       );
       setIsError(true);
     } finally {
@@ -120,19 +122,19 @@ export function AdminLessonQuizzesPage() {
   };
 
   const onDelete = async (quizFileId: string, quizTitle: string) => {
-    if (!window.confirm(`حذف الاختبار «${quizTitle}» وكل أسئلته وإجابات الطلاب؟`)) {
+    if (!window.confirm(`${tr("حذف الاختبار")} «${quizTitle}» ${tr("وكل أسئلته وإجابات الطلاب؟")}`)) {
       return;
     }
     setSubmitting(true);
     setMessage("");
     try {
       await adminDeleteQuizFile(lessonId, quizFileId);
-      setMessage("تم حذف الاختبار.");
+      setMessage(tr("تم حذف الاختبار."));
       setIsError(false);
       await load();
       dispatchQuizUpdated();
     } catch {
-      setMessage("فشل الحذف.");
+      setMessage(tr("فشل الحذف."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -156,8 +158,8 @@ export function AdminLessonQuizzesPage() {
 
   if (!ready) {
     return (
-      <DashboardLayout role="admin" title="اختبارات الدرس" lede={lede}>
-        <PageLoadHint text="جاري التهيئة..." />
+      <DashboardLayout role="admin" title={tr("اختبارات الدرس")} lede={tr(lede)}>
+        <PageLoadHint text={tr("جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -168,27 +170,27 @@ export function AdminLessonQuizzesPage() {
   return (
     <DashboardLayout
       role="admin"
-      title={lesson ? `اختبارات: ${lesson.title}` : "اختبارات الدرس"}
-      lede={lede}
+      title={lesson ? `${tr("اختبارات")}: ${lesson.title}` : tr("اختبارات الدرس")}
+      lede={tr(lede)}
     >
       <p>
         <Link to={`/admin/course/${courseId}/lessons`} className="inline-link">
-          ← العودة لدروس {course ? `«${course.title}»` : "المقرر"}
+          {tr("← العودة لدروس")} {course ? `«${course.title}»` : tr("المقرر")}
         </Link>
       </p>
       {loading ? (
         <PageLoadHint />
       ) : !lesson ? (
-        <AlertMessage kind="error">الدرس غير موجود.</AlertMessage>
+        <AlertMessage kind="error">{tr("الدرس غير موجود.")}</AlertMessage>
       ) : (
         <>
           {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
           <div className="grid-2 home-stats-grid admin-lessons-stats">
-            <StatTile title="إجمالي الاختبارات" highlight={quizzes.length} />
-            <StatTile title="اختبارات مجدولة" highlight={scheduledQuizzes} />
-            <StatTile title="اختبارات بفيديو" highlight={quizzesWithVideo} />
-            <StatTile title="إجمالي الأسئلة" highlight={totalQuestions} />
-            <StatTile title="متوسط مدة الاختبار" highlight={avgDuration != null ? `${avgDuration} د` : "—"} />
+            <StatTile title={tr("إجمالي الاختبارات")} highlight={quizzes.length} />
+            <StatTile title={tr("اختبارات مجدولة")} highlight={scheduledQuizzes} />
+            <StatTile title={tr("اختبارات بفيديو")} highlight={quizzesWithVideo} />
+            <StatTile title={tr("إجمالي الأسئلة")} highlight={totalQuestions} />
+            <StatTile title={tr("متوسط مدة الاختبار")} highlight={avgDuration != null ? `${avgDuration} ${tr("د")}` : tr("—")} />
           </div>
           <PageToolbar>
             <button
@@ -196,53 +198,53 @@ export function AdminLessonQuizzesPage() {
               className="primary-btn toolbar-btn"
               onClick={() => setQuizModalOpen(true)}
             >
-              إضافة اختبار
+              {tr("إضافة اختبار")}
             </button>
           </PageToolbar>
 
           <SectionTitle as="h3" className="form-section-title--spaced-15">
-            اختبارات هذا الدرس
+            {tr("اختبارات هذا الدرس")}
           </SectionTitle>
           {quizzes.length === 0 ? (
-            <EmptyState message="لا اختبارات بعد." />
+            <EmptyState message={tr("لا اختبارات بعد.")} />
           ) : (
             <ContentList>
               {quizzes.map((q) => {
                 const t = String(
-                  q.data.title ?? q.data.name ?? q.data.quizTitle ?? (q.data as { label?: string }).label ?? "بدون عنوان",
+                  q.data.title ?? q.data.name ?? q.data.quizTitle ?? (q.data as { label?: string }).label ?? tr("بدون عنوان"),
                 );
                 const n = (q.data as { questionsCount?: number }).questionsCount;
                 return (
                   <ContentListItem key={q.id}>
                     <h4 className="post-title">{t}</h4>
                     <p className="muted post-meta small">
-                      معرّف المستند: {q.id} · أسئلة: {typeof n === "number" ? n : "—"}
+                      {tr("معرّف المستند")}: {q.id} · {tr("أسئلة")}: {typeof n === "number" ? n : tr("—")}
                     </p>
                     <div className="course-actions lesson-admin-actions">
                       <Link
                         className="ghost-btn"
                         to={`/admin/preview/course/${courseId}/lesson/${lessonId}/quiz/${q.id}`}
-                        title="معاينة الاختبار كطالب"
+                        title={tr("معاينة الاختبار كطالب")}
                       >
                         <IoEyeOutline size={18} style={{ verticalAlign: "middle", marginLeft: "0.35rem" }} aria-hidden />
-                        معاينة
+                        {tr("معاينة")}
                       </Link>
                       <Link
                         className="ghost-btn"
                         to={`/admin/course/${courseId}/lessons/${lessonId}/quiz/${q.id}/edit`}
                       >
                         <IoListCircleOutline size={18} style={{ verticalAlign: "middle", marginLeft: "0.35rem" }} aria-hidden />
-                        الأسئلة والتعديل
+                        {tr("الأسئلة والتعديل")}
                       </Link>
                       <button
                         type="button"
                         className="icon-tool-btn danger"
                         onClick={() => void onDelete(q.id, t)}
                         disabled={submitting}
-                        title="حذف"
+                        title={tr("حذف")}
                       >
                         <IoTrashOutline size={20} />
-                        <span className="icon-tool-label">حذف</span>
+                        <span className="icon-tool-label">{tr("حذف")}</span>
                       </button>
                     </div>
                   </ContentListItem>
@@ -253,7 +255,7 @@ export function AdminLessonQuizzesPage() {
 
           <AppModal
             open={quizModalOpen}
-            title="إضافة اختبار جديد"
+            title={tr("إضافة اختبار جديد")}
             onClose={() => {
               if (!submitting) {
                 setQuizModalOpen(false);
@@ -262,30 +264,30 @@ export function AdminLessonQuizzesPage() {
             contentClassName="course-form-modal"
           >
             <FormPanel onSubmit={onCreate} elevated={false} className="course-form-modal__form">
-              <SectionTitle as="h4">إضافة اختبار جديد</SectionTitle>
+              <SectionTitle as="h4">{tr("إضافة اختبار جديد")}</SectionTitle>
               <label>
-                <span>عنوان الاختبار</span>
+                <span>{tr("عنوان الاختبار")}</span>
                 <input
                   className="text-input"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
-                  placeholder="مثال: اختبار الوحدة الأولى"
+                  placeholder={tr("مثال: اختبار الوحدة الأولى")}
                 />
               </label>
               <label>
-                <span>وصف (اختياري)</span>
+                <span>{tr("وصف (اختياري)")}</span>
                 <textarea
                   className="text-input textarea"
                   rows={2}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="تعليمات للطالب"
+                  placeholder={tr("تعليمات للطالب")}
                 />
               </label>
               <div className="form-row-2">
                 <label>
-                  <span>المدة (دقائق)</span>
+                  <span>{tr("المدة (دقائق)")}</span>
                   <input
                     className="text-input"
                     type="number"
@@ -296,7 +298,7 @@ export function AdminLessonQuizzesPage() {
                   />
                 </label>
                 <label>
-                  <span>رابط فيديو (اختياري — YouTube)</span>
+                  <span>{tr("رابط فيديو (اختياري — YouTube)")}</span>
                   <input
                     className="text-input"
                     type="url"
@@ -308,12 +310,12 @@ export function AdminLessonQuizzesPage() {
               </div>
               <label className="switch-line">
                 <input type="checkbox" checked={hasSched} onChange={(e) => setHasSched(e.target.checked)} />
-                <span>فترة زمنية للاختبار</span>
+                <span>{tr("فترة زمنية للاختبار")}</span>
               </label>
               {hasSched ? (
                 <div className="form-row-2">
                   <label>
-                    <span>بداية النافذة</span>
+                    <span>{tr("بداية النافذة")}</span>
                     <input
                       className="text-input"
                       type="datetime-local"
@@ -323,7 +325,7 @@ export function AdminLessonQuizzesPage() {
                     />
                   </label>
                   <label>
-                    <span>نهاية النافذة</span>
+                    <span>{tr("نهاية النافذة")}</span>
                     <input
                       className="text-input"
                       type="datetime-local"
@@ -341,7 +343,7 @@ export function AdminLessonQuizzesPage() {
                   disabled={submitting || !title.trim()}
                   aria-busy={submitting}
                 >
-                  <ButtonBusyLabel busy={submitting}>إنشاء اختبار</ButtonBusyLabel>
+                  <ButtonBusyLabel busy={submitting}>{tr("إنشاء اختبار")}</ButtonBusyLabel>
                 </button>
                 <button
                   type="button"
@@ -349,7 +351,7 @@ export function AdminLessonQuizzesPage() {
                   onClick={() => setQuizModalOpen(false)}
                   disabled={submitting}
                 >
-                  إغلاق
+                  {tr("إغلاق")}
                 </button>
               </div>
             </FormPanel>

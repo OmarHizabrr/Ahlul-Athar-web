@@ -14,6 +14,7 @@ import {
 import { isStudentEnrolledInCourse } from "../services/myCoursesService";
 import { useIsAdminPreview } from "../context/AdminPreviewContext";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import { VideoIntroBlock } from "../components/VideoIntroBlock";
 import { AlertMessage, AppTabPanel, AppTabs, SectionTitle } from "../components/ui";
 import { extractQuizRows, readStoredAnswers, type WebQuizRow } from "../utils/quizFromFirestore";
@@ -151,6 +152,7 @@ export function StudentQuizViewPage() {
   const [formErr, setFormErr] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
   const [quizTab, setQuizTab] = useState<"intro" | "questions">("intro");
+  const { tr } = useI18n();
 
   const load = useCallback(async () => {
     if (!user || !courseId || !lessonId || !quizId) {
@@ -162,7 +164,7 @@ export function StudentQuizViewPage() {
       if (!isAdminPreview) {
         const en = await isStudentEnrolledInCourse(user.uid, courseId);
         if (!en) {
-          setErr("لست مسجّلاً في هذا المقرر.");
+          setErr(tr("لست مسجّلاً في هذا المقرر."));
           setQuiz(null);
           setAnswer(null);
           setRows([]);
@@ -171,7 +173,7 @@ export function StudentQuizViewPage() {
         }
         const acc = await canStudentOpenLesson(user.uid, courseId, lessonId);
         if (!acc.ok) {
-          setErr(acc.message ?? "لا يمكن الوصول إلى هذا الدرس.");
+          setErr(acc.message ?? tr("لا يمكن الوصول إلى هذا الدرس."));
           setQuiz(null);
           setAnswer(null);
           setRows([]);
@@ -181,7 +183,7 @@ export function StudentQuizViewPage() {
       }
       const qd = await getQuizFileById(lessonId, quizId);
       if (qd == null) {
-        setErr("الاختبار غير موجود.");
+        setErr(tr("الاختبار غير موجود."));
         setQuiz(null);
         setAnswer(null);
         setRows([]);
@@ -206,7 +208,7 @@ export function StudentQuizViewPage() {
         }
       }
     } catch {
-      setErr("تعذر تحميل الاختبار. تحقق من الاتصال وصلاحيات الوصول.");
+      setErr(tr("تعذر تحميل الاختبار. تحقق من الاتصال وصلاحيات الوصول."));
       setQuiz(null);
       setAnswer(null);
       setRows([]);
@@ -289,13 +291,13 @@ export function StudentQuizViewPage() {
       if (r.kind === "true_false") {
         const v = values[r.key] ?? "";
         if (v !== "true" && v !== "false") {
-          setFormErr("أكمل جميع الأسئلة قبل الإرسال.");
+          setFormErr(tr("أكمل جميع الأسئلة قبل الإرسال."));
           return;
         }
         continue;
       }
       if (!(values[r.key] ?? "").toString().trim()) {
-        setFormErr("أكمل جميع الأسئلة قبل الإرسال.");
+        setFormErr(tr("أكمل جميع الأسئلة قبل الإرسال."));
         return;
       }
     }
@@ -315,7 +317,7 @@ export function StudentQuizViewPage() {
       await load();
       window.dispatchEvent(new CustomEvent("ah:quiz-updated"));
     } catch {
-      setFormErr("تعذر حفظ الإجابة. تحقق من الاتصال وصلاحيات Firestore.");
+      setFormErr(tr("تعذر حفظ الإجابة. تحقق من الاتصال وصلاحيات Firestore."));
     } finally {
       setSubmitting(false);
     }
@@ -331,8 +333,8 @@ export function StudentQuizViewPage() {
 
   if (!ready) {
     return (
-      <DashboardLayout role={layoutRole} title="اختبار" lede={lede}>
-        <PageLoadHint text="جاري التهيئة..." />
+      <DashboardLayout role={layoutRole} title={tr("اختبار")} lede={tr(lede)}>
+        <PageLoadHint text={tr("جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -342,7 +344,7 @@ export function StudentQuizViewPage() {
   }
 
   const title = String(
-    quiz?.title ?? (quiz as { name?: string } | null)?.name ?? (quiz as { quizTitle?: string } | null)?.quizTitle ?? "اختبار",
+    quiz?.title ?? (quiz as { name?: string } | null)?.name ?? (quiz as { quizTitle?: string } | null)?.quizTitle ?? tr("اختبار"),
   );
   const desc = String(quiz?.description ?? (quiz as { body?: string } | null)?.body ?? "");
   const durationMin = (() => {
@@ -361,18 +363,18 @@ export function StudentQuizViewPage() {
   );
 
   return (
-    <DashboardLayout role={layoutRole} title={isAdminPreview ? `معاينة: ${title}` : title} lede={lede}>
+    <DashboardLayout role={layoutRole} title={isAdminPreview ? `${tr("معاينة")}: ${title}` : title} lede={tr(lede)}>
       {isAdminPreview ? (
         <p className="admin-preview-banner" role="status">
-          <strong>معاينة واجهة الطالب</strong> — الإجابات للمراجعة البصرية فقط.{" "}
+          <strong>{tr("معاينة واجهة الطالب")}</strong> — {tr("الإجابات للمراجعة البصرية فقط.")}{" "}
           <Link to={`/admin/course/${courseId}/lessons/${lessonId}/quizzes`} className="inline-link">
-            تحرير الاختبار
+            {tr("تحرير الاختبار")}
           </Link>
         </p>
       ) : null}
       <p>
         <Link to={lessonPageHref} className="inline-link">
-          ← العودة لصفحة الدرس
+          {tr("← العودة لصفحة الدرس")}
         </Link>
       </p>
       {loading ? (
@@ -383,17 +385,17 @@ export function StudentQuizViewPage() {
         <div className="quiz-view-card">
           <AppTabs
             groupId={`quiz-${quizId}`}
-            ariaLabel="أقسام الاختبار"
+            ariaLabel={tr("أقسام الاختبار")}
             value={quizTab}
             onChange={(id) => setQuizTab(id as "intro" | "questions")}
             tabs={[
-              { id: "intro" as const, label: "المقدمة" },
-              { id: "questions" as const, label: "الأسئلة" },
+              { id: "intro" as const, label: tr("المقدمة") },
+              { id: "questions" as const, label: tr("الأسئلة") },
             ]}
           />
 
           <AppTabPanel tabId="intro" groupId={`quiz-${quizId}`} hidden={quizTab !== "intro"} className="lesson-tab-panel">
-            <div className="quiz-status-row" aria-label="حالة الاختبار">
+            <div className="quiz-status-row" aria-label={tr("حالة الاختبار")}>
               <span
                 className={
                   isGraded
@@ -404,15 +406,15 @@ export function StudentQuizViewPage() {
                 }
               >
                 {isGraded
-                  ? "تم التصحيح"
+                  ? tr("تم التصحيح")
                   : status === "pending"
-                    ? "بانتظار التصحيح"
-                    : "لم يُرسل بعد"}
+                    ? tr("بانتظار التصحيح")
+                    : tr("لم يُرسل بعد")}
               </span>
               <span className="meta-pill meta-pill--muted">
-                {hasStructuredQuestions ? `${answeredCount}/${rows.length} مجاب` : "بدون أسئلة"}
+                {hasStructuredQuestions ? `${answeredCount}/${rows.length} ${tr("مجاب")}` : tr("بدون أسئلة")}
               </span>
-              {durationMin != null ? <span className="meta-pill meta-pill--muted">المدة: {Math.round(durationMin)} د</span> : null}
+              {durationMin != null ? <span className="meta-pill meta-pill--muted">{tr("المدة")}: {Math.round(durationMin)} {tr("د")}</span> : null}
             </div>
             {hasStructuredQuestions ? (
               <div className="quiz-progress-wrap" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPct}>
@@ -423,10 +425,10 @@ export function StudentQuizViewPage() {
               <AlertMessage kind="error">{schedule.messageAr}</AlertMessage>
             ) : null}
             {desc.length > 0 ? <p className="quiz-desc">{desc}</p> : null}
-            {mediaUrl.trim() ? <VideoIntroBlock mediaUrl={mediaUrl} title="مقطع الاختبار" /> : null}
+            {mediaUrl.trim() ? <VideoIntroBlock mediaUrl={mediaUrl} title={tr("مقطع الاختبار")} /> : null}
             {answer != null && (answer.score != null || answer.grade != null) ? (
               <p className="quiz-score">
-                الدرجة: {String((answer as { score?: unknown }).score ?? (answer as { grade?: unknown }).grade)}
+                {tr("الدرجة")}: {String((answer as { score?: unknown }).score ?? (answer as { grade?: unknown }).grade)}
               </p>
             ) : null}
           </AppTabPanel>
@@ -434,9 +436,9 @@ export function StudentQuizViewPage() {
           <AppTabPanel tabId="questions" groupId={`quiz-${quizId}`} hidden={quizTab !== "questions"} className="lesson-tab-panel">
             {hasStructuredQuestions ? (
               <>
-                <SectionTitle as="h3">الأسئلة</SectionTitle>
+                <SectionTitle as="h3">{tr("الأسئلة")}</SectionTitle>
                 {isGraded ? (
-                  <p className="muted small">النتيجة مُتاحة — عرض إجاباتك أدناه (قراءة فقط).</p>
+                  <p className="muted small">{tr("النتيجة مُتاحة — عرض إجاباتك أدناه (قراءة فقط).")}</p>
                 ) : null}
                 <QuizTakerForm
                   rows={rows}
@@ -445,13 +447,13 @@ export function StudentQuizViewPage() {
                   onSubmit={onSubmit}
                   submitting={submitting}
                   readonly={formLocked}
-                  submitLabel={status === "pending" ? "تحديث الإجابات" : "إرسال الإجابات"}
+                  submitLabel={status === "pending" ? tr("تحديث الإجابات") : tr("إرسال الإجابات")}
                 />
                 {formErr ? <AlertMessage kind="error">{formErr}</AlertMessage> : null}
               </>
             ) : (
               <p className="muted small quiz-hint">
-                لا توجد أسئلة مضافة لهذا الاختبار حالياً. يرجى مراجعة الإدارة لإضافة الأسئلة ثم إعادة المحاولة.
+                {tr("لا توجد أسئلة مضافة لهذا الاختبار حالياً. يرجى مراجعة الإدارة لإضافة الأسئلة ثم إعادة المحاولة.")}
               </p>
             )}
           </AppTabPanel>

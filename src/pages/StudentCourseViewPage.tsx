@@ -17,6 +17,7 @@ import {
 } from "../components/ui";
 import { useIsAdminPreview } from "../context/AdminPreviewContext";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import { coursesService } from "../services/coursesService";
 import { getLessonsForAdminPreview, getLessonsWithAccessForStudent } from "../services/lessonAccessService";
 import { isStudentEnrolledInCourse } from "../services/myCoursesService";
@@ -41,6 +42,7 @@ export function StudentCourseViewPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState("");
   const [courseTab, setCourseTab] = useState<"overview" | "lessons">("overview");
+  const { tr } = useI18n();
 
   const runLoad = useCallback(
     async (mode: "initial" | "refresh") => {
@@ -71,7 +73,7 @@ export function StudentCourseViewPage() {
           }
         }
       } catch {
-        setMessage("تعذر التحميل.");
+        setMessage(tr("تعذر التحميل."));
       } finally {
         if (mode === "initial") {
           setLoading(false);
@@ -106,8 +108,8 @@ export function StudentCourseViewPage() {
 
   if (!ready) {
     return (
-      <DashboardLayout role={layoutRole} title="مقرر" lede={courseLede}>
-        <PageLoadHint text="جاري التهيئة..." />
+      <DashboardLayout role={layoutRole} title={tr("مقرر")} lede={tr(courseLede)}>
+        <PageLoadHint text={tr("جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -118,9 +120,9 @@ export function StudentCourseViewPage() {
 
   const title = isAdminPreview
     ? course?.title
-      ? `معاينة: ${course.title}`
-      : "معاينة مقرر"
-    : (course?.title ?? "مقرر");
+      ? `${tr("معاينة")}: ${course.title}`
+      : tr("معاينة مقرر")
+    : (course?.title ?? tr("مقرر"));
   const viewRoot = isAdminPreview ? "/admin/preview" : "/student";
   const courseCoverUrl = course?.imageUrl?.trim() ?? "";
   const unlockedLessons = lessons.filter((row) => row.isUnlocked).length;
@@ -129,20 +131,20 @@ export function StudentCourseViewPage() {
   const completionPct = lessons.length > 0 ? Math.round((unlockedLessons / lessons.length) * 100) : 0;
 
   return (
-    <DashboardLayout role={layoutRole} title={title} lede={courseLede}>
+    <DashboardLayout role={layoutRole} title={title} lede={tr(courseLede)}>
       {loading ? (
         <PageLoadHint />
       ) : !course ? (
         <AlertMessage kind="error" role="alert">
-          المقرر غير موجود.
+          {tr("المقرر غير موجود.")}
         </AlertMessage>
       ) : (
         <>
           {isAdminPreview ? (
             <p className="admin-preview-banner" role="status">
-              <strong>معاينة واجهة الطالب</strong> — الروابط أدناه كما يراها طالب.{" "}
+              <strong>{tr("معاينة واجهة الطالب")}</strong> — {tr("الروابط أدناه كما يراها طالب.")}{" "}
               <Link to={`/admin/course/${courseId}/lessons`} className="inline-link">
-                العودة لإدارة الدروس
+                {tr("العودة لإدارة الدروس")}
               </Link>
             </p>
           ) : null}
@@ -155,15 +157,15 @@ export function StudentCourseViewPage() {
               disabled={refreshing}
               aria-busy={refreshing}
             >
-              <ButtonBusyLabel busy={refreshing}>تحديث المقرر</ButtonBusyLabel>
+              <ButtonBusyLabel busy={refreshing}>{tr("تحديث المقرر")}</ButtonBusyLabel>
             </button>
             {isAdminPreview ? (
               <Link to={`/admin/course/${courseId}/lessons`} className="ghost-btn toolbar-btn">
-                إدارة الدروس
+                {tr("إدارة الدروس")}
               </Link>
             ) : (
               <Link to="/student/mycourses" className="ghost-btn toolbar-btn">
-                مقرراتي
+                {tr("مقرراتي")}
               </Link>
             )}
           </PageToolbar>
@@ -176,9 +178,9 @@ export function StudentCourseViewPage() {
                 <div className="course-hero-surface__inner">
                   <p className="muted course-hero-lead">{course.description}</p>
                   <div className="course-meta lesson-course-meta">
-                    <span>{course.lessonCount} درس</span>
-                    <span>{course.studentCount} طالب</span>
-                    <span>{course.isActive ? "نشط في الكتالوج" : "موقف"}</span>
+                    <span>{course.lessonCount} {tr("درس")}</span>
+                    <span>{course.studentCount} {tr("طالب")}</span>
+                    <span>{course.isActive ? tr("نشط في الكتالوج") : tr("موقف")}</span>
                   </div>
                 </div>
               </>
@@ -186,46 +188,45 @@ export function StudentCourseViewPage() {
               <>
                 <p className="muted course-hero-lead">{course.description}</p>
                 <div className="course-meta lesson-course-meta">
-                  <span>{course.lessonCount} درس</span>
-                  <span>{course.studentCount} طالب</span>
-                  <span>{course.isActive ? "نشط في الكتالوج" : "موقف"}</span>
+                  <span>{course.lessonCount} {tr("درس")}</span>
+                  <span>{course.studentCount} {tr("طالب")}</span>
+                  <span>{course.isActive ? tr("نشط في الكتالوج") : tr("موقف")}</span>
                 </div>
               </>
             )}
           </Panel>
           {!enrolled ? (
             <AlertMessage kind="error" role="alert">
-              أنت لست مسجّلاً في هذا المقرر. أرسل طلب انضمام من «الدورات» ثم بعد قبول الإدارة ستظهر الدروس
-              هنا.
+              {tr("أنت لست مسجّلاً في هذا المقرر. أرسل طلب انضمام من «الدورات» ثم بعد قبول الإدارة ستظهر الدروس هنا.")}
             </AlertMessage>
           ) : (
             <>
               <AppTabs
                 groupId={`course-${courseId}`}
-                ariaLabel="أقسام المقرر"
+                ariaLabel={tr("أقسام المقرر")}
                 value={courseTab}
                 onChange={(id) => setCourseTab(id as "overview" | "lessons")}
                 tabs={[
-                  { id: "overview", label: "نظرة عامة" },
-                  { id: "lessons", label: "الدروس" },
+                  { id: "overview", label: tr("نظرة عامة") },
+                  { id: "lessons", label: tr("الدروس") },
                 ]}
               />
               <AppTabPanel tabId="overview" groupId={`course-${courseId}`} hidden={courseTab !== "overview"} className="lesson-tab-panel">
                 <div className="grid-2 home-stats-grid">
-                  <StatTile title="إجمالي الدروس" highlight={lessons.length} />
-                  <StatTile title="الدروس المفتوحة" highlight={unlockedLessons} />
-                  <StatTile title="الدروس المقفلة" highlight={lockedLessons} />
-                  <StatTile title="دروس باختبار إجباري" highlight={mandatoryQuizLessons} />
-                  <StatTile title="نسبة التقدّم" highlight={`${completionPct}%`} />
+                  <StatTile title={tr("إجمالي الدروس")} highlight={lessons.length} />
+                  <StatTile title={tr("الدروس المفتوحة")} highlight={unlockedLessons} />
+                  <StatTile title={tr("الدروس المقفلة")} highlight={lockedLessons} />
+                  <StatTile title={tr("دروس باختبار إجباري")} highlight={mandatoryQuizLessons} />
+                  <StatTile title={tr("نسبة التقدّم")} highlight={`${completionPct}%`} />
                 </div>
               </AppTabPanel>
               <AppTabPanel tabId="lessons" groupId={`course-${courseId}`} hidden={courseTab !== "lessons"} className="lesson-tab-panel">
                 {lessons.length === 0 ? (
-                  <EmptyState message="لا توجد دروس مضافة لهذا المقرر بعد." />
+                  <EmptyState message={tr("لا توجد دروس مضافة لهذا المقرر بعد.")} />
                 ) : (
                   <ContentList>
                     <SectionTitle as="h3" className="content-list-section-title">
-                      الدروس
+                      {tr("الدروس")}
                     </SectionTitle>
                     {lessons.map((row, idx) => {
                       const t = row.lesson.contentType?.trim();
@@ -250,18 +251,18 @@ export function StudentCourseViewPage() {
                                 {row.lesson.title}
                               </h4>
                               {row.lesson.hasMandatoryQuiz ? (
-                                <p className="muted small">يحتوي على اختبار إجباري (للدرس التالي)</p>
+                                <p className="muted small">{tr("يحتوي على اختبار إجباري (للدرس التالي)")}</p>
                               ) : null}
                               {row.lesson.description ? <p className="muted">{row.lesson.description}</p> : null}
                               <p className="muted post-meta">
-                                نوع المحتوى: {tlab}
-                                {row.lesson.videoUrl ? " · فيديو" : ""}
+                                {tr("نوع المحتوى")}: {tr(tlab)}
+                                {row.lesson.videoUrl ? ` · ${tr("فيديو")}` : ""}
                                 {row.lesson.pdfUrl ? " · PDF" : ""}
-                                {row.lesson.audioUrl ? " · صوت" : ""}
+                                {row.lesson.audioUrl ? ` · ${tr("صوت")}` : ""}
                               </p>
                               {row.isUnlocked ? null : (
                                 <AlertMessage kind="error" className="lock-hint">
-                                  {row.blockHint ?? "الدرس مقفل"}
+                                  {row.blockHint ?? tr("الدرس مقفل")}
                                 </AlertMessage>
                               )}
                               <div className="course-actions">
@@ -270,11 +271,11 @@ export function StudentCourseViewPage() {
                                     className="primary-btn"
                                     to={`${viewRoot}/course/${courseId}/lesson/${row.lesson.id}`}
                                   >
-                                    فتح الدرس
+                                    {tr("فتح الدرس")}
                                   </Link>
                                 ) : (
                                   <span className="ghost-btn lesson-locked-pill" aria-disabled>
-                                    مقفل
+                                    {tr("مقفل")}
                                   </span>
                                 )}
                               </div>

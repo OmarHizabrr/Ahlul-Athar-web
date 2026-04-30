@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import { coursesService } from "../services/coursesService";
 import { lessonsService } from "../services/lessonsService";
 import type { Course, Lesson } from "../types";
@@ -76,6 +77,7 @@ export function AdminCourseLessonsPage() {
   const [duration, setDuration] = useState("");
   const [difficulty, setDifficulty] = useState("");
   const [lessonModalOpen, setLessonModalOpen] = useState(false);
+  const { tr } = useI18n();
 
   const resetForm = () => {
     setEditingId(null);
@@ -137,7 +139,7 @@ export function AdminCourseLessonsPage() {
       const L = await lessonsService.listByCourseId(courseId);
       setLessons(L);
     } catch {
-      setMessage("تعذر التحميل.");
+      setMessage(tr("تعذر التحميل."));
       setIsError(true);
     } finally {
       setLoading(false);
@@ -158,25 +160,25 @@ export function AdminCourseLessonsPage() {
     setSubmitting(true);
     setMessage("");
     if (contentType === "text" && !content.trim()) {
-      setMessage("المحتوى النصي مطلوب عند اختيار «نص».");
+      setMessage(tr("المحتوى النصي مطلوب عند اختيار «نص»."));
       setIsError(true);
       setSubmitting(false);
       return;
     }
     if (contentType === "video" && !videoUrl.trim()) {
-      setMessage("أضف رابط الفيديو أو غيّر نوع المحتوى.");
+      setMessage(tr("أضف رابط الفيديو أو غيّر نوع المحتوى."));
       setIsError(true);
       setSubmitting(false);
       return;
     }
     if (contentType === "pdf" && !pdfUrl.trim()) {
-      setMessage("أضف رابط ملف الـ PDF أو غيّر نوع المحتوى.");
+      setMessage(tr("أضف رابط ملف الـ PDF أو غيّر نوع المحتوى."));
       setIsError(true);
       setSubmitting(false);
       return;
     }
     if (contentType === "audio" && !audioUrl.trim()) {
-      setMessage("أضف رابط الملف الصوتي أو غيّر نوع المحتوى.");
+      setMessage(tr("أضف رابط الملف الصوتي أو غيّر نوع المحتوى."));
       setIsError(true);
       setSubmitting(false);
       return;
@@ -196,10 +198,10 @@ export function AdminCourseLessonsPage() {
     try {
       if (editingId) {
         await lessonsService.updateLesson(courseId, editingId, payload);
-        setMessage("تم حفظ تعديلات الدرس.");
+        setMessage(tr("تم حفظ تعديلات الدرس."));
       } else {
         await lessonsService.createLesson(user, courseId, payload);
-        setMessage("تم إضافة الدرس وتحديث العدد في المقرر.");
+        setMessage(tr("تم إضافة الدرس وتحديث العدد في المقرر."));
         resetForm();
       }
       setIsError(false);
@@ -208,7 +210,7 @@ export function AdminCourseLessonsPage() {
       }
       await load();
     } catch {
-      setMessage(editingId ? "فشل حفظ التعديل. تحقق من القواعد." : "فشلت الإضافة. تحقق من القواعد.");
+      setMessage(editingId ? tr("فشل حفظ التعديل. تحقق من القواعد.") : tr("فشلت الإضافة. تحقق من القواعد."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -216,17 +218,17 @@ export function AdminCourseLessonsPage() {
   };
 
   const onDelete = async (L: Lesson) => {
-    if (!window.confirm(`حذف الدرس: ${L.title}؟`)) {
+    if (!window.confirm(`${tr("حذف الدرس")}: ${L.title}؟`)) {
       return;
     }
     setSubmitting(true);
     try {
       await lessonsService.deleteLesson(courseId, L.id);
-      setMessage("تم حذف الدرس.");
+      setMessage(tr("تم حذف الدرس."));
       setIsError(false);
       await load();
     } catch {
-      setMessage("فشل الحذف.");
+      setMessage(tr("فشل الحذف."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -238,8 +240,8 @@ export function AdminCourseLessonsPage() {
 
   if (!ready) {
     return (
-      <DashboardLayout role="admin" title="دروس المقرر" lede={lessonsLede}>
-        <PageLoadHint text="جاري التهيئة..." />
+      <DashboardLayout role="admin" title={tr("دروس المقرر")} lede={tr(lessonsLede)}>
+        <PageLoadHint text={tr("جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -249,64 +251,64 @@ export function AdminCourseLessonsPage() {
   }
 
   return (
-    <DashboardLayout role="admin" title={course ? `دروس: ${course.title}` : "دروس المقرر"} lede={lessonsLede}>
+    <DashboardLayout role="admin" title={course ? `${tr("دروس")}: ${course.title}` : tr("دروس المقرر")} lede={tr(lessonsLede)}>
       <p className="admin-lessons-back-row">
         <Link to="/admin/courses" className="inline-link">
-          ← العودة لقائمة المقررات
+          {tr("← العودة لقائمة المقررات")}
         </Link>
         {courseId ? (
           <Link
             to={`/admin/preview/course/${courseId}`}
             className="icon-tool-btn admin-lessons-preview-course"
-            title="معاينة المقرر كما يرى الطالب"
-            aria-label="معاينة المقرر"
+            title={tr("معاينة المقرر كما يرى الطالب")}
+            aria-label={tr("معاينة المقرر")}
           >
             <IoEyeOutline size={20} />
-            <span className="icon-tool-label">معاينة المقرر</span>
+            <span className="icon-tool-label">{tr("معاينة المقرر")}</span>
           </Link>
         ) : null}
       </p>
       {loading ? (
         <PageLoadHint />
       ) : !course ? (
-        <AlertMessage kind="error">المقرر غير موجود.</AlertMessage>
+        <AlertMessage kind="error">{tr("المقرر غير موجود.")}</AlertMessage>
       ) : (
         <>
           {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
-          <p className="muted small">نفس مسار التطبيق: مجموعة lessons ثم مُعرّف المقرر ثم وثائق الدرس.</p>
+          <p className="muted small">{tr("نفس مسار التطبيق: مجموعة lessons ثم مُعرّف المقرر ثم وثائق الدرس.")}</p>
           <div className="grid-2 home-stats-grid admin-lessons-stats">
-            <StatTile title="إجمالي الدروس" highlight={lessons.length} />
+            <StatTile title={tr("إجمالي الدروس")} highlight={lessons.length} />
             <StatTile
-              title="دروس باختبار إجباري"
+              title={tr("دروس باختبار إجباري")}
               highlight={lessons.filter((l) => l.hasMandatoryQuiz).length}
             />
             <StatTile
-              title="دروس بوسائط"
+              title={tr("دروس بوسائط")}
               highlight={lessons.filter((l) => l.videoUrl || l.pdfUrl || l.audioUrl).length}
             />
             <StatTile
-              title="متوسط المدة"
+              title={tr("متوسط المدة")}
               highlight={
                 lessons.some((l) => typeof l.duration === "number")
                   ? `${Math.round(
                       lessons.reduce((sum, l) => sum + (typeof l.duration === "number" ? l.duration : 0), 0) /
                         Math.max(1, lessons.filter((l) => typeof l.duration === "number").length),
                     )} د`
-                  : "—"
+                  : tr("—")
               }
             />
           </div>
           <PageToolbar>
             <button type="button" className="primary-btn toolbar-btn" onClick={onOpenCreateModal}>
-              إضافة درس
+              {tr("إضافة درس")}
             </button>
           </PageToolbar>
 
           <SectionTitle as="h3" className="form-section-title--spaced">
-            الدروس الحالية
+            {tr("الدروس الحالية")}
           </SectionTitle>
           {lessons.length === 0 ? (
-            <EmptyState message="لا دروس." />
+            <EmptyState message={tr("لا دروس.")} />
           ) : (
             <ContentList>
               {lessons.map((L) => (
@@ -316,57 +318,57 @@ export function AdminCourseLessonsPage() {
                     <div className="lesson-list-row__main">
                   <h4 className="post-title">{L.title}</h4>
                   <p className="muted post-meta">
-                    {formatFirestoreTime(L.createdAt)} · {L.contentType || "نص"}
-                    {L.hasMandatoryQuiz ? " · إجباري للتالي" : ""}
-                    {L.duration != null ? ` · ${L.duration} د` : ""}
+                    {formatFirestoreTime(L.createdAt)} · {tr(L.contentType || "نص")}
+                    {L.hasMandatoryQuiz ? ` · ${tr("إجباري للتالي")}` : ""}
+                    {L.duration != null ? ` · ${L.duration} ${tr("د")}` : ""}
                     {L.difficulty ? ` · ${L.difficulty}` : ""}
                   </p>
-                  <p className="lesson-asset-badges" aria-label="الوسائط">
-                    {L.videoUrl ? <span className="asset-badge">فيديو</span> : null}
+                  <p className="lesson-asset-badges" aria-label={tr("الوسائط")}>
+                    {L.videoUrl ? <span className="asset-badge">{tr("فيديو")}</span> : null}
                     {L.pdfUrl ? <span className="asset-badge">PDF</span> : null}
-                    {L.audioUrl ? <span className="asset-badge">صوت</span> : null}
+                    {L.audioUrl ? <span className="asset-badge">{tr("صوت")}</span> : null}
                   </p>
-                  <p className="muted">{L.description?.slice(0, 120) || "—"}</p>
+                  <p className="muted">{L.description?.slice(0, 120) || tr("—")}</p>
                   <div className="course-actions lesson-admin-actions">
                     <Link
                       className="icon-tool-btn"
                       to={`/admin/preview/course/${courseId}/lesson/${L.id}`}
-                      title="معاينة الدرس كطالب"
-                      aria-label="معاينة الدرس"
+                      title={tr("معاينة الدرس كطالب")}
+                      aria-label={tr("معاينة الدرس")}
                     >
                       <IoEyeOutline size={20} />
-                      <span className="icon-tool-label">معاينة</span>
+                      <span className="icon-tool-label">{tr("معاينة")}</span>
                     </Link>
                     <Link
                       className="icon-tool-btn"
                       to={`/admin/course/${courseId}/lessons/${L.id}/quizzes`}
-                      title="اختبارات الدرس"
-                      aria-label="اختبارات الدرس"
+                      title={tr("اختبارات الدرس")}
+                      aria-label={tr("اختبارات الدرس")}
                     >
                       <IoListCircleOutline size={20} />
-                      <span className="icon-tool-label">اختبارات</span>
+                      <span className="icon-tool-label">{tr("اختبارات")}</span>
                     </Link>
                     <button
                       type="button"
                       className="icon-tool-btn"
                       onClick={() => startEdit(L)}
                       disabled={submitting}
-                      title="تعديل الدرس"
-                      aria-label="تعديل الدرس"
+                      title={tr("تعديل الدرس")}
+                      aria-label={tr("تعديل الدرس")}
                     >
                       <IoPencil size={20} />
-                      <span className="icon-tool-label">تعديل</span>
+                      <span className="icon-tool-label">{tr("تعديل")}</span>
                     </button>
                     <button
                       type="button"
                       className="icon-tool-btn danger"
                       onClick={() => void onDelete(L)}
                       disabled={submitting}
-                      title="حذف الدرس"
-                      aria-label="حذف الدرس"
+                      title={tr("حذف الدرس")}
+                      aria-label={tr("حذف الدرس")}
                     >
                       <IoTrashOutline size={20} />
-                      <span className="icon-tool-label">حذف</span>
+                      <span className="icon-tool-label">{tr("حذف")}</span>
                     </button>
                   </div>
                     </div>
@@ -378,7 +380,7 @@ export function AdminCourseLessonsPage() {
 
           <AppModal
             open={lessonModalOpen}
-            title={editingId ? "تعديل بيانات الدرس" : "إضافة درس جديد"}
+            title={editingId ? tr("تعديل بيانات الدرس") : tr("إضافة درس جديد")}
             onClose={() => {
               if (!submitting) {
                 resetForm();
@@ -387,13 +389,13 @@ export function AdminCourseLessonsPage() {
             contentClassName="course-form-modal"
           >
             <FormPanel onSubmit={onSubmit} elevated={false} className="course-form-modal__form">
-              <SectionTitle as="h4">{editingId ? "تحديث الدرس" : "إضافة درس"}</SectionTitle>
+              <SectionTitle as="h4">{editingId ? tr("تحديث الدرس") : tr("إضافة درس")}</SectionTitle>
               <label>
-                <span>عنوان الدرس</span>
+                <span>{tr("عنوان الدرس")}</span>
                 <input className="text-input" value={title} onChange={(e) => setTitle(e.target.value)} required />
               </label>
               <label>
-                <span>وصف قصير</span>
+                <span>{tr("وصف قصير")}</span>
                 <input
                   className="text-input"
                   value={description}
@@ -402,7 +404,7 @@ export function AdminCourseLessonsPage() {
                 />
               </label>
               <label>
-                <span>نوع المحتوى</span>
+                <span>{tr("نوع المحتوى")}</span>
                 <select
                   className="text-input"
                   value={contentType}
@@ -410,17 +412,17 @@ export function AdminCourseLessonsPage() {
                 >
                   {CONTENT_TYPES.map((x) => (
                     <option key={x.v} value={x.v}>
-                      {x.label}
+                      {tr(x.label)}
                     </option>
                   ))}
                 </select>
               </label>
               <div className="admin-lesson-urls">
                 <p className="muted small form-hint">
-                  روابط الوسائط — تُحفظ في الحقول videoUrl / pdfUrl / audioUrl
+                  {tr("روابط الوسائط — تُحفظ في الحقول videoUrl / pdfUrl / audioUrl")}
                 </p>
                 <label>
-                  <span>رابط الفيديو</span>
+                  <span>{tr("رابط الفيديو")}</span>
                   <input
                     className="text-input"
                     type="url"
@@ -431,7 +433,7 @@ export function AdminCourseLessonsPage() {
                   />
                 </label>
                 <label>
-                  <span>رابط PDF</span>
+                  <span>{tr("رابط PDF")}</span>
                   <input
                     className="text-input"
                     type="url"
@@ -442,7 +444,7 @@ export function AdminCourseLessonsPage() {
                   />
                 </label>
                 <label>
-                  <span>رابط الصوت</span>
+                  <span>{tr("رابط الصوت")}</span>
                   <input
                     className="text-input"
                     type="url"
@@ -455,7 +457,7 @@ export function AdminCourseLessonsPage() {
               </div>
               <div className="form-row-2">
                 <label>
-                  <span>المدة (دقائق)</span>
+                  <span>{tr("المدة (دقائق)")}</span>
                   <input
                     className="text-input"
                     type="number"
@@ -463,24 +465,24 @@ export function AdminCourseLessonsPage() {
                     step={1}
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
-                    placeholder="مثال: 15"
+                    placeholder={tr("مثال: 15")}
                   />
                 </label>
                 <label>
-                  <span>الصعوبة</span>
+                  <span>{tr("الصعوبة")}</span>
                   <input
                     className="text-input"
                     value={difficulty}
                     onChange={(e) => setDifficulty(e.target.value)}
-                    placeholder="سهل / متوسط / صعب"
+                    placeholder={tr("سهل / متوسط / صعب")}
                   />
                 </label>
               </div>
               <label>
                 <span>
                   {contentType === "text"
-                    ? "المحتوى النصي للدرس"
-                    : "نص تعليمات / ملاحظات (اختياري — يظهر للطالب مع الرابط)"}
+                    ? tr("المحتوى النصي للدرس")
+                    : tr("نص تعليمات / ملاحظات (اختياري — يظهر للطالب مع الرابط)")}
                 </span>
                 <textarea
                   className="text-input textarea"
@@ -496,16 +498,16 @@ export function AdminCourseLessonsPage() {
                   checked={hasMandatoryQuiz}
                   onChange={(e) => setHasMandatoryQuiz(e.target.checked)}
                 />
-                <span>اختبار إجباري قبل الدرس التالي</span>
+                <span>{tr("اختبار إجباري قبل الدرس التالي")}</span>
               </label>
               <div className="course-actions">
                 <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
                   <ButtonBusyLabel busy={submitting}>
-                    {editingId ? "حفظ التعديلات" : "حفظ الدرس"}
+                    {editingId ? tr("حفظ التعديلات") : tr("حفظ الدرس")}
                   </ButtonBusyLabel>
                 </button>
                 <button type="button" className="ghost-btn" onClick={resetForm} disabled={submitting}>
-                  إلغاء
+                  {tr("إلغاء")}
                 </button>
               </div>
             </FormPanel>

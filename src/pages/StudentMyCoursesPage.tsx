@@ -11,6 +11,7 @@ import {
   StatTile,
 } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import { cn } from "../utils/cn";
 import { DashboardLayout } from "./DashboardLayout";
 import { myCoursesService } from "../services/myCoursesService";
@@ -19,6 +20,7 @@ import { formatFirestoreTime } from "../utils/firestoreTime";
 
 export function StudentMyCoursesPage() {
   const { user, ready } = useAuth();
+  const { tr } = useI18n();
   const [rows, setRows] = useState<MyCourseEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -35,7 +37,7 @@ export function StudentMyCoursesPage() {
       const data = await myCoursesService.listForStudent(user.uid);
       setRows(data);
     } catch {
-      setMessage("تعذر تحميل مقرراتك. تحقق من القواعد في Firestore.");
+      setMessage(tr("تعذر تحميل مقرراتك. تحقق من القواعد في Firestore."));
     } finally {
       setLoading(false);
     }
@@ -62,8 +64,8 @@ export function StudentMyCoursesPage() {
 
   if (!ready) {
     return (
-      <DashboardLayout role="student" title="مقرراتي" lede="مقرراتك بعد قبول طلبات الانضمام.">
-        <PageLoadHint text="جاري التهيئة..." />
+      <DashboardLayout role="student" title={tr("مقرراتي")} lede={tr("مقرراتك بعد قبول طلبات الانضمام.")}>
+        <PageLoadHint text={tr("جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -75,15 +77,15 @@ export function StudentMyCoursesPage() {
   return (
     <DashboardLayout
       role="student"
-      title="مقرراتي"
-      lede="الدورات التي وافقت الإدارة على انضمامك إليها — يطابق تبويب «دوراتي» في تطبيق الجوال."
+      title={tr("مقرراتي")}
+      lede={tr("الدورات التي وافقت الإدارة على انضمامك إليها — يطابق تبويب «دوراتي» في تطبيق الجوال.")}
     >
       <PageToolbar>
         <input
           className="course-search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="بحث في مقرراتي..."
+          placeholder={tr("بحث في مقرراتي...")}
         />
         <button
           type="button"
@@ -92,33 +94,33 @@ export function StudentMyCoursesPage() {
           disabled={loading}
           aria-busy={loading}
         >
-          <ButtonBusyLabel busy={loading}>تحديث القائمة</ButtonBusyLabel>
+          <ButtonBusyLabel busy={loading}>{tr("تحديث القائمة")}</ButtonBusyLabel>
         </button>
         <Link to="/student/courses" className="ghost-btn toolbar-btn">
-          تصفح الكتالوج
+          {tr("تصفح الكتالوج")}
         </Link>
         <button
           type="button"
           className="ghost-btn toolbar-btn"
           onClick={() => setShowActivatedOnly((v) => !v)}
         >
-          {showActivatedOnly ? "عرض كل المقررات" : "المفعلة فقط"}
+          {showActivatedOnly ? tr("عرض كل المقررات") : tr("المفعلة فقط")}
         </button>
       </PageToolbar>
       {message ? <AlertMessage kind="error">{message}</AlertMessage> : null}
       {!loading ? (
         <div className="grid-2 home-stats-grid">
-          <StatTile title="عدد مقرراتي" highlight={rows.length} />
+          <StatTile title={tr("عدد مقرراتي")} highlight={rows.length} />
           <StatTile
-            title="إجمالي الدروس"
+            title={tr("إجمالي الدروس")}
             highlight={rows.reduce((sum, c) => sum + (typeof c.lessonCount === "number" ? c.lessonCount : 0), 0)}
           />
           <StatTile
-            title="مقررات مفعلة"
+            title={tr("مقررات مفعلة")}
             highlight={rows.filter((c) => c.isActivated).length}
           />
           <StatTile
-            title="مقررات دائمة"
+            title={tr("مقررات دائمة")}
             highlight={rows.filter((c) => c.isLifetime).length}
           />
         </div>
@@ -126,10 +128,10 @@ export function StudentMyCoursesPage() {
       {loading ? (
         <PageLoadHint />
       ) : visibleRows.length === 0 ? (
-        <EmptyState className="empty-state" message="لا يوجد مقررات مسجّل بها بعد.">
+        <EmptyState className="empty-state" message={tr("لا يوجد مقررات مسجّل بها بعد.")}>
           <p className="empty-state-actions">
             <Link to="/student/courses" className="primary-btn">
-              الذهاب لصفحة الدورات وطلب الانضمام
+              {tr("الذهاب لصفحة الدورات وطلب الانضمام")}
             </Link>
           </p>
         </EmptyState>
@@ -144,28 +146,28 @@ export function StudentMyCoursesPage() {
                 <CoverImage variant="catalog" src={c.courseImageURL} alt={c.courseTitle} />
               ) : null}
               <div className="mycourse-card-body">
-                <h3>{c.courseTitle || "مقرر"}</h3>
-                <p className="muted">{c.courseDescription?.slice(0, 200) || "—"}</p>
+                <h3>{c.courseTitle || tr("مقرر")}</h3>
+                <p className="muted">{c.courseDescription?.slice(0, 200) || tr("—")}</p>
                 <div className="course-meta" style={{ marginTop: "0.5rem" }}>
-                  <span className="meta-pill meta-pill--muted" title="تاريخ التسجيل">
-                    مسجّل: {formatFirestoreTime(c.enrolledAt)}
+                  <span className="meta-pill meta-pill--muted" title={tr("تاريخ التسجيل")}>
+                    {tr("مسجّل")}: {formatFirestoreTime(c.enrolledAt)}
                   </span>
                   <span className={c.isActivated ? "meta-pill meta-pill--ok" : "meta-pill meta-pill--muted"}>
-                    {c.isActivated ? "مفعّل" : "غير مفعّل"}
+                    {c.isActivated ? tr("مفعّل") : tr("غير مفعّل")}
                   </span>
-                  {c.isLifetime ? <span className="meta-pill meta-pill--info">تفعيل دائم</span> : null}
+                  {c.isLifetime ? <span className="meta-pill meta-pill--info">{tr("تفعيل دائم")}</span> : null}
                   {c.lessonCount != null ? (
-                    <span className="meta-pill meta-pill--muted">{c.lessonCount} درس</span>
+                    <span className="meta-pill meta-pill--muted">{c.lessonCount} {tr("درس")}</span>
                   ) : null}
                   {c.isActiveOnCatalog === false ? (
-                    <span className="meta-pill meta-pill--warn" title="قد لا يظهر في الكتالوج العام">
-                      المقرر موقف في الكتالوج
+                    <span className="meta-pill meta-pill--warn" title={tr("قد لا يظهر في الكتالوج العام")}>
+                      {tr("المقرر موقف في الكتالوج")}
                     </span>
                   ) : null}
                 </div>
                 <div className="course-actions">
                   <Link to={`/student/course/${c.courseId}`} className="primary-btn">
-                    فتح المقرر والدروس
+                    {tr("فتح المقرر والدروس")}
                   </Link>
                 </div>
               </div>

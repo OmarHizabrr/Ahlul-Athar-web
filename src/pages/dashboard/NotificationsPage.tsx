@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useI18n } from "../../context/I18nContext";
 import { DashboardLayout } from "../DashboardLayout";
 import { notificationsService } from "../../services/notificationsService";
 import { usersService } from "../../services/usersService";
@@ -23,6 +24,7 @@ import { formatFirestoreTime } from "../../utils/firestoreTime";
 
 export function NotificationsPage({ role }: { role: UserRole }) {
   const { user: u, ready } = useAuth();
+  const { tr } = useI18n();
   const [items, setItems] = useState<Awaited<ReturnType<typeof notificationsService.listForUser>>>([]);
   const [usersPick, setUsersPick] = useState<{ uid: string; displayName: string; role: UserRole }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       const data = await notificationsService.listForUser(u.uid);
       setItems(data);
     } catch {
-      setMessage("تعذر تحميل الإشعارات.");
+      setMessage(tr("تعذر تحميل الإشعارات."));
       setIsError(true);
     } finally {
       setLoading(false);
@@ -114,10 +116,10 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       setNBody("");
       setNImageUrl("");
       setSendModalOpen(false);
-      setMessage("تم إرسال الإشعار.");
+      setMessage(tr("تم إرسال الإشعار."));
       setIsError(false);
     } catch {
-      setMessage("تعذر الإرسال. تأكد من معرّف المستخدم وصلاحياتك.");
+      setMessage(tr("تعذر الإرسال. تأكد من معرّف المستخدم وصلاحياتك."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -130,10 +132,10 @@ export function NotificationsPage({ role }: { role: UserRole }) {
     return (
       <DashboardLayout
         role={role}
-        title="الإشعارات"
-        lede="نفس مزامنة الإشعارات مع تطبيق الجوال. يُحدَّث العداد في الشريط عند تعليم القراءة."
+        title={tr("الإشعارات")}
+        lede={tr("نفس مزامنة الإشعارات مع تطبيق الجوال. يُحدَّث العداد في الشريط عند تعليم القراءة.")}
       >
-        <PageLoadHint text="جاري التهيئة..." />
+        <PageLoadHint text={tr("جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -141,13 +143,13 @@ export function NotificationsPage({ role }: { role: UserRole }) {
   return (
     <DashboardLayout
       role={role}
-      title="الإشعارات"
-      lede="نفس مزامنة الإشعارات مع تطبيق الجوال. يُحدَّث العداد في الشريط عند تعليم القراءة."
+      title={tr("الإشعارات")}
+      lede={tr("نفس مزامنة الإشعارات مع تطبيق الجوال. يُحدَّث العداد في الشريط عند تعليم القراءة.")}
     >
       {role === "admin" && u ? (
         <PageToolbar>
           <button type="button" className="primary-btn toolbar-btn" onClick={() => setSendModalOpen(true)}>
-            إرسال إشعار
+            {tr("إرسال إشعار")}
           </button>
         </PageToolbar>
       ) : null}
@@ -155,20 +157,20 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
       {!loading ? (
         <div className="grid-2 home-stats-grid">
-          <StatTile title="إجمالي الإشعارات" highlight={items.length} />
-          <StatTile title="غير المقروءة" highlight={items.filter((n) => !n.read).length} />
-          <StatTile title="بصور" highlight={items.filter((n) => (n.imageUrl ?? "").trim().length > 0).length} />
+          <StatTile title={tr("إجمالي الإشعارات")} highlight={items.length} />
+          <StatTile title={tr("غير المقروءة")} highlight={items.filter((n) => !n.read).length} />
+          <StatTile title={tr("بصور")} highlight={items.filter((n) => (n.imageUrl ?? "").trim().length > 0).length} />
         </div>
       ) : null}
 
       <PageToolbar className="notif-toolbar">
-        <p className="muted">الإشعارات الخاصة بك</p>
+        <p className="muted">{tr("الإشعارات الخاصة بك")}</p>
         <button
           type="button"
           className="ghost-btn toolbar-btn"
           onClick={() => setShowUnreadOnly((v) => !v)}
         >
-          {showUnreadOnly ? "عرض الكل" : "غير المقروء فقط"}
+          {showUnreadOnly ? tr("عرض الكل") : tr("غير المقروء فقط")}
         </button>
         {items.some((i) => !i.read) ? (
           <button
@@ -178,7 +180,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
             disabled={submitting}
             aria-busy={submitting}
           >
-            <ButtonBusyLabel busy={submitting}>تعليم الكل كمقروء</ButtonBusyLabel>
+            <ButtonBusyLabel busy={submitting}>{tr("تعليم الكل كمقروء")}</ButtonBusyLabel>
           </button>
         ) : null}
       </PageToolbar>
@@ -186,7 +188,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       {loading ? (
         <PageLoadHint />
       ) : visibleItems.length === 0 ? (
-        <EmptyState message="لا توجد إشعارات." />
+        <EmptyState message={tr("لا توجد إشعارات.")} />
       ) : (
         <ContentList>
           {visibleItems.map((n) => {
@@ -210,7 +212,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
                         disabled={submitting}
                         aria-busy={submitting}
                       >
-                        <ButtonBusyLabel busy={submitting}>تعليم كمقروء</ButtonBusyLabel>
+                        <ButtonBusyLabel busy={submitting}>{tr("تعليم كمقروء")}</ButtonBusyLabel>
                       </button>
                     </div>
                   ) : null}
@@ -224,7 +226,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       {role === "admin" && u ? (
         <AppModal
           open={sendModalOpen}
-          title="إرسال إشعار لمستخدم"
+          title={tr("إرسال إشعار لمستخدم")}
           onClose={() => {
             if (!submitting) {
               setSendModalOpen(false);
@@ -233,9 +235,9 @@ export function NotificationsPage({ role }: { role: UserRole }) {
           contentClassName="course-form-modal"
         >
           <FormPanel onSubmit={onSend} elevated={false} className="course-form-modal__form">
-            <SectionTitle as="h4">إرسال إشعار</SectionTitle>
+            <SectionTitle as="h4">{tr("إرسال إشعار")}</SectionTitle>
             <label>
-              <span>المستلم</span>
+              <span>{tr("المستلم")}</span>
               {usersPick.length > 0 ? (
                 <select
                   className="text-input"
@@ -245,7 +247,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
                 >
                   {usersPick.map((x) => (
                     <option key={x.uid} value={x.uid}>
-                      {x.displayName} ({x.role === "admin" ? "مسؤول" : "طالب"}) — {x.uid}
+                      {x.displayName} ({x.role === "admin" ? tr("مسؤول") : tr("طالب")}) — {x.uid}
                     </option>
                   ))}
                 </select>
@@ -260,11 +262,11 @@ export function NotificationsPage({ role }: { role: UserRole }) {
               )}
             </label>
             <label>
-              <span>العنوان</span>
+              <span>{tr("العنوان")}</span>
               <input className="text-input" value={nTitle} onChange={(e) => setNTitle(e.target.value)} required />
             </label>
             <label>
-              <span>النص</span>
+              <span>{tr("النص")}</span>
               <textarea
                 className="text-input textarea"
                 value={nBody}
@@ -274,7 +276,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
               />
             </label>
             <label>
-              <span>رابط صورة الإشعار (اختياري)</span>
+              <span>{tr("رابط صورة الإشعار (اختياري)")}</span>
               <input
                 className="text-input"
                 type="url"
@@ -285,10 +287,10 @@ export function NotificationsPage({ role }: { role: UserRole }) {
             </label>
             <div className="course-actions">
               <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
-                <ButtonBusyLabel busy={submitting}>إرسال</ButtonBusyLabel>
+                <ButtonBusyLabel busy={submitting}>{tr("إرسال")}</ButtonBusyLabel>
               </button>
               <button type="button" className="ghost-btn" onClick={() => setSendModalOpen(false)} disabled={submitting}>
-                إلغاء
+                {tr("إلغاء")}
               </button>
             </div>
           </FormPanel>

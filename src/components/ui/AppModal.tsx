@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "../../utils/cn";
+import { useI18n } from "../../context/I18nContext";
 
 export function AppModal({
   open,
@@ -16,6 +17,7 @@ export function AppModal({
   className?: string;
   contentClassName?: string;
 }) {
+  const { tr } = useI18n();
   if (!open) {
     return null;
   }
@@ -29,7 +31,7 @@ export function AppModal({
       >
         <header className="app-modal-head">
           <h3 className="app-modal-title">{title}</h3>
-          <button type="button" className="app-modal-close" onClick={onClose} aria-label="إغلاق النافذة">
+          <button type="button" className="app-modal-close" onClick={onClose} aria-label={tr("إغلاق النافذة")}>
             ×
           </button>
         </header>

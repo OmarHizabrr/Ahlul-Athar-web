@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useI18n } from "../context/I18nContext";
 
 type BusyLabelProps = {
   busy: boolean;
@@ -21,10 +22,12 @@ type PageLoadProps = {
 
 /** سطر «جاري التحميل / التهيئة…» مع دوّار بجانب النص. */
 export function PageLoadHint({ text = "جاري التحميل..." }: PageLoadProps) {
+  const { tr } = useI18n();
+  const label = text === "جاري التحميل..." ? tr("جاري التحميل...") : text;
   return (
     <p className="page-load-hint muted" role="status">
       <span className="btn-spinner btn-spinner--muted" aria-hidden />
-      {text}
+      {label}
     </p>
   );
 }

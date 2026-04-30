@@ -4,6 +4,7 @@ import JSZip from "jszip";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { AlertMessage, ContentList, ContentListItem, EmptyState, PageToolbar, Panel, SectionTitle, StatTile } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import { coursesService } from "../services/coursesService";
 import { foldersService } from "../services/foldersService";
 import type { Folder, FolderFile } from "../types";
@@ -53,6 +54,7 @@ function FilePreview({ file }: { file: FolderFile }) {
 export function StudentFolderViewPage() {
   const { folderId } = useParams();
   const { user, ready } = useAuth();
+  const { tr } = useI18n();
   const [folder, setFolder] = useState<Folder | null>(null);
   const [files, setFiles] = useState<FolderFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +84,7 @@ export function StudentFolderViewPage() {
         setAllowed(true);
       }
     } catch {
-      setMessage("تعذر تحميل ملفات المجلد.");
+      setMessage(tr("تعذر تحميل ملفات المجلد."));
       setFolder(null);
       setFiles([]);
       setAllowed(true);
@@ -156,7 +158,7 @@ export function StudentFolderViewPage() {
       a.remove();
       URL.revokeObjectURL(href);
     } catch {
-      setMessage("تعذر تنزيل المجلد كاملاً. يمكن تنزيل الملفات بشكل فردي.");
+      setMessage(tr("تعذر تنزيل المجلد كاملاً. يمكن تنزيل الملفات بشكل فردي."));
     } finally {
       setDownloadFolderBusy(false);
     }
@@ -171,9 +173,9 @@ export function StudentFolderViewPage() {
         return;
       }
       await navigator.clipboard.writeText(f.downloadUrl);
-      setMessage("تم نسخ رابط الملف للمشاركة.");
+      setMessage(tr("تم نسخ رابط الملف للمشاركة."));
     } catch {
-      setMessage("تعذر مشاركة الملف من المتصفح الحالي.");
+      setMessage(tr("تعذر مشاركة الملف من المتصفح الحالي."));
     } finally {
       setShareBusyId(null);
     }
@@ -181,39 +183,39 @@ export function StudentFolderViewPage() {
 
   if (!folderId) {
     return (
-      <DashboardLayout role="student" title="الملفات" lede="—">
-        <AlertMessage kind="error">معرّف المجلد غير صحيح.</AlertMessage>
+      <DashboardLayout role="student" title={tr("الملفات")} lede={tr("—")}>
+        <AlertMessage kind="error">{tr("معرّف المجلد غير صحيح.")}</AlertMessage>
       </DashboardLayout>
     );
   }
 
   if (!ready) {
     return (
-      <DashboardLayout role="student" title="الملفات" lede="—">
-        <PageLoadHint text="جاري التهيئة..." />
+      <DashboardLayout role="student" title={tr("الملفات")} lede={tr("—")}>
+        <PageLoadHint text={tr("جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout role="student" title={folder?.name || "الملفات"} lede="عرض ملفات المجلد للطالب كما في التطبيق، لكن بتخطيط ويب." >
+    <DashboardLayout role="student" title={folder?.name || tr("الملفات")} lede={tr("عرض ملفات المجلد للطالب كما في التطبيق، لكن بتخطيط ويب.")} >
       <PageToolbar>
         <Link to="/student/myfiles" className="ghost-btn toolbar-btn">
-          ← الرجوع
+          {tr("← الرجوع")}
         </Link>
         <button type="button" className="ghost-btn toolbar-btn" onClick={() => void load(folderId)} disabled={loading} aria-busy={loading}>
-          تحديث
+          {tr("تحديث")}
         </button>
-        <input className="text-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث في الملفات" aria-label="بحث في الملفات" />
+        <input className="text-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={tr("بحث في الملفات")} aria-label={tr("بحث في الملفات")} />
       </PageToolbar>
       {message ? <AlertMessage kind="error">{message}</AlertMessage> : null}
       {loading ? (
         <PageLoadHint />
       ) : folder == null ? (
-        <EmptyState message="المجلد غير موجود." />
+        <EmptyState message={tr("المجلد غير موجود.")} />
       ) : !allowed ? (
         <AlertMessage kind="error" role="alert">
-          هذا المجلد خاص ولا تملك صلاحية الوصول له حالياً.
+          {tr("هذا المجلد خاص ولا تملك صلاحية الوصول له حالياً.")}
           <div className="course-actions" style={{ marginTop: "0.75rem" }}>
             <button
               type="button"
@@ -223,10 +225,10 @@ export function StudentFolderViewPage() {
                 setRequesting(true);
                 setMessage(null);
                 try {
-                  await coursesService.requestFolderEnrollment(user, folder, "طلب انضمام لمجلد");
-                  setMessage("تم إرسال طلب الانضمام للمراجعة.");
+                  await coursesService.requestFolderEnrollment(user, folder, tr("طلب انضمام لمجلد"));
+                  setMessage(tr("تم إرسال طلب الانضمام للمراجعة."));
                 } catch {
-                  setMessage("تعذر إرسال الطلب. تحقق من الصلاحيات.");
+                  setMessage(tr("تعذر إرسال الطلب. تحقق من الصلاحيات."));
                 } finally {
                   setRequesting(false);
                 }
@@ -234,10 +236,10 @@ export function StudentFolderViewPage() {
               disabled={requesting}
               aria-busy={requesting}
             >
-              <ButtonBusyLabel busy={requesting}>طلب الانضمام</ButtonBusyLabel>
+              <ButtonBusyLabel busy={requesting}>{tr("طلب الانضمام")}</ButtonBusyLabel>
             </button>
             <Link to="/student/myfiles" className="ghost-btn">
-              الرجوع
+              {tr("الرجوع")}
             </Link>
           </div>
         </AlertMessage>
@@ -248,35 +250,35 @@ export function StudentFolderViewPage() {
             {folder.description ? <p className="muted small">{folder.description}</p> : null}
           </Panel>
           <PageToolbar>
-            <select className="select" value={fileType} onChange={(e) => setFileType(e.target.value as typeof fileType)} aria-label="فلتر نوع الملف">
-              <option value="all">كل الأنواع</option>
-              <option value="pdf">PDF</option>
-              <option value="image">صور</option>
-              <option value="video">فيديو</option>
-              <option value="audio">صوت</option>
-              <option value="doc">مستند</option>
-              <option value="other">أخرى</option>
+            <select className="select" value={fileType} onChange={(e) => setFileType(e.target.value as typeof fileType)} aria-label={tr("فلتر نوع الملف")}>
+              <option value="all">{tr("كل الأنواع")}</option>
+              <option value="pdf">{tr("PDF")}</option>
+              <option value="image">{tr("صور")}</option>
+              <option value="video">{tr("فيديو")}</option>
+              <option value="audio">{tr("صوت")}</option>
+              <option value="doc">{tr("مستند")}</option>
+              <option value="other">{tr("أخرى")}</option>
             </select>
-            <select className="select" value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} aria-label="ترتيب الملفات">
-              <option value="name">ترتيب: الاسم</option>
-              <option value="size">ترتيب: الحجم</option>
-              <option value="type">ترتيب: النوع</option>
-              <option value="date">ترتيب: التاريخ</option>
+            <select className="select" value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} aria-label={tr("ترتيب الملفات")}>
+              <option value="name">{tr("ترتيب: الاسم")}</option>
+              <option value="size">{tr("ترتيب: الحجم")}</option>
+              <option value="type">{tr("ترتيب: النوع")}</option>
+              <option value="date">{tr("ترتيب: التاريخ")}</option>
             </select>
-            <select className="select" value={sortDir} onChange={(e) => setSortDir(e.target.value as typeof sortDir)} aria-label="اتجاه الترتيب">
-              <option value="asc">تصاعدي</option>
-              <option value="desc">تنازلي</option>
+            <select className="select" value={sortDir} onChange={(e) => setSortDir(e.target.value as typeof sortDir)} aria-label={tr("اتجاه الترتيب")}>
+              <option value="asc">{tr("تصاعدي")}</option>
+              <option value="desc">{tr("تنازلي")}</option>
             </select>
             <button type="button" className="ghost-btn toolbar-btn" onClick={() => void downloadFolderAsZip()} disabled={downloadFolderBusy || files.length === 0} aria-busy={downloadFolderBusy}>
-              <ButtonBusyLabel busy={downloadFolderBusy}>تحميل المجلد كامل</ButtonBusyLabel>
+              <ButtonBusyLabel busy={downloadFolderBusy}>{tr("تحميل المجلد كامل")}</ButtonBusyLabel>
             </button>
           </PageToolbar>
           <div className="grid-2 home-stats-grid">
-            <StatTile title="إجمالي الملفات" highlight={files.length} />
-            <StatTile title="النتائج" highlight={visibleFiles.length} />
+            <StatTile title={tr("إجمالي الملفات")} highlight={files.length} />
+            <StatTile title={tr("النتائج")} highlight={visibleFiles.length} />
           </div>
           {visibleFiles.length === 0 ? (
-            <EmptyState message="لا توجد ملفات." />
+            <EmptyState message={tr("لا توجد ملفات.")} />
           ) : (
             <ContentList>
               {visibleFiles.map((f) => {
@@ -287,7 +289,7 @@ export function StudentFolderViewPage() {
                   <div style={{ width: "100%" }}>
                     <h3 className="post-title">{f.fileName}</h3>
                     <p className="muted small">
-                      {f.fileType ? `النوع: ${f.fileType}` : "—"} · الحجم: {formatSize(f.fileSize)} · {formatFirestoreTime(f.createdAt)}
+                      {f.fileType ? `${tr("النوع")}: ${f.fileType}` : tr("—")} · {tr("الحجم")}: {formatSize(f.fileSize)} · {formatFirestoreTime(f.createdAt)}
                     </p>
                     {canPreview && isOpen ? (
                       <div style={{ marginTop: "0.6rem" }}>
@@ -312,7 +314,7 @@ export function StudentFolderViewPage() {
                           })
                         }
                       >
-                        {isOpen ? "إخفاء المعاينة" : "معاينة"}
+                        {isOpen ? tr("إخفاء المعاينة") : tr("معاينة")}
                       </button>
                     ) : null}
                     <button
@@ -328,20 +330,20 @@ export function StudentFolderViewPage() {
                             await triggerBrowserDownloadFromUrl(f.downloadUrl, f.fileName);
                           } catch {
                             window.open(f.downloadUrl, "_blank", "noopener,noreferrer");
-                            setMessage("تعذر إكمال التحميل كملف؛ تم فتح الرابط في تبويب جديد.");
+                            setMessage(tr("تعذر إكمال التحميل كملف؛ تم فتح الرابط في تبويب جديد."));
                           } finally {
                             setDownloadBusyId(null);
                           }
                         })()
                       }
                     >
-                      <ButtonBusyLabel busy={downloadBusyId === f.id}>تحميل</ButtonBusyLabel>
+                      <ButtonBusyLabel busy={downloadBusyId === f.id}>{tr("تحميل")}</ButtonBusyLabel>
                     </button>
                     <a className="ghost-btn" href={f.downloadUrl} target="_blank" rel="noopener noreferrer">
-                      فتح
+                      {tr("فتح")}
                     </a>
                     <button type="button" className="ghost-btn" onClick={() => void shareFile(f)} disabled={shareBusyId === f.id} aria-busy={shareBusyId === f.id}>
-                      <ButtonBusyLabel busy={shareBusyId === f.id}>مشاركة</ButtonBusyLabel>
+                      <ButtonBusyLabel busy={shareBusyId === f.id}>{tr("مشاركة")}</ButtonBusyLabel>
                     </button>
                   </div>
                 </ContentListItem>

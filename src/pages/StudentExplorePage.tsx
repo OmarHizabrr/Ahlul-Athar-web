@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { AlertMessage, AppTabPanel, AppTabs, ContentList, ContentListItem, EmptyState, PageToolbar, Panel, SectionTitle, StatTile } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import { coursesService } from "../services/coursesService";
 import { foldersService } from "../services/foldersService";
 import { myCoursesService } from "../services/myCoursesService";
@@ -12,16 +13,19 @@ import { DashboardLayout } from "./DashboardLayout";
 type TabId = "courses" | "files";
 
 const LAST_TAB_KEY = "ah:student-explore:lastTab";
-const STUDENT_ACTION_LABELS = {
-  directEnroll: "تسجيل مباشر",
-  requestJoin: "طلب الانضمام",
-  requestJoinRetry: "إعادة طلب الانضمام",
-  pending: "الطلب قيد المراجعة",
-  open: "فتح",
-} as const;
-
 export function StudentExplorePage() {
   const { user, ready } = useAuth();
+  const { tr } = useI18n();
+  const STUDENT_ACTION_LABELS = useMemo(
+    () => ({
+      directEnroll: tr("تسجيل مباشر"),
+      requestJoin: tr("طلب الانضمام"),
+      requestJoinRetry: tr("إعادة طلب الانضمام"),
+      pending: tr("الطلب قيد المراجعة"),
+      open: tr("فتح"),
+    }),
+    [tr],
+  );
   const [tab, setTab] = useState<TabId>("courses");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -68,7 +72,7 @@ export function StudentExplorePage() {
         new Set(myReqs.filter((r) => r.requestType === "folder" && r.status === "pending").map((r) => r.targetId)),
       );
     } catch {
-      setMessage("تعذر تحميل الاستكشاف. تحقق من الاتصال وصلاحيات Firestore.");
+      setMessage(tr("تعذر تحميل الاستكشاف. تحقق من الاتصال وصلاحيات Firestore."));
       setCourses([]);
       setMyCourseIds(new Set());
       setLatestCourseReqById(new Map());
@@ -148,12 +152,12 @@ export function StudentExplorePage() {
           targetId: course.id,
           targetName: course.title,
           status: "pending",
-          reason: "طلب انضمام من الاستكشاف",
+          reason: tr("طلب انضمام من الاستكشاف"),
         });
         return next;
       });
     } catch {
-      setMessage("تعذر إرسال طلب الانضمام.");
+      setMessage(tr("تعذر إرسال طلب الانضمام."));
     } finally {
       setRequestingCourseId(null);
     }
@@ -167,7 +171,7 @@ export function StudentExplorePage() {
       await coursesService.enrollStudentInPublicCourse(user, course);
       setMyCourseIds((prev) => new Set([...prev, course.id]));
     } catch {
-      setMessage("تعذر التسجيل المباشر.");
+      setMessage(tr("تعذر التسجيل المباشر."));
     } finally {
       setRequestingCourseId(null);
     }
@@ -182,7 +186,7 @@ export function StudentExplorePage() {
         folder,
         member: {
           uid: user.uid,
-          displayName: user.displayName ?? "طالب",
+          displayName: user.displayName ?? tr("طالب"),
           email: user.email ?? undefined,
           phone: user.phoneNumber ?? undefined,
           photoURL: user.photoURL ?? undefined,
@@ -192,7 +196,7 @@ export function StudentExplorePage() {
       setMyFolderIds((prev) => new Set([...prev, folder.id]));
       setFolders((prev) => prev.filter((f) => f.id !== folder.id));
     } catch {
-      setMessage("تعذر التسجيل المباشر.");
+      setMessage(tr("تعذر التسجيل المباشر."));
     } finally {
       setRequestingFolderId(null);
     }
@@ -200,8 +204,8 @@ export function StudentExplorePage() {
 
   if (!ready) {
     return (
-      <DashboardLayout role="student" title="الاستكشاف" lede="تبويب موحّد للدورات والملفات مثل التطبيق، لكن بتخطيط مناسب للويب.">
-        <PageLoadHint text="جاري التهيئة..." />
+      <DashboardLayout role="student" title={tr("الاستكشاف")} lede={tr("تبويب موحّد للدورات والملفات مثل التطبيق، لكن بتخطيط مناسب للويب.")}>
+        <PageLoadHint text={tr("جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -211,46 +215,46 @@ export function StudentExplorePage() {
   }
 
   return (
-    <DashboardLayout role="student" title="الاستكشاف" lede="تبويب موحّد للدورات والملفات مثل التطبيق، لكن بتخطيط مناسب للويب." >
+    <DashboardLayout role="student" title={tr("الاستكشاف")} lede={tr("تبويب موحّد للدورات والملفات مثل التطبيق، لكن بتخطيط مناسب للويب.")} >
       <AppTabs
         groupId={groupId}
-        ariaLabel="أقسام الاستكشاف"
+        ariaLabel={tr("أقسام الاستكشاف")}
         value={tab}
         onChange={(id) => onTabChange(id as TabId)}
         tabs={[
-          { id: "courses", label: "الدورات" },
-          { id: "files", label: "الملفات" },
+          { id: "courses", label: tr("الدورات") },
+          { id: "files", label: tr("الملفات") },
         ]}
       />
 
       <AppTabPanel tabId="courses" groupId={groupId} hidden={tab !== "courses"} className="lesson-tab-panel">
         <Panel className="card-elevated">
-          <SectionTitle as="h3">استكشاف الدورات</SectionTitle>
-          <p className="muted small">الدورات العامة: تسجيل مباشر. الدورات الخاصة: طلب انضمام.</p>
+          <SectionTitle as="h3">{tr("استكشاف الدورات")}</SectionTitle>
+          <p className="muted small">{tr("الدورات العامة: تسجيل مباشر. الدورات الخاصة: طلب انضمام.")}</p>
           <PageToolbar>
             <button type="button" className="ghost-btn toolbar-btn" onClick={() => void load()} disabled={loading} aria-busy={loading}>
-              <ButtonBusyLabel busy={loading}>تحديث</ButtonBusyLabel>
+              <ButtonBusyLabel busy={loading}>{tr("تحديث")}</ButtonBusyLabel>
             </button>
             <Link to="/student/mycourses" className="ghost-btn toolbar-btn">
-              مقرراتي
+              {tr("مقرراتي")}
             </Link>
             <Link to="/student/enrollment-requests" className="ghost-btn toolbar-btn">
-              طلباتي
+              {tr("طلباتي")}
             </Link>
-            <input className="text-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث في الدورات/المجلدات" aria-label="بحث في الدورات أو المجلدات" />
+            <input className="text-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={tr("بحث في الدورات/المجلدات")} aria-label={tr("بحث في الدورات أو المجلدات")} />
           </PageToolbar>
         </Panel>
         {!loading ? (
           <div className="grid-2 home-stats-grid">
-            <StatTile title="الدورات المتاحة" highlight={courses.length} />
-            <StatTile title="نتائج الدورات" highlight={visibleCourses.length} />
-            <StatTile title="ضمن مقرراتي" highlight={myCourseIds.size} />
+            <StatTile title={tr("الدورات المتاحة")} highlight={courses.length} />
+            <StatTile title={tr("نتائج الدورات")} highlight={visibleCourses.length} />
+            <StatTile title={tr("ضمن مقرراتي")} highlight={myCourseIds.size} />
           </div>
         ) : null}
         {loading ? (
           <PageLoadHint />
         ) : visibleCourses.length === 0 ? (
-          <EmptyState message={search.trim() ? "لا توجد نتائج مطابقة للبحث." : "لا توجد دورات متاحة حالياً."} />
+          <EmptyState message={search.trim() ? tr("لا توجد نتائج مطابقة للبحث.") : tr("لا توجد دورات متاحة حالياً.")} />
         ) : (
           <ContentList>
             {visibleCourses.map((course) => {
@@ -262,13 +266,13 @@ export function StudentExplorePage() {
                 <ContentListItem key={course.id} className="mycourse-card">
                   <div>
                     <h3 className="post-title">{course.title}</h3>
-                    <p className="muted small">{course.description || "—"}</p>
+                    <p className="muted small">{course.description || tr("—")}</p>
                     <p className="muted small">
-                      {course.courseType === "private" ? "خاصة" : "عامة"} · {course.lessonCount} درس · {course.studentCount} طالب
+                      {course.courseType === "private" ? tr("خاصة") : tr("عامة")} · {course.lessonCount} {tr("درس")} · {course.studentCount} {tr("طالب")}
                     </p>
                   </div>
                   <div className="course-actions">
-                    {isEnrolled ? <span className="meta-pill meta-pill--ok">ضمن مقرراتي</span> : null}
+                    {isEnrolled ? <span className="meta-pill meta-pill--ok">{tr("ضمن مقرراتي")}</span> : null}
                     {req?.status === "pending" ? <span className="meta-pill meta-pill--info">{STUDENT_ACTION_LABELS.pending}</span> : null}
                     {canOpen ? (
                       <Link to={`/student/course/${course.id}`} className="primary-btn">
@@ -307,33 +311,33 @@ export function StudentExplorePage() {
 
       <AppTabPanel tabId="files" groupId={groupId} hidden={tab !== "files"} className="lesson-tab-panel">
         <Panel className="card-elevated">
-          <SectionTitle as="h3">استكشاف الملفات</SectionTitle>
+          <SectionTitle as="h3">{tr("استكشاف الملفات")}</SectionTitle>
           <p className="muted small">
-            المجلدات العامة: تسجيل مباشر. المجلدات الخاصة: طلب انضمام.
+            {tr("المجلدات العامة: تسجيل مباشر. المجلدات الخاصة: طلب انضمام.")}
           </p>
           <PageToolbar>
             <button type="button" className="ghost-btn toolbar-btn" onClick={() => void load()} disabled={loading} aria-busy={loading}>
-              <ButtonBusyLabel busy={loading}>تحديث</ButtonBusyLabel>
+              <ButtonBusyLabel busy={loading}>{tr("تحديث")}</ButtonBusyLabel>
             </button>
             <Link to="/student/myfiles" className="ghost-btn toolbar-btn">
-              ملفاتي
+              {tr("ملفاتي")}
             </Link>
-            <input className="text-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث في المجلدات" aria-label="بحث في المجلدات" />
+            <input className="text-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={tr("بحث في المجلدات")} aria-label={tr("بحث في المجلدات")} />
           </PageToolbar>
         </Panel>
 
         {message ? <AlertMessage kind="error">{message}</AlertMessage> : null}
         {!loading ? (
           <div className="grid-2 home-stats-grid">
-            <StatTile title="المتاحة" highlight={folders.length} />
-            <StatTile title="النتائج" highlight={visibleFolders.length} />
-            <StatTile title="ضمن ملفاتي" highlight={myFolderIds.size} />
+            <StatTile title={tr("المتاحة")} highlight={folders.length} />
+            <StatTile title={tr("النتائج")} highlight={visibleFolders.length} />
+            <StatTile title={tr("ضمن ملفاتي")} highlight={myFolderIds.size} />
           </div>
         ) : null}
         {loading ? (
           <PageLoadHint />
         ) : visibleFolders.length === 0 ? (
-          <EmptyState message="لا توجد مجلدات متاحة حالياً." />
+          <EmptyState message={tr("لا توجد مجلدات متاحة حالياً.")} />
         ) : (
           <ContentList>
             {visibleFolders.map((f) => (
@@ -342,13 +346,13 @@ export function StudentExplorePage() {
                   <h3 className="post-title">{f.name}</h3>
                   {f.description ? <p className="muted small">{f.description}</p> : null}
                   <p className="muted small">
-                    {typeof f.fileCount === "number" ? `${f.fileCount} ملف` : "—"} · {typeof f.memberCount === "number" ? `${f.memberCount} عضو` : "—"} ·{" "}
-                    {f.folderType === "private" ? "خاص" : "عام"}
+                    {typeof f.fileCount === "number" ? `${f.fileCount} ${tr("ملف")}` : tr("—")} · {typeof f.memberCount === "number" ? `${f.memberCount} ${tr("عضو")}` : tr("—")} ·{" "}
+                    {f.folderType === "private" ? tr("خاص") : tr("عام")}
                   </p>
                 </div>
                 {(f.folderType ?? "public") === "private" ? (
                   pendingFolderReqIds.has(f.id) ? (
-                    <span className="meta-pill meta-pill--info">تم إرسال الطلب</span>
+                    <span className="meta-pill meta-pill--info">{tr("تم إرسال الطلب")}</span>
                   ) : (
                     <button
                       type="button"
@@ -359,10 +363,10 @@ export function StudentExplorePage() {
                           setRequestingFolderId(f.id);
                           setMessage(null);
                           try {
-                            await coursesService.requestFolderEnrollment(user, f, "طلب انضمام لمجلد");
+                            await coursesService.requestFolderEnrollment(user, f, tr("طلب انضمام لمجلد"));
                             setPendingFolderReqIds((prev) => new Set([...prev, f.id]));
                           } catch {
-                            setMessage("تعذر إرسال الطلب. تحقق من الصلاحيات.");
+                            setMessage(tr("تعذر إرسال الطلب. تحقق من الصلاحيات."));
                           } finally {
                             setRequestingFolderId(null);
                           }

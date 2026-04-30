@@ -1,4 +1,5 @@
 import { resolveVideoEmbed } from "../utils/lessonMedia";
+import { useI18n } from "../context/I18nContext";
 
 type VideoIntroBlockProps = {
   mediaUrl: string;
@@ -9,7 +10,9 @@ type VideoIntroBlockProps = {
 };
 
 /** معاينة رابط فيديو الاختبار/الوسيط — YouTube / Vimeo / ملف مباشر / رابط خارجي. */
-export function VideoIntroBlock({ mediaUrl, title = "مقطع فيديو", compact }: VideoIntroBlockProps) {
+export function VideoIntroBlock({ mediaUrl, title, compact }: VideoIntroBlockProps) {
+  const { tr } = useI18n();
+  const frameTitle = title ?? tr("مقطع فيديو");
   const trimmed = mediaUrl.trim();
   if (!trimmed) {
     return null;
@@ -24,7 +27,7 @@ export function VideoIntroBlock({ mediaUrl, title = "مقطع فيديو", compa
           <video className="lesson-video-file" controls playsInline src={embedSrc} preload="metadata" />
         </div>
         <a className="inline-link" href={trimmed} target="_blank" rel="noopener noreferrer">
-          فتح الرابط
+          {tr("فتح الرابط")}
         </a>
       </div>
     );
@@ -34,14 +37,14 @@ export function VideoIntroBlock({ mediaUrl, title = "مقطع فيديو", compa
       <div className={wrapClass}>
         <div className="quiz-video-embed">
           <iframe
-            title={title}
+            title={frameTitle}
             src={embedSrc}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
           />
         </div>
         <a className="inline-link" href={trimmed} target="_blank" rel="noopener noreferrer">
-          فتح في تبويب جديد
+          {tr("فتح في تبويب جديد")}
         </a>
       </div>
     );
@@ -49,9 +52,9 @@ export function VideoIntroBlock({ mediaUrl, title = "مقطع فيديو", compa
   return (
     <div className={wrapClass}>
       <a className="primary-btn lesson-external-fallback-btn" href={trimmed} target="_blank" rel="noopener noreferrer">
-        فتح رابط المقطع
+        {tr("فتح رابط المقطع")}
       </a>
-      <p className="muted small">رابط غير قابل للتضمين التلقائي — يُفتح في المتصفح.</p>
+      <p className="muted small">{tr("رابط غير قابل للتضمين التلقائي — يُفتح في المتصفح.")}</p>
     </div>
   );
 }

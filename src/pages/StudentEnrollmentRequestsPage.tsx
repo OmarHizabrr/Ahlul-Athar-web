@@ -12,6 +12,7 @@ import {
   StatTile,
 } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import { coursesService } from "../services/coursesService";
 import { myCoursesService } from "../services/myCoursesService";
 import type { EnrollmentRequest } from "../types";
@@ -19,23 +20,24 @@ import { formatFirestoreTime } from "../utils/firestoreTime";
 import { DashboardLayout } from "./DashboardLayout";
 import { AppTabPanel, AppTabs } from "../components/ui";
 
-function statusLabel(s: EnrollmentRequest["status"]): string {
+function statusLabel(s: EnrollmentRequest["status"], tr: (x: string) => string): string {
   switch (s) {
     case "pending":
-      return "قيد المراجعة";
+      return tr("قيد المراجعة");
     case "approved":
-      return "مقبول";
+      return tr("مقبول");
     case "rejected":
-      return "مرفوض";
+      return tr("مرفوض");
     case "expired":
-      return "منتهٍ";
+      return tr("منتهٍ");
     default:
-      return s;
+      return tr(s);
   }
 }
 
 export function StudentEnrollmentRequestsPage() {
   const { user, ready } = useAuth();
+  const { tr } = useI18n();
   const [rows, setRows] = useState<EnrollmentRequest[]>([]);
   const [enrolled, setEnrolled] = useState<Set<string>>(() => new Set());
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,7 @@ export function StudentEnrollmentRequestsPage() {
       setRows(reqs);
       setEnrolled(new Set(mine.map((m) => m.courseId)));
     } catch {
-      setMessage("تعذر تحميل طلباتك. تحقق من الاتصال وقواعد Firestore.");
+      setMessage(tr("تعذر تحميل طلباتك. تحقق من الاتصال وقواعد Firestore."));
     } finally {
       setLoading(false);
     }
@@ -84,10 +86,10 @@ export function StudentEnrollmentRequestsPage() {
     return (
       <DashboardLayout
         role="student"
-        title="طلباتي"
-        lede="تتبّع حالة طلبات الانضمام للمقررات — نفس سجل «طلباتي» / الدورات في تطبيق الجوال."
+        title={tr("طلباتي")}
+        lede={tr("تتبّع حالة طلبات الانضمام للمقررات — نفس سجل «طلباتي» / الدورات في تطبيق الجوال.")}
       >
-        <PageLoadHint text="جاري التهيئة..." />
+        <PageLoadHint text={tr("جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -99,8 +101,8 @@ export function StudentEnrollmentRequestsPage() {
   return (
     <DashboardLayout
       role="student"
-      title="طلباتي"
-      lede="تتبّع حالة طلبات الانضمام للمقررات والمجلدات — نفس سجل «طلباتي» في تطبيق الجوال."
+      title={tr("طلباتي")}
+      lede={tr("تتبّع حالة طلبات الانضمام للمقررات والمجلدات — نفس سجل «طلباتي» في تطبيق الجوال.")}
     >
       <PageToolbar>
         <button
@@ -110,12 +112,12 @@ export function StudentEnrollmentRequestsPage() {
           disabled={loading}
           aria-busy={loading}
         >
-          <ButtonBusyLabel busy={loading}>تحديث</ButtonBusyLabel>
+          <ButtonBusyLabel busy={loading}>{tr("تحديث")}</ButtonBusyLabel>
         </button>
-        <Link to="/student/courses" className="ghost-btn toolbar-btn">تصفح الدورات</Link>
-        <Link to="/student/myfiles" className="ghost-btn toolbar-btn">الملفات</Link>
+        <Link to="/student/courses" className="ghost-btn toolbar-btn">{tr("تصفح الدورات")}</Link>
+        <Link to="/student/myfiles" className="ghost-btn toolbar-btn">{tr("الملفات")}</Link>
         <Link to="/student/mycourses" className="ghost-btn toolbar-btn">
-          مقرراتي
+          {tr("مقرراتي")}
         </Link>
         <button
           type="button"
@@ -135,33 +137,33 @@ export function StudentEnrollmentRequestsPage() {
           }
         >
           {statusFilter === "all"
-            ? "كل الحالات"
+            ? tr("كل الحالات")
             : statusFilter === "pending"
-              ? "قيد المراجعة"
+              ? tr("قيد المراجعة")
               : statusFilter === "approved"
-                ? "المقبولة"
+                ? tr("المقبولة")
                 : statusFilter === "rejected"
-                  ? "المرفوضة"
-                  : "المنتهية"}
+                  ? tr("المرفوضة")
+                  : tr("المنتهية")}
         </button>
       </PageToolbar>
       <AppTabs
         groupId={`student-requests-${user.uid}`}
-        ariaLabel="نوع الطلبات"
+        ariaLabel={tr("نوع الطلبات")}
         value={typeFilter}
         onChange={(id) => setTypeFilter(id as "all" | "course" | "folder")}
         tabs={[
-          { id: "all", label: "الكل" },
-          { id: "course", label: "الدورات" },
-          { id: "folder", label: "المجلدات" },
+          { id: "all", label: tr("الكل") },
+          { id: "course", label: tr("الدورات") },
+          { id: "folder", label: tr("المجلدات") },
         ]}
       />
       {message ? <AlertMessage kind="error">{message}</AlertMessage> : null}
       {(
         [
-          ["all", "الكل"] as const,
-          ["course", "الدورات"] as const,
-          ["folder", "المجلدات"] as const,
+          ["all", tr("الكل")] as const,
+          ["course", tr("الدورات")] as const,
+          ["folder", tr("المجلدات")] as const,
         ] as const
       ).map(([panelId]) => {
         const panelRows =
@@ -176,11 +178,11 @@ export function StudentEnrollmentRequestsPage() {
           >
             {!loading ? (
               <div className="grid-2 home-stats-grid">
-                <StatTile title="إجمالي الطلبات" highlight={panelRows.length} />
-                <StatTile title="قيد المراجعة" highlight={panelRows.filter((r) => r.status === "pending").length} />
-                <StatTile title="طلبات مقبولة" highlight={panelRows.filter((r) => r.status === "approved").length} />
+                <StatTile title={tr("إجمالي الطلبات")} highlight={panelRows.length} />
+                <StatTile title={tr("قيد المراجعة")} highlight={panelRows.filter((r) => r.status === "pending").length} />
+                <StatTile title={tr("طلبات مقبولة")} highlight={panelRows.filter((r) => r.status === "approved").length} />
                 <StatTile
-                  title="طلبات مرفوضة/منتهية"
+                  title={tr("طلبات مرفوضة/منتهية")}
                   highlight={panelRows.filter((r) => r.status === "rejected" || r.status === "expired").length}
                 />
               </div>
@@ -188,7 +190,7 @@ export function StudentEnrollmentRequestsPage() {
             {loading ? (
               <PageLoadHint />
             ) : panelRows.length === 0 ? (
-              <EmptyState message="لا توجد طلبات انضمام حتى الآن." />
+              <EmptyState message={tr("لا توجد طلبات انضمام حتى الآن.")} />
             ) : (
               <ContentList>
                 {panelRows.map((r) => {
@@ -211,16 +213,16 @@ export function StudentEnrollmentRequestsPage() {
                       ) : null}
                       <div className="enrollment-req-item__body">
                         <h3 className="post-title">
-                          {r.targetName || (isFolder ? "مجلد" : "مقرر")}
+                          {r.targetName || (isFolder ? tr("مجلد") : tr("مقرر"))}
                           <span className="meta-pill meta-pill--muted" style={{ marginInlineStart: "0.5rem" }}>
-                            {isFolder ? "مجلد" : "مقرر"}
+                            {isFolder ? tr("مجلد") : tr("مقرر")}
                           </span>
                         </h3>
                         <p className="muted post-meta small">
-                          طُلب في {formatFirestoreTime(r.requestedAt)}
-                          {r.processedAt != null ? ` · عُالج في ${formatFirestoreTime(r.processedAt)}` : null}
+                          {tr("طُلب في")} {formatFirestoreTime(r.requestedAt)}
+                          {r.processedAt != null ? ` · ${tr("عُالج في")} ${formatFirestoreTime(r.processedAt)}` : null}
                         </p>
-                        <p className="enrollment-req-badges" aria-label="الحالة">
+                        <p className="enrollment-req-badges" aria-label={tr("الحالة")}>
                           <span
                             className={
                               r.status === "approved"
@@ -232,19 +234,19 @@ export function StudentEnrollmentRequestsPage() {
                                     : "meta-pill meta-pill--muted"
                             }
                           >
-                            {statusLabel(r.status)}
+                            {statusLabel(r.status, tr)}
                           </span>
                           {inMy && r.status === "approved" ? (
-                            <span className="meta-pill meta-pill--ok">ضمن «مقرراتي»</span>
+                            <span className="meta-pill meta-pill--ok">{tr("ضمن «مقرراتي»")}</span>
                           ) : null}
                         </p>
                         {r.adminNotes && r.status !== "pending" ? (
-                          <p className="muted small">ملاحظة الإدارة: {r.adminNotes}</p>
+                          <p className="muted small">{tr("ملاحظة الإدارة")}: {r.adminNotes}</p>
                         ) : null}
                         <div className="course-actions">
                           {r.status === "approved" || inMy ? (
                             <Link className="primary-btn" to={openHref}>
-                              فتح
+                              {tr("فتح")}
                             </Link>
                           ) : null}
                         </div>

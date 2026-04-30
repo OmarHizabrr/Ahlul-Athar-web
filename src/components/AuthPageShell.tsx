@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { cn } from "../utils/cn";
 
 type Props = {
@@ -12,7 +13,12 @@ type Props = {
 export function AuthPageShell({ children, className }: Props) {
   return (
     <main className={cn("center-page center-page--auth", className)}>
-      <div className="auth-shell">{children}</div>
+      <div className="auth-shell">
+        <div className="auth-shell-lang">
+          <LanguageSwitcher />
+        </div>
+        {children}
+      </div>
     </main>
   );
 }

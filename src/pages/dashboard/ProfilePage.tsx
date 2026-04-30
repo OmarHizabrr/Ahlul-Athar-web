@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEv
 import { useSearchParams } from "react-router-dom";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
+import { useI18n } from "../../context/I18nContext";
 import { authService } from "../../services/authService";
 import { userProfileService } from "../../services/userProfileService";
 import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
@@ -14,6 +15,7 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 export function ProfilePage({ role }: { role: UserRole }) {
   const [searchParams] = useSearchParams();
   const { user: u, ready, syncUserFromStorage } = useAuth();
+  const { tr } = useI18n();
   const [profile, setProfile] = useState<UserFirestoreProfile | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -45,7 +47,7 @@ export function ProfilePage({ role }: { role: UserRole }) {
         setDisplayName(p.displayName || u.displayName || "");
         setPhoneNumber(p.phoneNumber || u.phoneNumber || "");
       } catch {
-        showMsg("تعذر تحميل الملف.", true);
+        showMsg(tr("تعذر تحميل الملف."), true);
       } finally {
         setLoading(false);
       }
@@ -55,13 +57,13 @@ export function ProfilePage({ role }: { role: UserRole }) {
   useEffect(() => {
     if (searchParams.get("complete") === "1") {
       setProfileTab("edit");
-      showMsg("يرجى إكمال الملف الشخصي (الاسم + الجوال) قبل متابعة الاستخدام.", false);
+      showMsg(tr("يرجى إكمال الملف الشخصي (الاسم + الجوال) قبل متابعة الاستخدام."), false);
     }
   }, [searchParams]);
 
   const effectivePhoto = u?.photoURL || profile?.photoURL || null;
-  const emailDisplay = u?.email || profile?.email || "—";
-  const showName = displayName.trim() || u?.displayName || "—";
+  const emailDisplay = u?.email || profile?.email || tr("—");
+  const showName = displayName.trim() || u?.displayName || tr("—");
 
   const onSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -74,9 +76,9 @@ export function ProfilePage({ role }: { role: UserRole }) {
       const next = await userProfileService.updateProfile(u, { displayName, phoneNumber });
       authService.persistLocalUser(next);
       syncUserFromStorage();
-      showMsg("تم حفظ التعديلات.", false);
+      showMsg(tr("تم حفظ التعديلات."), false);
     } catch {
-      showMsg("تعذر الحفظ.", true);
+      showMsg(tr("تعذر الحفظ."), true);
     } finally {
       setSaving(false);
     }
@@ -90,11 +92,11 @@ export function ProfilePage({ role }: { role: UserRole }) {
         return;
       }
       if (!file.type.startsWith("image/")) {
-        showMsg("اختر ملف صورة (PNG أو JPEG).", true);
+        showMsg(tr("اختر ملف صورة (PNG أو JPEG)."), true);
         return;
       }
       if (file.size > MAX_PHOTO_BYTES) {
-        showMsg("حجم الصورة كبير جداً (الحد 5 ميغابايت).", true);
+        showMsg(tr("حجم الصورة كبير جداً (الحد 5 ميغابايت)."), true);
         return;
       }
       void (async () => {
@@ -106,9 +108,9 @@ export function ProfilePage({ role }: { role: UserRole }) {
           syncUserFromStorage();
           const p = await userProfileService.getProfile(u.uid, u.role);
           setProfile(p);
-          showMsg("تم تحديث صورة الملف الشخصي.", false);
+          showMsg(tr("تم تحديث صورة الملف الشخصي."), false);
         } catch {
-          showMsg("تعذر رفع الصورة. تحقق من صلاحيات التخزين.", true);
+          showMsg(tr("تعذر رفع الصورة. تحقق من صلاحيات التخزين."), true);
         } finally {
           setPhotoUploading(false);
         }
@@ -124,16 +126,16 @@ export function ProfilePage({ role }: { role: UserRole }) {
     if (!u) return;
     const normalizedPhone = phoneNumber.replace(/[^\d]/g, "");
     if (!normalizedPhone) {
-      showMsg("أدخل رقم الجوال أولاً ثم احفظه.", true);
+      showMsg(tr("أدخل رقم الجوال أولاً ثم احفظه."), true);
       return;
     }
     setSavingPassword(true);
     try {
       await authService.setPhonePasswordForCurrentUser(normalizedPhone, password);
       setPassword("");
-      showMsg("تم ضبط كلمة المرور للدخول برقم الجوال بنجاح.", false);
+      showMsg(tr("تم ضبط كلمة المرور للدخول برقم الجوال بنجاح."), false);
     } catch {
-      showMsg("تعذر ضبط كلمة المرور. أعد تسجيل الدخول وحاول مرة أخرى.", true);
+      showMsg(tr("تعذر ضبط كلمة المرور. أعد تسجيل الدخول وحاول مرة أخرى."), true);
     } finally {
       setSavingPassword(false);
     }
@@ -141,8 +143,8 @@ export function ProfilePage({ role }: { role: UserRole }) {
 
   if (!ready) {
     return (
-      <DashboardLayout role={role} title="الملف الشخصي" lede={profileLede}>
-        <PageLoadHint text="جاري التهيئة..." />
+      <DashboardLayout role={role} title={tr("الملف الشخصي")} lede={tr(profileLede)}>
+        <PageLoadHint text={tr("جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -152,19 +154,19 @@ export function ProfilePage({ role }: { role: UserRole }) {
   }
 
   return (
-    <DashboardLayout role={role} title="الملف الشخصي" lede={profileLede}>
+    <DashboardLayout role={role} title={tr("الملف الشخصي")} lede={tr(profileLede)}>
       {loading ? (
         <PageLoadHint />
       ) : (
         <div className="profile-page">
           <AppTabs
             groupId={`profile-${u.uid}`}
-            ariaLabel="أقسام الملف الشخصي"
+            ariaLabel={tr("أقسام الملف الشخصي")}
             value={profileTab}
             onChange={setProfileTab}
             tabs={[
-              { id: "card" as const, label: "البطاقة والصورة" },
-              { id: "edit" as const, label: "تعديل البيانات" },
+              { id: "card" as const, label: tr("البطاقة والصورة") },
+              { id: "edit" as const, label: tr("تعديل البيانات") },
             ]}
           />
           <AppTabPanel tabId="card" groupId={`profile-${u.uid}`} hidden={profileTab !== "card"} className="lesson-tab-panel">
@@ -173,7 +175,7 @@ export function ProfilePage({ role }: { role: UserRole }) {
               <Avatar
                 photoURL={effectivePhoto}
                 displayName={displayName}
-                email={emailDisplay === "—" ? "" : emailDisplay}
+                email={emailDisplay === tr("—") ? "" : emailDisplay}
                 alt={showName}
                 imageClassName="profile-avatar-lg"
                 fallbackClassName="profile-avatar-fallback-lg"
@@ -193,16 +195,16 @@ export function ProfilePage({ role }: { role: UserRole }) {
                 onClick={() => fileInputRef.current?.click()}
                 aria-busy={photoUploading}
               >
-                <ButtonBusyLabel busy={photoUploading}>تغيير الصورة</ButtonBusyLabel>
+                <ButtonBusyLabel busy={photoUploading}>{tr("تغيير الصورة")}</ButtonBusyLabel>
               </button>
             </div>
             <div className="profile-hero-text">
               <h2 className="profile-display-name">{showName}</h2>
               <p className="muted profile-email-line">{emailDisplay}</p>
               {profile != null && profile.profileCompleted ? (
-                <span className="profile-badge-complete">مكتمل</span>
+                <span className="profile-badge-complete">{tr("مكتمل")}</span>
               ) : (
-                <span className="profile-badge-incomplete">يُنصح بإكمال البيانات</span>
+                <span className="profile-badge-incomplete">{tr("يُنصح بإكمال البيانات")}</span>
               )}
             </div>
           </Panel>
@@ -210,10 +212,10 @@ export function ProfilePage({ role }: { role: UserRole }) {
 
           <AppTabPanel tabId="edit" groupId={`profile-${u.uid}`} hidden={profileTab !== "edit"} className="lesson-tab-panel">
           <FormPanel className="profile-form" onSubmit={onSave}>
-            <SectionTitle as="h3">تعديل البيانات</SectionTitle>
-            <p className="muted small">المعرّف: {u.uid}</p>
+            <SectionTitle as="h3">{tr("تعديل البيانات")}</SectionTitle>
+            <p className="muted small">{tr("المعرّف")}: {u.uid}</p>
             <label>
-              <span>الاسم الظاهر</span>
+              <span>{tr("الاسم الظاهر")}</span>
               <input
                 className="text-input"
                 value={displayName}
@@ -222,7 +224,7 @@ export function ProfilePage({ role }: { role: UserRole }) {
               />
             </label>
             <label>
-              <span>رقم الجوال (للتوثيق داخل التطبيق)</span>
+              <span>{tr("رقم الجوال (للتوثيق داخل التطبيق)")}</span>
               <input
                 className="text-input"
                 value={phoneNumber}
@@ -232,14 +234,14 @@ export function ProfilePage({ role }: { role: UserRole }) {
               />
             </label>
             <button className="primary-btn" type="submit" disabled={saving} aria-busy={saving}>
-              <ButtonBusyLabel busy={saving}>حفظ التعديلات</ButtonBusyLabel>
+              <ButtonBusyLabel busy={saving}>{tr("حفظ التعديلات")}</ButtonBusyLabel>
             </button>
           </FormPanel>
           <FormPanel className="profile-form" onSubmit={onSavePassword}>
-            <SectionTitle as="h3">إعداد كلمة مرور دخول الجوال</SectionTitle>
-            <p className="muted small">بعد الدخول عبر Google، يمكنك تعيين كلمة مرور للدخول لاحقاً باستخدام الجوال + كلمة المرور.</p>
+            <SectionTitle as="h3">{tr("إعداد كلمة مرور دخول الجوال")}</SectionTitle>
+            <p className="muted small">{tr("بعد الدخول عبر Google، يمكنك تعيين كلمة مرور للدخول لاحقاً باستخدام الجوال + كلمة المرور.")}</p>
             <label>
-              <span>كلمة المرور الجديدة</span>
+              <span>{tr("كلمة المرور الجديدة")}</span>
               <input
                 className="text-input"
                 type={showPassword ? "text" : "password"}
@@ -249,11 +251,11 @@ export function ProfilePage({ role }: { role: UserRole }) {
                 required
               />
             </label>
-            <button type="button" className="ghost-btn" onClick={() => setShowPassword((v) => !v)} aria-label="إظهار أو إخفاء كلمة المرور">
+            <button type="button" className="ghost-btn" onClick={() => setShowPassword((v) => !v)} aria-label={tr("إظهار أو إخفاء كلمة المرور")}>
               {showPassword ? <FiEyeOff /> : <FiEye />}
             </button>
             <button className="primary-btn" type="submit" disabled={savingPassword} aria-busy={savingPassword}>
-              <ButtonBusyLabel busy={savingPassword}>حفظ كلمة المرور</ButtonBusyLabel>
+              <ButtonBusyLabel busy={savingPassword}>{tr("حفظ كلمة المرور")}</ButtonBusyLabel>
             </button>
           </FormPanel>
           </AppTabPanel>

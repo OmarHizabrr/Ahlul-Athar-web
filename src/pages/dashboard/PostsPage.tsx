@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useI18n } from "../../context/I18nContext";
 import { DashboardLayout } from "../DashboardLayout";
 import { postsService } from "../../services/postsService";
 import type { Post, UserRole } from "../../types";
@@ -25,6 +26,7 @@ const postsLede: Record<UserRole, string> = {
 
 export function PostsPage({ role }: { role: UserRole }) {
   const { user, ready } = useAuth();
+  const { tr } = useI18n();
   const [posts, setPosts] = useState<Awaited<ReturnType<typeof postsService.listForRole>>>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -46,7 +48,7 @@ export function PostsPage({ role }: { role: UserRole }) {
       const data = await postsService.listForRole(role);
       setPosts(data);
     } catch {
-      setMessage("تعذر تحميل المنشورات. تحقق من القواعد والفهارس في Firestore.");
+      setMessage(tr("تعذر تحميل المنشورات. تحقق من القواعد والفهارس في Firestore."));
       setIsError(true);
     } finally {
       setLoading(false);
@@ -95,19 +97,19 @@ export function PostsPage({ role }: { role: UserRole }) {
     try {
       if (editingId) {
         await postsService.updatePost(editingId, { title, body, isPublished: publish });
-        setMessage("تم حفظ تعديلات المنشور.");
+        setMessage(tr("تم حفظ تعديلات المنشور."));
         resetForm();
       } else {
         await postsService.create(user, { title, body, publish });
         setTitle("");
         setBody("");
         setPublish(true);
-        setMessage("تم حفظ المنشور.");
+        setMessage(tr("تم حفظ المنشور."));
       }
       setIsError(false);
       await load();
     } catch {
-      setMessage(editingId ? "تعذر حفظ التعديل." : "تعذر إنشاء المنشور.");
+      setMessage(editingId ? tr("تعذر حفظ التعديل.") : tr("تعذر إنشاء المنشور."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -116,18 +118,18 @@ export function PostsPage({ role }: { role: UserRole }) {
 
   if (!ready) {
     return (
-      <DashboardLayout role={role} title="المنشورات" lede={postsLede[role]}>
-        <PageLoadHint text="جاري التهيئة..." />
+      <DashboardLayout role={role} title={tr("المنشورات")} lede={tr(postsLede[role])}>
+        <PageLoadHint text={tr("جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout role={role} title="المنشورات" lede={postsLede[role]}>
+    <DashboardLayout role={role} title={tr("المنشورات")} lede={tr(postsLede[role])}>
       {role === "admin" && user ? (
         <PageToolbar>
           <button type="button" className="primary-btn toolbar-btn" onClick={onOpenCreateModal}>
-            إضافة منشور
+            {tr("إضافة منشور")}
           </button>
         </PageToolbar>
       ) : null}
@@ -135,10 +137,10 @@ export function PostsPage({ role }: { role: UserRole }) {
       {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
       {!loading ? (
         <div className="grid-2 home-stats-grid">
-          <StatTile title="إجمالي المنشورات" highlight={posts.length} />
-          <StatTile title="منشورة" highlight={posts.filter((p) => p.isPublished).length} />
+          <StatTile title={tr("إجمالي المنشورات")} highlight={posts.length} />
+          <StatTile title={tr("منشورة")} highlight={posts.filter((p) => p.isPublished).length} />
           {role === "admin" ? (
-            <StatTile title="مسودات" highlight={posts.filter((p) => !p.isPublished).length} />
+            <StatTile title={tr("مسودات")} highlight={posts.filter((p) => !p.isPublished).length} />
           ) : null}
         </div>
       ) : null}
@@ -149,7 +151,7 @@ export function PostsPage({ role }: { role: UserRole }) {
             className="ghost-btn toolbar-btn"
             onClick={() => setShowPublishedOnly((v) => !v)}
           >
-            {showPublishedOnly ? "عرض كل المنشورات" : "عرض المنشور فقط"}
+            {showPublishedOnly ? tr("عرض كل المنشورات") : tr("عرض المنشور فقط")}
           </button>
         </PageToolbar>
       ) : null}
@@ -159,14 +161,14 @@ export function PostsPage({ role }: { role: UserRole }) {
       ) : (
         <ContentList>
           {visiblePosts.length === 0 ? (
-            <EmptyState message="لا توجد منشورات بعد." />
+            <EmptyState message={tr("لا توجد منشورات بعد.")} />
           ) : (
             visiblePosts.map((p) => (
               <ContentListItem key={p.id}>
                 <h2 className="post-title">{p.title}</h2>
                 <p className="muted post-meta">
                   {p.authorName} · {formatFirestoreTime(p.createdAt)}
-                  {role === "admin" ? (p.isPublished ? " · منشور" : " · مسودة") : null}
+                  {role === "admin" ? (p.isPublished ? ` · ${tr("منشور")}` : ` · ${tr("مسودة")}`) : null}
                 </p>
                 <p className="post-body">{p.body}</p>
                 {role === "admin" ? (
@@ -177,7 +179,7 @@ export function PostsPage({ role }: { role: UserRole }) {
                       onClick={() => startEdit(p)}
                       disabled={submitting}
                     >
-                      تعديل
+                      {tr("تعديل")}
                     </button>
                     <button
                       type="button"
@@ -198,7 +200,7 @@ export function PostsPage({ role }: { role: UserRole }) {
                       }}
                     >
                       <ButtonBusyLabel busy={submitting}>
-                        {p.isPublished ? "إلغاء النشر" : "نشر"}
+                        {p.isPublished ? tr("إلغاء النشر") : tr("نشر")}
                       </ButtonBusyLabel>
                     </button>
                     <button
@@ -207,7 +209,7 @@ export function PostsPage({ role }: { role: UserRole }) {
                       disabled={submitting}
                       aria-busy={submitting}
                       onClick={async () => {
-                        if (!window.confirm("حذف المنشور؟")) {
+                        if (!window.confirm(tr("حذف المنشور؟"))) {
                           return;
                         }
                         setSubmitting(true);
@@ -222,7 +224,7 @@ export function PostsPage({ role }: { role: UserRole }) {
                         }
                       }}
                     >
-                      <ButtonBusyLabel busy={submitting}>حذف</ButtonBusyLabel>
+                      <ButtonBusyLabel busy={submitting}>{tr("حذف")}</ButtonBusyLabel>
                     </button>
                   </div>
                 ) : null}
@@ -235,7 +237,7 @@ export function PostsPage({ role }: { role: UserRole }) {
       {role === "admin" && user ? (
         <AppModal
           open={postModalOpen}
-          title={editingId ? "تعديل منشور" : "إنشاء منشور"}
+          title={editingId ? tr("تعديل منشور") : tr("إنشاء منشور")}
           onClose={() => {
             if (!submitting) {
               resetForm();
@@ -244,13 +246,13 @@ export function PostsPage({ role }: { role: UserRole }) {
           contentClassName="course-form-modal"
         >
           <FormPanel onSubmit={onSubmit} elevated={false} className="course-form-modal__form">
-            <SectionTitle as="h4">{editingId ? "تحديث المنشور" : "منشور جديد"}</SectionTitle>
+            <SectionTitle as="h4">{editingId ? tr("تحديث المنشور") : tr("منشور جديد")}</SectionTitle>
             <label>
-              <span>العنوان</span>
+              <span>{tr("العنوان")}</span>
               <input className="text-input" value={title} onChange={(e) => setTitle(e.target.value)} required />
             </label>
             <label>
-              <span>النص</span>
+              <span>{tr("النص")}</span>
               <textarea
                 className="text-input textarea"
                 value={body}
@@ -261,14 +263,14 @@ export function PostsPage({ role }: { role: UserRole }) {
             </label>
             <label className="switch-line">
               <input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} />
-              <span>نشر للطلاب (يظهر في التطبيق والويب)</span>
+              <span>{tr("نشر للطلاب (يظهر في التطبيق والويب)")}</span>
             </label>
             <div className="course-actions">
               <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
-                <ButtonBusyLabel busy={submitting}>{editingId ? "حفظ التعديلات" : "نشر"}</ButtonBusyLabel>
+                <ButtonBusyLabel busy={submitting}>{editingId ? tr("حفظ التعديلات") : tr("نشر")}</ButtonBusyLabel>
               </button>
               <button type="button" className="ghost-btn" onClick={resetForm} disabled={submitting}>
-                إلغاء
+                {tr("إلغاء")}
               </button>
             </div>
           </FormPanel>

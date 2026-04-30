@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import { AuthPageShell } from "../components/AuthPageShell";
 import { ButtonBusyLabel } from "../components/ButtonBusyLabel";
 import { AlertMessage } from "../components/ui";
@@ -17,8 +18,9 @@ export function LoginPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { ready, user: sessionUser } = useAuth();
+  const { tr } = useI18n();
   const role = (searchParams.get("role") === "admin" ? "admin" : "student") as UserRole;
-  const roleText = useMemo(() => (role === "admin" ? "مسؤول" : "طالب"), [role]);
+  const roleText = useMemo(() => (role === "admin" ? tr("مسؤول") : tr("طالب")), [role, tr]);
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -44,12 +46,12 @@ export function LoginPage() {
   const verifyAdminCodeIfNeeded = async (): Promise<boolean> => {
     if (role !== "admin") return true;
     if (!adminCode.trim()) {
-      showMessage("أدخل رمز دخول الإدارة.", true);
+      showMessage(tr("أدخل رمز دخول الإدارة."), true);
       return false;
     }
     const ok = await adminSecurityService.verifyAdminAccessCode(adminCode);
     if (!ok) {
-      showMessage("رمز دخول الإدارة غير صحيح.", true);
+      showMessage(tr("رمز دخول الإدارة غير صحيح."), true);
       return false;
     }
     return true;
@@ -69,7 +71,7 @@ export function LoginPage() {
         navigate(`/${user.role}`, { replace: true });
       }
     } catch (error) {
-      showMessage("فشل تسجيل الدخول عبر Google. تأكد من إعداد Firebase.", true);
+      showMessage(tr("فشل تسجيل الدخول عبر Google. تأكد من إعداد Firebase."), true);
     } finally {
       setLoadingGoogle(false);
     }
@@ -90,7 +92,7 @@ export function LoginPage() {
         navigate(`/${role}`, { replace: true });
       }
     } catch (error) {
-      showMessage("فشل تسجيل الدخول برقم الهاتف وكلمة المرور.", true);
+      showMessage(tr("فشل تسجيل الدخول برقم الهاتف وكلمة المرور."), true);
     } finally {
       setLoadingPhone(false);
     }
@@ -99,9 +101,9 @@ export function LoginPage() {
   return (
     <AuthPageShell>
       <section className="card">
-        <p className="badge">أهل الأثر</p>
-        <h1>تسجيل الدخول — {roleText}</h1>
-        <p className="muted">نفس بيانات التطبيق: Google أو رقم الجوال وكلمة المرور المرتبطة بالحساب.</p>
+        <p className="badge">{tr("أهل الأثر")}</p>
+        <h1>{tr("تسجيل الدخول")} — {roleText}</h1>
+        <p className="muted">{tr("نفس بيانات التطبيق: Google أو رقم الجوال وكلمة المرور المرتبطة بالحساب.")}</p>
 
         <button
           className="google-btn"
@@ -111,46 +113,46 @@ export function LoginPage() {
         >
           <FcGoogle size={24} />
           <span>
-            <ButtonBusyLabel busy={loadingGoogle}>الدخول عبر Google</ButtonBusyLabel>
+            <ButtonBusyLabel busy={loadingGoogle}>{tr("الدخول عبر Google")}</ButtonBusyLabel>
           </span>
         </button>
 
         <div className="separator">
-          <span>أو</span>
+          <span>{tr("أو")}</span>
         </div>
 
         <form className="form" onSubmit={onPhoneLogin}>
           {role === "admin" ? (
             <>
-              <label htmlFor="admin-code">رمز دخول الإدارة</label>
+              <label htmlFor="admin-code">{tr("رمز دخول الإدارة")}</label>
               <input
                 id="admin-code"
                 type={showAdminCode ? "text" : "password"}
-                placeholder="أدخل رمز الإدارة"
+                placeholder={tr("أدخل رمز الإدارة")}
                 value={adminCode}
                 onChange={(event) => setAdminCode(event.target.value)}
                 required
               />
-              <button type="button" className="ghost-btn" onClick={() => setShowAdminCode((v) => !v)} aria-label="إظهار أو إخفاء رمز الإدارة">
+              <button type="button" className="ghost-btn" onClick={() => setShowAdminCode((v) => !v)} aria-label={tr("إظهار أو إخفاء رمز الإدارة")}>
                 {showAdminCode ? <FiEyeOff /> : <FiEye />}
               </button>
               {/* <p className="muted small">الرمز الافتراضي: {DEFAULT_ADMIN_ACCESS_CODE}</p> */}
             </>
           ) : null}
-          <label htmlFor="phone">رقم الهاتف</label>
+          <label htmlFor="phone">{tr("رقم الهاتف")}</label>
           <div className="input-wrap">
             <IoPhonePortraitOutline size={20} />
             <input
               id="phone"
               type="tel"
-              placeholder="9665XXXXXXX"
+              placeholder={tr("9665XXXXXXX")}
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
               required
             />
           </div>
 
-          <label htmlFor="password">كلمة المرور</label>
+          <label htmlFor="password">{tr("كلمة المرور")}</label>
           <input
             id="password"
             type={showPassword ? "text" : "password"}
@@ -159,7 +161,7 @@ export function LoginPage() {
             onChange={(event) => setPassword(event.target.value)}
             required
           />
-          <button type="button" className="ghost-btn" onClick={() => setShowPassword((v) => !v)} aria-label="إظهار أو إخفاء كلمة المرور">
+          <button type="button" className="ghost-btn" onClick={() => setShowPassword((v) => !v)} aria-label={tr("إظهار أو إخفاء كلمة المرور")}>
             {showPassword ? <FiEyeOff /> : <FiEye />}
           </button>
 
@@ -169,12 +171,12 @@ export function LoginPage() {
             disabled={loadingGoogle || loadingPhone}
             aria-busy={loadingPhone}
           >
-            <ButtonBusyLabel busy={loadingPhone}>الدخول برقم الهاتف وكلمة المرور</ButtonBusyLabel>
+            <ButtonBusyLabel busy={loadingPhone}>{tr("الدخول برقم الهاتف وكلمة المرور")}</ButtonBusyLabel>
           </button>
         </form>
 
         <button className="link-btn" onClick={() => navigate("/role-selector")}>
-          تغيير نوع الحساب
+          {tr("تغيير نوع الحساب")}
         </button>
 
         {message ? (
