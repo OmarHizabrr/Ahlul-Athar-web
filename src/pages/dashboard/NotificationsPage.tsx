@@ -360,7 +360,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
                   className="text-input"
                   value={targetUid}
                   onChange={(e) => setTargetUid(e.target.value)}
-                  placeholder="user UID"
+                  placeholder={tr("معرّف المستخدم")}
                   required
                 />
               ) : (

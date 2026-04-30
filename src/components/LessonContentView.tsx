@@ -79,7 +79,7 @@ function PdfSection({ pdfUrl, tr }: { pdfUrl: string; tr: (text: string) => stri
         {tr("مستند PDF")}
       </SectionTitle>
       <div className="lesson-pdf-frame-wrap">
-        <iframe className="lesson-pdf-iframe" title="PDF" src={pdfUrl} />
+        <iframe className="lesson-pdf-iframe" title={tr("مستند PDF")} src={pdfUrl} />
       </div>
       <div className="lesson-file-toolbar">
         <a href={pdfUrl} className="ghost-btn lesson-file-btn" target="_blank" rel="noopener noreferrer">
