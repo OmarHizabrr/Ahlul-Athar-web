@@ -230,7 +230,7 @@ export function StudentCourseViewPage() {
                     </SectionTitle>
                     {lessons.map((row, idx) => {
                       const t = row.lesson.contentType?.trim();
-                      const tlab = t ? CONTENT_TYPE_LABEL[t] ?? t : "—";
+                      const tlab = t ? CONTENT_TYPE_LABEL[t] ?? t : tr("—");
                       return (
                         <ContentListItem
                           key={row.lesson.id}

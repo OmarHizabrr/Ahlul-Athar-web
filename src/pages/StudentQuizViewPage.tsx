@@ -46,6 +46,7 @@ function QuizTakerForm({
   submitting,
   readonly,
   submitLabel,
+  tr,
 }: {
   rows: WebQuizRow[];
   values: Record<string, string>;
@@ -54,6 +55,7 @@ function QuizTakerForm({
   submitting: boolean;
   readonly: boolean;
   submitLabel: string;
+  tr: (text: string) => string;
 }) {
   if (rows.length === 0) {
     return null;
@@ -85,7 +87,7 @@ function QuizTakerForm({
                     onChange={() => onChange(q.key, "true")}
                     disabled={readonly}
                   />
-                  <span>صح</span>
+                  <span>{tr("صح")}</span>
                 </label>
                 <label className="quiz-opt-line">
                   <input
@@ -96,7 +98,7 @@ function QuizTakerForm({
                     onChange={() => onChange(q.key, "false")}
                     disabled={readonly}
                   />
-                  <span>خطأ</span>
+                  <span>{tr("خطأ")}</span>
                 </label>
               </div>
             ) : q.options && q.options.length > 0 ? (
@@ -123,7 +125,7 @@ function QuizTakerForm({
                 onChange={(e) => onChange(q.key, e.target.value)}
                 readOnly={readonly}
                 required={!readonly}
-                placeholder="إجابتك"
+                placeholder={tr("إجابتك")}
               />
             )}
           </li>
@@ -448,6 +450,7 @@ export function StudentQuizViewPage() {
                   submitting={submitting}
                   readonly={formLocked}
                   submitLabel={status === "pending" ? tr("تحديث الإجابات") : tr("إرسال الإجابات")}
+                  tr={tr}
                 />
                 {formErr ? <AlertMessage kind="error">{formErr}</AlertMessage> : null}
               </>
