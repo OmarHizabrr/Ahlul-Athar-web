@@ -10,6 +10,21 @@ import { myCoursesService } from "../../services/myCoursesService";
 import { notificationsService } from "../../services/notificationsService";
 import { postsService } from "../../services/postsService";
 import type { Course, EnrollmentRequest, MyCourseEntry, Post, UserRole } from "../../types";
+import { formatFirestoreTime } from "../../utils/firestoreTime";
+
+function toMillis(v: unknown): number {
+  if (v == null) return 0;
+  if (typeof v === "number") return v;
+  if (v instanceof Date) return v.getTime();
+  if (typeof v === "string") {
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+  }
+  if (typeof v === "object" && "toDate" in (v as Record<string, unknown>) && typeof (v as { toDate?: unknown }).toDate === "function") {
+    return ((v as { toDate: () => Date }).toDate()).getTime();
+  }
+  return 0;
+}
 
 const SHORTCUTS_ADMIN = [
   { to: "/admin/courses", label: "الدورات" },
@@ -41,6 +56,8 @@ export function HomePage({ role }: { role: UserRole }) {
   const [pendingEnrollmentCount, setPendingEnrollmentCount] = useState(0);
   const [myFoldersCount, setMyFoldersCount] = useState(0);
   const [myFilesCount, setMyFilesCount] = useState(0);
+  const [latestRequest, setLatestRequest] = useState<EnrollmentRequest | null>(null);
+  const [latestMyCourse, setLatestMyCourse] = useState<MyCourseEntry | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const base = role === "admin" ? "/admin" : "/student";
 
@@ -69,6 +86,8 @@ export function HomePage({ role }: { role: UserRole }) {
         setPendingEnrollmentCount(0);
         setMyFoldersCount(0);
         setMyFilesCount(0);
+        setLatestRequest(null);
+        setLatestMyCourse(null);
       } else {
         setPendingCount(0);
         const mine = await myCoursesService.listForStudent(user.uid).catch(() => {
@@ -76,6 +95,9 @@ export function HomePage({ role }: { role: UserRole }) {
           return [] as MyCourseEntry[];
         });
         setMyCoursesCount(mine.length);
+        setLatestMyCourse(
+          mine.slice().sort((a, b) => toMillis(b.enrolledAt) - toMillis(a.enrolledAt))[0] ?? null,
+        );
         setMyLessonsCount(
           mine.reduce((sum, c) => sum + (typeof c.lessonCount === "number" && Number.isFinite(c.lessonCount) ? c.lessonCount : 0), 0),
         );
@@ -85,6 +107,11 @@ export function HomePage({ role }: { role: UserRole }) {
           return [] as EnrollmentRequest[];
         });
         setPendingEnrollmentCount(myReqs.filter((r) => r.status === "pending").length);
+        setLatestRequest(
+          myReqs
+            .slice()
+            .sort((a, b) => toMillis(b.requestedAt ?? b.processedAt) - toMillis(a.requestedAt ?? a.processedAt))[0] ?? null,
+        );
 
         const myFolders = await foldersService.listMyFoldersForStudent(user.uid).catch(() => {
           hasPartialFailure = true;
@@ -214,6 +241,44 @@ export function HomePage({ role }: { role: UserRole }) {
                   </Link>
                 }
               />
+            ) : null}
+            {role === "student" ? (
+              <StatTile
+                title="آخر طلب انضمام"
+                wide
+                action={
+                  <Link to="/student/enrollment-requests" className="inline-link">
+                    عرض الطلبات
+                  </Link>
+                }
+              >
+                {latestRequest ? (
+                  <p className="muted small">
+                    {latestRequest.targetName} · {latestRequest.status} · {formatFirestoreTime(latestRequest.requestedAt ?? latestRequest.processedAt)}
+                  </p>
+                ) : (
+                  <p className="muted small">لا يوجد طلبات بعد.</p>
+                )}
+              </StatTile>
+            ) : null}
+            {role === "student" ? (
+              <StatTile
+                title="آخر مقرر تم إضافته"
+                wide
+                action={
+                  <Link to="/student/mycourses" className="inline-link">
+                    فتح مقرراتي
+                  </Link>
+                }
+              >
+                {latestMyCourse ? (
+                  <p className="muted small">
+                    {latestMyCourse.courseTitle || latestMyCourse.courseId} · {formatFirestoreTime(latestMyCourse.enrolledAt)}
+                  </p>
+                ) : (
+                  <p className="muted small">لا يوجد مقررات بعد.</p>
+                )}
+              </StatTile>
             ) : null}
             <StatTile
               title="إشعارات غير مقروءة"
