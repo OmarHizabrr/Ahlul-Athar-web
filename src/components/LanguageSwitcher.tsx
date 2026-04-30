@@ -13,8 +13,8 @@ export function LanguageSwitcher() {
         onChange={(e) => setLang(e.target.value as "ar" | "en" | "chichewa")}
       >
         <option value="ar">{`${tr("العربية")} (AR)`}</option>
-        <option value="en">English (EN)</option>
-        <option value="chichewa">Chichewa (NY)</option>
+        <option value="en">{`${tr("الإنجليزية")} (EN)`}</option>
+        <option value="chichewa">{`${tr("تشيشيوا")} (NY)`}</option>
       </select>
     </label>
   );

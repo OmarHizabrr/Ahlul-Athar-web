@@ -3684,6 +3684,9 @@
         "empty_req_rejected": "No rejected requests in this view.",
         "empty_req_expired": "No expired requests in this view.",
         "empty_req_all": "No enrollment requests yet.",
-        "empty_req_default": "No requests."
+        "empty_req_default": "No requests.",
+        "language_ar": "Arabic",
+        "language_en": "English",
+        "language_chichewa": "Chichewa"
     }
 }

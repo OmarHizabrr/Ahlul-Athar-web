@@ -3683,6 +3683,9 @@
         "empty_req_rejected": "لا توجد طلبات مرفوضة في هذا العرض.",
         "empty_req_expired": "لا توجد طلبات منتهية في هذا العرض.",
         "empty_req_all": "لا توجد أي طلبات انضمام حتى الآن.",
-        "empty_req_default": "لا توجد طلبات."
+        "empty_req_default": "لا توجد طلبات.",
+        "language_ar": "العربية",
+        "language_en": "الإنجليزية",
+        "language_chichewa": "تشيشيوا"
     }
 }

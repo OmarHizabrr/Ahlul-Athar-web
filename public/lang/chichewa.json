@@ -3127,6 +3127,9 @@
         "empty_req_rejected": "Palibe zakanidwa mu mwonetsedwewu.",
         "empty_req_expired": "Palibe zatha mu mwonetsedwewu.",
         "empty_req_all": "Palibe zopempha kulowa mpaka pano.",
-        "empty_req_default": "Palibe zopempha."
+        "empty_req_default": "Palibe zopempha.",
+        "language_ar": "Chiarabu",
+        "language_en": "Chingerezi",
+        "language_chichewa": "Chichewa"
     }
 }
