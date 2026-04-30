@@ -37,6 +37,14 @@ const initialForm: CourseForm = {
   isActive: true,
 };
 
+const STUDENT_ACTION_LABELS = {
+  directEnroll: "تسجيل مباشر",
+  requestJoin: "طلب الانضمام",
+  requestJoinRetry: "إعادة طلب الانضمام",
+  pending: "الطلب قيد المراجعة",
+  openCourse: "فتح المقرر",
+} as const;
+
 export function CoursesPage({ role }: { role: UserRole }) {
   const { user, ready } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -217,7 +225,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
       setIsError(false);
       await loadStudentCourseContext();
     } catch {
-      setMessage("تعذر التسجيل المباشر في المقرر.");
+      setMessage("تعذر التسجيل المباشر.");
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -465,7 +473,7 @@ function StudentCourseRowActions({
     return (
       <>
         <Link to={openCourse} className="primary-btn">
-          فتح المقرر
+          {STUDENT_ACTION_LABELS.openCourse}
         </Link>
         <span className="meta-pill meta-pill--ok" title="ضمن مقرراتك">
           مسجّل
@@ -476,14 +484,14 @@ function StudentCourseRowActions({
   if (req?.status === "pending") {
     return (
       <span className="ghost-btn course-waiting-pill" aria-disabled>
-        الطلب قيد المراجعة
+        {STUDENT_ACTION_LABELS.pending}
       </span>
     );
   }
   if (req?.status === "approved") {
     return (
       <Link to={openCourse} className="primary-btn">
-        فتح المقرر
+        {STUDENT_ACTION_LABELS.openCourse}
       </Link>
     );
   }
@@ -501,7 +509,7 @@ function StudentCourseRowActions({
           aria-busy={submitting}
         >
           <ButtonBusyLabel busy={submitting}>
-            {req.status === "rejected" ? "إعادة طلب الانضمام" : "طلب انضمام"}
+            {req.status === "rejected" ? STUDENT_ACTION_LABELS.requestJoinRetry : STUDENT_ACTION_LABELS.requestJoin}
           </ButtonBusyLabel>
         </button>
       </>
@@ -521,7 +529,7 @@ function StudentCourseRowActions({
           disabled={submitting}
           aria-busy={submitting}
         >
-          <ButtonBusyLabel busy={submitting}>تسجيل مباشر</ButtonBusyLabel>
+          <ButtonBusyLabel busy={submitting}>{STUDENT_ACTION_LABELS.directEnroll}</ButtonBusyLabel>
         </button>
       </>
     );
@@ -538,7 +546,7 @@ function StudentCourseRowActions({
         disabled={submitting}
         aria-busy={submitting}
       >
-        <ButtonBusyLabel busy={submitting}>طلب انضمام</ButtonBusyLabel>
+        <ButtonBusyLabel busy={submitting}>{STUDENT_ACTION_LABELS.requestJoin}</ButtonBusyLabel>
       </button>
     </>
   );

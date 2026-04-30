@@ -12,6 +12,13 @@ import { DashboardLayout } from "./DashboardLayout";
 type TabId = "courses" | "files";
 
 const LAST_TAB_KEY = "ah:student-explore:lastTab";
+const STUDENT_ACTION_LABELS = {
+  directEnroll: "تسجيل مباشر",
+  requestJoin: "طلب الانضمام",
+  requestJoinRetry: "إعادة طلب الانضمام",
+  pending: "الطلب قيد المراجعة",
+  open: "فتح",
+} as const;
 
 export function StudentExplorePage() {
   const { user, ready } = useAuth();
@@ -146,7 +153,7 @@ export function StudentExplorePage() {
         return next;
       });
     } catch {
-      setMessage("تعذر إرسال طلب الانضمام للدورة.");
+      setMessage("تعذر إرسال طلب الانضمام.");
     } finally {
       setRequestingCourseId(null);
     }
@@ -160,7 +167,7 @@ export function StudentExplorePage() {
       await coursesService.enrollStudentInPublicCourse(user, course);
       setMyCourseIds((prev) => new Set([...prev, course.id]));
     } catch {
-      setMessage("تعذر التسجيل المباشر في الدورة.");
+      setMessage("تعذر التسجيل المباشر.");
     } finally {
       setRequestingCourseId(null);
     }
@@ -185,7 +192,7 @@ export function StudentExplorePage() {
       setMyFolderIds((prev) => new Set([...prev, folder.id]));
       setFolders((prev) => prev.filter((f) => f.id !== folder.id));
     } catch {
-      setMessage("تعذر التسجيل المباشر في المجلد.");
+      setMessage("تعذر التسجيل المباشر.");
     } finally {
       setRequestingFolderId(null);
     }
@@ -262,10 +269,10 @@ export function StudentExplorePage() {
                   </div>
                   <div className="course-actions">
                     {isEnrolled ? <span className="meta-pill meta-pill--ok">ضمن مقرراتي</span> : null}
-                    {req?.status === "pending" ? <span className="meta-pill meta-pill--info">قيد المراجعة</span> : null}
+                    {req?.status === "pending" ? <span className="meta-pill meta-pill--info">{STUDENT_ACTION_LABELS.pending}</span> : null}
                     {canOpen ? (
                       <Link to={`/student/course/${course.id}`} className="primary-btn">
-                        فتح
+                        {STUDENT_ACTION_LABELS.open}
                       </Link>
                     ) : isPublic ? (
                       <button
@@ -275,7 +282,7 @@ export function StudentExplorePage() {
                         disabled={requestingCourseId === course.id}
                         aria-busy={requestingCourseId === course.id}
                       >
-                        <ButtonBusyLabel busy={requestingCourseId === course.id}>تسجيل مباشر</ButtonBusyLabel>
+                        <ButtonBusyLabel busy={requestingCourseId === course.id}>{STUDENT_ACTION_LABELS.directEnroll}</ButtonBusyLabel>
                       </button>
                     ) : (
                       <button
@@ -286,7 +293,7 @@ export function StudentExplorePage() {
                         aria-busy={requestingCourseId === course.id}
                       >
                         <ButtonBusyLabel busy={requestingCourseId === course.id}>
-                          {req?.status === "rejected" ? "إعادة طلب الانضمام" : "طلب انضمام"}
+                          {req?.status === "rejected" ? STUDENT_ACTION_LABELS.requestJoinRetry : STUDENT_ACTION_LABELS.requestJoin}
                         </ButtonBusyLabel>
                       </button>
                     )}
@@ -341,7 +348,7 @@ export function StudentExplorePage() {
                 </div>
                 {(f.folderType ?? "public") === "private" ? (
                   pendingFolderReqIds.has(f.id) ? (
-                    <span className="meta-pill meta-pill--info">تم إرسال طلب</span>
+                    <span className="meta-pill meta-pill--info">تم إرسال الطلب</span>
                   ) : (
                     <button
                       type="button"
@@ -364,7 +371,7 @@ export function StudentExplorePage() {
                       disabled={requestingFolderId === f.id}
                       aria-busy={requestingFolderId === f.id}
                     >
-                      <ButtonBusyLabel busy={requestingFolderId === f.id}>طلب انضمام</ButtonBusyLabel>
+                      <ButtonBusyLabel busy={requestingFolderId === f.id}>{STUDENT_ACTION_LABELS.requestJoin}</ButtonBusyLabel>
                     </button>
                   )
                 ) : (
@@ -375,7 +382,7 @@ export function StudentExplorePage() {
                     disabled={requestingFolderId === f.id}
                     aria-busy={requestingFolderId === f.id}
                   >
-                    <ButtonBusyLabel busy={requestingFolderId === f.id}>تسجيل مباشر</ButtonBusyLabel>
+                    <ButtonBusyLabel busy={requestingFolderId === f.id}>{STUDENT_ACTION_LABELS.directEnroll}</ButtonBusyLabel>
                   </button>
                 )}
               </ContentListItem>
