@@ -1,4 +1,17 @@
-import { collection, getDocs, limit, orderBy, query, type DocumentData, type QueryDocumentSnapshot } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  type DocumentData,
+  type QueryDocumentSnapshot,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import type { AdminRecord, StudentRecord } from "../types";
 
@@ -16,9 +29,13 @@ function mapAdminDoc(d: QueryDocumentSnapshot<DocumentData>): AdminRecord {
 
 function mapStudentDoc(d: QueryDocumentSnapshot<DocumentData>): StudentRecord {
   const data = d.data();
+  return mapStudentData(d.id, data);
+}
+
+function mapStudentData(uid: string, data: Record<string, unknown>): StudentRecord {
   return {
-    uid: d.id,
-    displayName: String(data.displayName ?? data.name ?? data.createdByName ?? d.id),
+    uid,
+    displayName: String(data.displayName ?? data.name ?? data.createdByName ?? uid),
     email: data.email != null ? String(data.email) : undefined,
     phone: data.phone != null ? String(data.phone) : data.phoneNumber != null ? String(data.phoneNumber) : undefined,
     photoURL: data.photoURL != null ? String(data.photoURL) : undefined,
@@ -57,6 +74,45 @@ export const directoryService = {
         .filter((d) => String(d.data().role ?? "student") === "student")
         .map(mapStudentDoc);
     }
+  },
+
+  async getStudentById(uid: string): Promise<StudentRecord | null> {
+    try {
+      const s = await getDoc(doc(db, "students", uid));
+      if (s.exists()) {
+        return mapStudentData(s.id, s.data() as Record<string, unknown>);
+      }
+    } catch {
+      // fallback below
+    }
+    const u = await getDoc(doc(db, "users", uid));
+    if (!u.exists()) return null;
+    return mapStudentData(u.id, u.data() as Record<string, unknown>);
+  },
+
+  async updateStudentProfile(
+    uid: string,
+    updates: {
+      displayName: string;
+      phone: string;
+      isActive: boolean;
+      isSuspended: boolean;
+      isActivated: boolean;
+    },
+  ) {
+    const payload = {
+      displayName: updates.displayName.trim(),
+      phoneNumber: updates.phone.trim(),
+      phone: updates.phone.trim(),
+      isActive: updates.isActive,
+      isSuspended: updates.isSuspended,
+      isActivated: updates.isActivated,
+      updatedAt: serverTimestamp(),
+    };
+    await updateDoc(doc(db, "users", uid), payload).catch(async () => {
+      await setDoc(doc(db, "users", uid), payload, { merge: true });
+    });
+    await setDoc(doc(db, "students", uid), payload, { merge: true }).catch(() => undefined);
   },
 };
 

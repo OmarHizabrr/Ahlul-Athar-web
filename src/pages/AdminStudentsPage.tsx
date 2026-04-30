@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { PageLoadHint } from "../components/ButtonBusyLabel";
 import { AlertMessage, Avatar, ContentList, ContentListItem, EmptyState, PageToolbar, StatTile } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
@@ -118,7 +119,12 @@ export function AdminStudentsPage() {
                     </p>
                   </div>
                 </div>
-                <span className={pill.cls}>{pill.text}</span>
+                <div className="course-actions">
+                  <span className={pill.cls}>{pill.text}</span>
+                  <Link className="ghost-btn toolbar-btn" to={`/admin/student/${s.uid}`}>
+                    فتح الملف
+                  </Link>
+                </div>
               </ContentListItem>
             );
           })}

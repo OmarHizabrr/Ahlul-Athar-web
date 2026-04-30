@@ -16,6 +16,9 @@ const AdminEnrollmentRequestsPage = lazy(() =>
 );
 const AdminAdminsPage = lazy(() => import("./pages/AdminAdminsPage").then((m) => ({ default: m.AdminAdminsPage })));
 const AdminStudentsPage = lazy(() => import("./pages/AdminStudentsPage").then((m) => ({ default: m.AdminStudentsPage })));
+const AdminStudentViewPage = lazy(() =>
+  import("./pages/AdminStudentViewPage").then((m) => ({ default: m.AdminStudentViewPage })),
+);
 const AdminFoldersPage = lazy(() => import("./pages/AdminFoldersPage").then((m) => ({ default: m.AdminFoldersPage })));
 const AdminFolderViewPage = lazy(() =>
   import("./pages/AdminFolderViewPage").then((m) => ({ default: m.AdminFolderViewPage })),
@@ -144,6 +147,14 @@ function App() {
             element={
               <ProtectedRoute role="admin">
                 <AdminStudentsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/student/:studentId"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminStudentViewPage />
               </ProtectedRoute>
             }
           />
