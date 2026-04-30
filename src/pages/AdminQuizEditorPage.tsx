@@ -33,6 +33,7 @@ import {
   Panel,
   SectionTitle,
   StatTile,
+  Avatar,
 } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
 
@@ -427,7 +428,15 @@ export function AdminQuizEditorPage() {
                 return (
                   <li key={S.id} className="admin-submission-card">
                     <div className="admin-submission-head">
-                      <div>
+                      <div className="person-meta-row">
+                        <Avatar
+                          photoURL={S.studentPhotoURL}
+                          displayName={S.studentName}
+                          email={null}
+                          imageClassName="person-meta-avatar"
+                          fallbackClassName="person-meta-avatar person-meta-avatar--fallback"
+                          size={28}
+                        />
                         <strong>{S.studentName || tr("طالب")}</strong>
                         <span className="muted small"> · {S.studentId || S.id}</span>
                       </div>

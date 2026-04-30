@@ -55,12 +55,12 @@ export const directoryService = {
   async listAdmins(max = 500): Promise<AdminRecord[]> {
     try {
       const snap = await getDocs(query(collection(db, "admins"), orderBy("createdAt", "desc"), limit(max)));
-      return snap.docs.map(mapAdminDoc);
+      return snap.docs.map((d) => ({ ...mapAdminDoc(d), role: "admin" as const }));
     } catch {
       const snap = await getDocs(query(collection(db, "users"), limit(max)));
       return snap.docs
         .filter((d) => String(d.data().role ?? "student") === "admin")
-        .map(mapAdminDoc);
+        .map((d) => ({ ...mapAdminDoc(d), role: "admin" as const }));
     }
   },
 
@@ -133,6 +133,41 @@ export const directoryService = {
       await setDoc(doc(db, "users", uid), payload, { merge: true });
     });
     await setDoc(doc(db, "students", uid), payload, { merge: true }).catch(() => undefined);
+  },
+
+  async updateAdminProfile(
+    uid: string,
+    updates: {
+      displayName: string;
+      email?: string;
+      photoURL?: string;
+      isActive: boolean;
+    },
+  ) {
+    const payload = {
+      role: "admin",
+      displayName: updates.displayName.trim(),
+      email: updates.email?.trim() ?? "",
+      photoURL: updates.photoURL?.trim() ?? "",
+      isActive: updates.isActive,
+      updatedAt: serverTimestamp(),
+    };
+    await updateDoc(doc(db, "users", uid), payload).catch(async () => {
+      await setDoc(doc(db, "users", uid), payload, { merge: true });
+    });
+    await setDoc(doc(db, "admins", uid), payload, { merge: true }).catch(() => undefined);
+  },
+
+  async setAdminActive(uid: string, isActive: boolean) {
+    const payload = {
+      role: "admin",
+      isActive,
+      updatedAt: serverTimestamp(),
+    };
+    await updateDoc(doc(db, "users", uid), payload).catch(async () => {
+      await setDoc(doc(db, "users", uid), payload, { merge: true });
+    });
+    await setDoc(doc(db, "admins", uid), payload, { merge: true }).catch(() => undefined);
   },
 };
 

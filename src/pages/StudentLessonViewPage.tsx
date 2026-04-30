@@ -16,7 +16,7 @@ import { lessonCommentsService } from "../services/lessonCommentsService";
 import { lessonsService } from "../services/lessonsService";
 import type { Lesson, LessonComment, PlatformUser } from "../types";
 import { formatFirestoreTime } from "../utils/firestoreTime";
-import { AlertMessage, AppTabPanel, AppTabs, EmptyState, PageToolbar, Panel, SectionTitle } from "../components/ui";
+import { AlertMessage, AppTabPanel, AppTabs, Avatar, EmptyState, PageToolbar, Panel, SectionTitle } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
 
 const CONTENT_TYPE_LABEL: Record<string, string> = {
@@ -384,9 +384,19 @@ function StudentLessonBody({
             <ul className="lesson-comments-list">
               {comments.map((c) => (
                 <li key={c.id} className="lesson-comment-item">
-                  <p className="muted small">
-                    <strong>{c.userName}</strong> · {formatFirestoreTime(c.createdAt)}
-                  </p>
+                  <div className="person-meta-row">
+                    <Avatar
+                      photoURL={c.userPhotoURL}
+                      displayName={c.userName}
+                      email={null}
+                      imageClassName="person-meta-avatar"
+                      fallbackClassName="person-meta-avatar person-meta-avatar--fallback"
+                      size={28}
+                    />
+                    <p className="muted small">
+                      <strong>{c.userName}</strong> · {formatFirestoreTime(c.createdAt)}
+                    </p>
+                  </div>
                   <p className="post-body">{c.body}</p>
                 </li>
               ))}

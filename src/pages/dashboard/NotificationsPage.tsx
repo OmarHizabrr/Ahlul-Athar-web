@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useI18n } from "../../context/I18nContext";
@@ -18,6 +18,7 @@ import {
   PageToolbar,
   SectionTitle,
   StatTile,
+  Avatar,
 } from "../../components/ui";
 import { cn } from "../../utils/cn";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
@@ -26,7 +27,9 @@ export function NotificationsPage({ role }: { role: UserRole }) {
   const { user: u, ready } = useAuth();
   const { tr } = useI18n();
   const [items, setItems] = useState<Awaited<ReturnType<typeof notificationsService.listForUser>>>([]);
-  const [usersPick, setUsersPick] = useState<{ uid: string; displayName: string; role: UserRole }[]>([]);
+  const [usersPick, setUsersPick] = useState<
+    { uid: string; displayName: string; role: UserRole; photoURL?: string; email?: string; isActive?: boolean }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [targetUid, setTargetUid] = useState("");
@@ -35,6 +38,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
   const [nImageUrl, setNImageUrl] = useState("");
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [sendModalOpen, setSendModalOpen] = useState(false);
+  const [recipientSearch, setRecipientSearch] = useState("");
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
@@ -111,7 +115,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
     setSubmitting(true);
     setMessage("");
     try {
-      await notificationsService.sendToUser(role, targetUid, nTitle, nBody, nImageUrl);
+      await notificationsService.sendToUser(role, u, targetUid, nTitle, nBody, nImageUrl);
       setNTitle("");
       setNBody("");
       setNImageUrl("");
@@ -127,6 +131,17 @@ export function NotificationsPage({ role }: { role: UserRole }) {
   };
 
   const visibleItems = showUnreadOnly ? items.filter((n) => !n.read) : items;
+  const visibleRecipients = useMemo(() => {
+    const q = recipientSearch.trim().toLowerCase();
+    if (!q) {
+      return usersPick;
+    }
+    return usersPick.filter((x) =>
+      x.displayName.toLowerCase().includes(q) ||
+      x.uid.toLowerCase().includes(q) ||
+      (x.email ?? "").toLowerCase().includes(q),
+    );
+  }, [recipientSearch, usersPick]);
 
   if (!ready) {
     return (
@@ -201,7 +216,19 @@ export function NotificationsPage({ role }: { role: UserRole }) {
                 {hasImage ? <CoverImage variant="catalog" src={n.imageUrl} alt={n.title} /> : null}
                 <div className={hasImage ? "mycourse-card-body" : undefined}>
                   <h2 className="post-title">{n.title}</h2>
-                  <p className="muted post-meta">{formatFirestoreTime(n.createdAt)}</p>
+                  <div className="person-meta-row">
+                    <Avatar
+                      photoURL={n.senderPhotoURL}
+                      displayName={n.senderName}
+                      email={null}
+                      imageClassName="person-meta-avatar"
+                      fallbackClassName="person-meta-avatar person-meta-avatar--fallback"
+                      size={28}
+                    />
+                    <p className="muted post-meta">
+                      {(n.senderName?.trim() || tr("الإدارة"))} · {formatFirestoreTime(n.createdAt)}
+                    </p>
+                  </div>
                   <p className="post-body">{n.body}</p>
                   {!n.read ? (
                     <div className="course-actions">
@@ -239,18 +266,39 @@ export function NotificationsPage({ role }: { role: UserRole }) {
             <label>
               <span>{tr("المستلم")}</span>
               {usersPick.length > 0 ? (
-                <select
-                  className="text-input"
-                  value={targetUid}
-                  onChange={(e) => setTargetUid(e.target.value)}
-                  required
-                >
-                  {usersPick.map((x) => (
-                    <option key={x.uid} value={x.uid}>
-                      {x.displayName} ({x.role === "admin" ? tr("مسؤول") : tr("طالب")}) — {x.uid}
-                    </option>
-                  ))}
-                </select>
+                <div className="recipient-picker">
+                  <input
+                    className="text-input"
+                    value={recipientSearch}
+                    onChange={(e) => setRecipientSearch(e.target.value)}
+                    placeholder={tr("ابحث بالاسم أو البريد أو المعرّف")}
+                    aria-label={tr("بحث عن مستلم")}
+                  />
+                  <div className="recipient-picker-list" role="listbox" aria-label={tr("قائمة المستلمين")}>
+                    {visibleRecipients.map((x) => (
+                      <button
+                        key={x.uid}
+                        type="button"
+                        className={cn("recipient-option", targetUid === x.uid && "recipient-option--active")}
+                        onClick={() => setTargetUid(x.uid)}
+                      >
+                        <Avatar
+                          photoURL={x.photoURL}
+                          displayName={x.displayName}
+                          email={x.email}
+                          imageClassName="person-meta-avatar"
+                          fallbackClassName="person-meta-avatar person-meta-avatar--fallback"
+                          size={30}
+                        />
+                        <span className="recipient-option-main">
+                          <strong>{x.displayName || x.uid}</strong>
+                          <small>{x.role === "admin" ? tr("مسؤول") : tr("طالب")} · {x.email || x.uid}</small>
+                        </span>
+                        {x.isActive === false ? <span className="meta-pill meta-pill--warn">{tr("موقوف")}</span> : null}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ) : (
                 <input
                   className="text-input"

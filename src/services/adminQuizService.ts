@@ -303,6 +303,7 @@ export type AdminQuizAnswerRow = {
   id: string;
   studentId: string;
   studentName: string;
+  studentPhotoURL?: string;
   status: string;
   submittedAt: unknown;
   score: unknown;
@@ -331,6 +332,12 @@ export async function adminListQuizAnswers(quizFileId: string): Promise<AdminQui
       id: d.id,
       studentId: String(x.studentId ?? ""),
       studentName: String(x.studentName ?? ""),
+      studentPhotoURL:
+        typeof x.studentPhotoURL === "string" && x.studentPhotoURL.trim()
+          ? x.studentPhotoURL.trim()
+          : typeof x.userPhotoURL === "string" && x.userPhotoURL.trim()
+            ? x.userPhotoURL.trim()
+            : undefined,
       status: String(x.status ?? ""),
       submittedAt: x.submittedAt,
       score: x.score != null ? x.score : x.grade,

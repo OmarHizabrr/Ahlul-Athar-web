@@ -89,6 +89,7 @@ export interface Post {
   body: string;
   authorId: string;
   authorName: string;
+  authorPhotoURL?: string;
   isPublished: boolean;
   createdAt: unknown;
   updatedAt: unknown;
@@ -101,6 +102,9 @@ export interface UserNotification {
   title: string;
   body: string;
   imageUrl?: string;
+  senderId?: string;
+  senderName?: string;
+  senderPhotoURL?: string;
   read: boolean;
   createdAt: unknown;
 }
@@ -142,6 +146,7 @@ export interface AdminRecord {
   email?: string;
   photoURL?: string;
   isActive: boolean;
+  role?: UserRole;
   createdAt?: unknown;
 }
 

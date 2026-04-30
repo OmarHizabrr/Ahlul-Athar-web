@@ -12,7 +12,7 @@ import {
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import type { UserNotification, UserRole } from "../types";
+import type { PlatformUser, UserNotification, UserRole } from "../types";
 
 const notifCol = collection(db, "notifications");
 
@@ -44,6 +44,9 @@ function mapNotif(d: QueryDocumentSnapshot<DocumentData>): UserNotification {
     title: String(data.title ?? ""),
     body: String(data.body ?? data.message ?? ""),
     ...(imageUrl ? { imageUrl } : {}),
+    senderId: typeof data.senderId === "string" ? data.senderId : undefined,
+    senderName: typeof data.senderName === "string" ? data.senderName : undefined,
+    senderPhotoURL: typeof data.senderPhotoURL === "string" ? data.senderPhotoURL : undefined,
     read: Boolean(data.read ?? false),
     createdAt: data.createdAt,
   };
@@ -85,6 +88,7 @@ export const notificationsService = {
    */
   async sendToUser(
     _senderRole: UserRole,
+    sender: PlatformUser,
     targetUserId: string,
     title: string,
     body: string,
@@ -98,6 +102,9 @@ export const notificationsService = {
       title: title.trim(),
       body: body.trim(),
       imageUrl: imageUrl?.trim() ? imageUrl.trim() : null,
+      senderId: sender.uid,
+      senderName: sender.displayName?.trim() || sender.email?.trim() || "Admin",
+      senderPhotoURL: sender.photoURL?.trim() || null,
       read: false,
       createdAt: serverTimestamp(),
     });

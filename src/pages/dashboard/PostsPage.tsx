@@ -16,6 +16,7 @@ import {
   PageToolbar,
   SectionTitle,
   StatTile,
+  Avatar,
 } from "../../components/ui";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
 
@@ -166,10 +167,20 @@ export function PostsPage({ role }: { role: UserRole }) {
             visiblePosts.map((p) => (
               <ContentListItem key={p.id}>
                 <h2 className="post-title">{p.title}</h2>
-                <p className="muted post-meta">
-                  {p.authorName} · {formatFirestoreTime(p.createdAt)}
-                  {role === "admin" ? (p.isPublished ? ` · ${tr("منشور")}` : ` · ${tr("مسودة")}`) : null}
-                </p>
+                <div className="person-meta-row">
+                  <Avatar
+                    photoURL={p.authorPhotoURL}
+                    displayName={p.authorName}
+                    email={null}
+                    imageClassName="person-meta-avatar"
+                    fallbackClassName="person-meta-avatar person-meta-avatar--fallback"
+                    size={28}
+                  />
+                  <p className="muted post-meta">
+                    {p.authorName} · {formatFirestoreTime(p.createdAt)}
+                    {role === "admin" ? (p.isPublished ? ` · ${tr("منشور")}` : ` · ${tr("مسودة")}`) : null}
+                  </p>
+                </div>
                 <p className="post-body">{p.body}</p>
                 {role === "admin" ? (
                   <div className="course-actions">

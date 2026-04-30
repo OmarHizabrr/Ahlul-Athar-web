@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { PageLoadHint } from "../components/ButtonBusyLabel";
-import { AlertMessage, Avatar, ContentList, ContentListItem, EmptyState, PageToolbar, StatTile } from "../components/ui";
+import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
+import { AlertMessage, AppModal, Avatar, ContentList, ContentListItem, EmptyState, FormPanel, PageToolbar, SectionTitle, StatTile } from "../components/ui";
 import { useI18n } from "../context/I18nContext";
 import { DashboardLayout } from "./DashboardLayout";
 import { directoryService } from "../services/directoryService";
@@ -10,8 +10,15 @@ export function AdminAdminsPage() {
   const { tr } = useI18n();
   const [rows, setRows] = useState<AdminRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [editing, setEditing] = useState<AdminRecord | null>(null);
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [photoURL, setPhotoURL] = useState("");
+  const [isActive, setIsActive] = useState(true);
 
   const load = async () => {
     setLoading(true);
@@ -37,6 +44,47 @@ export function AdminAdminsPage() {
     return rows.filter((r) => r.displayName.toLowerCase().includes(q) || (r.email ?? "").toLowerCase().includes(q));
   }, [rows, search]);
 
+  const openEdit = (row: AdminRecord) => {
+    setEditing(row);
+    setDisplayName(row.displayName ?? "");
+    setEmail(row.email ?? "");
+    setPhotoURL(row.photoURL ?? "");
+    setIsActive(row.isActive !== false);
+    setEditOpen(true);
+  };
+
+  const onSaveEdit = async () => {
+    if (!editing) {
+      return;
+    }
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      await directoryService.updateAdminProfile(editing.uid, { displayName, email, photoURL, isActive });
+      setMessage(tr("تم حفظ بيانات المشرف."));
+      setEditOpen(false);
+      await load();
+    } catch {
+      setMessage(tr("تعذر حفظ بيانات المشرف."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const onToggleActive = async (row: AdminRecord) => {
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      await directoryService.setAdminActive(row.uid, !row.isActive);
+      setMessage(!row.isActive ? tr("تم تفعيل المشرف.") : tr("تم إيقاف المشرف."));
+      await load();
+    } catch {
+      setMessage(tr("تعذر تحديث حالة المشرف."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <DashboardLayout role="admin" title={tr("المشرفون")} lede={tr("إدارة المشرفين (عرض وبحث) بنفس فكرة تبويب «المشرفين» في التطبيق، لكن بتصميم ويب.")} >
       <PageToolbar>
@@ -51,7 +99,7 @@ export function AdminAdminsPage() {
           aria-label={tr("بحث في المشرفين")}
         />
       </PageToolbar>
-      {message ? <AlertMessage kind="error">{message}</AlertMessage> : null}
+      {message ? <AlertMessage kind={message.includes("تعذر") ? "error" : "success"}>{message}</AlertMessage> : null}
       {!loading ? (
         <div className="grid-2 home-stats-grid">
           <StatTile title={tr("الإجمالي")} highlight={rows.length} />
@@ -84,10 +132,71 @@ export function AdminAdminsPage() {
               <span className={r.isActive ? "meta-pill meta-pill--ok" : "meta-pill meta-pill--muted"}>
                 {r.isActive ? tr("نشط") : tr("موقوف")}
               </span>
+              <div className="course-actions">
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={() => void onToggleActive(r)}
+                  disabled={submitting}
+                  aria-busy={submitting}
+                >
+                  <ButtonBusyLabel busy={submitting}>
+                    {r.isActive ? tr("إيقاف") : tr("تفعيل")}
+                  </ButtonBusyLabel>
+                </button>
+                <button type="button" className="ghost-btn" onClick={() => openEdit(r)} disabled={submitting}>
+                  {tr("تعديل")}
+                </button>
+              </div>
             </ContentListItem>
           ))}
         </ContentList>
       )}
+      <AppModal
+        open={editOpen}
+        title={tr("تعديل بيانات المشرف")}
+        onClose={() => {
+          if (!submitting) {
+            setEditOpen(false);
+          }
+        }}
+        contentClassName="course-form-modal"
+      >
+        <FormPanel
+          onSubmit={(e) => {
+            e.preventDefault();
+            void onSaveEdit();
+          }}
+          elevated={false}
+          className="course-form-modal__form"
+        >
+          <SectionTitle as="h4">{tr("بيانات المشرف")}</SectionTitle>
+          <label>
+            <span>{tr("الاسم")}</span>
+            <input className="text-input" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+          </label>
+          <label>
+            <span>{tr("البريد")}</span>
+            <input className="text-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </label>
+          <label>
+            <span>{tr("رابط الصورة")}</span>
+            <input className="text-input" value={photoURL} onChange={(e) => setPhotoURL(e.target.value)} placeholder="https://..." />
+          </label>
+          <label className="switch-line">
+            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+            <span>{tr("حساب نشط")}</span>
+          </label>
+          <div className="course-actions">
+            <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
+              <ButtonBusyLabel busy={submitting}>{tr("حفظ")}</ButtonBusyLabel>
+            </button>
+            <button type="button" className="ghost-btn" onClick={() => setEditOpen(false)} disabled={submitting}>
+              {tr("إلغاء")}
+            </button>
+          </div>
+        </FormPanel>
+      </AppModal>
     </DashboardLayout>
   );
 }
