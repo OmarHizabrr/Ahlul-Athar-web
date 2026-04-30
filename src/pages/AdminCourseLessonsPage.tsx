@@ -427,7 +427,7 @@ export function AdminCourseLessonsPage() {
                     className="text-input"
                     type="url"
                     inputMode="url"
-                    placeholder="https://"
+                    placeholder={tr("https://")}
                     value={videoUrl}
                     onChange={(e) => setVideoUrl(e.target.value)}
                   />
@@ -438,7 +438,7 @@ export function AdminCourseLessonsPage() {
                     className="text-input"
                     type="url"
                     inputMode="url"
-                    placeholder="https://"
+                    placeholder={tr("https://")}
                     value={pdfUrl}
                     onChange={(e) => setPdfUrl(e.target.value)}
                   />
@@ -449,7 +449,7 @@ export function AdminCourseLessonsPage() {
                     className="text-input"
                     type="url"
                     inputMode="url"
-                    placeholder="https://"
+                    placeholder={tr("https://")}
                     value={audioUrl}
                     onChange={(e) => setAudioUrl(e.target.value)}
                   />

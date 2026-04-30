@@ -304,7 +304,7 @@ export function AdminLessonQuizzesPage() {
                     type="url"
                     value={videoUrl}
                     onChange={(e) => setVideoUrl(e.target.value)}
-                    placeholder="https://"
+                    placeholder={tr("https://")}
                   />
                 </label>
               </div>

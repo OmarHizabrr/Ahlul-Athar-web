@@ -545,7 +545,7 @@ export function AdminQuizEditorPage() {
                     type="url"
                     value={metaVideo}
                     onChange={(e) => setMetaVideo(e.target.value)}
-                    placeholder="https://"
+                    placeholder={tr("https://")}
                   />
                 </label>
               </div>

@@ -394,7 +394,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
                 type="url"
                 value={nImageUrl}
                 onChange={(e) => setNImageUrl(e.target.value)}
-                placeholder="https://..."
+                placeholder={tr("https://...")}
               />
             </label>
             <div className="course-actions">

@@ -181,7 +181,7 @@ export function AdminAdminsPage() {
           </label>
           <label>
             <span>{tr("رابط الصورة")}</span>
-            <input className="text-input" value={photoURL} onChange={(e) => setPhotoURL(e.target.value)} placeholder="https://..." />
+            <input className="text-input" value={photoURL} onChange={(e) => setPhotoURL(e.target.value)} placeholder={tr("https://...")} />
           </label>
           <label className="switch-line">
             <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />

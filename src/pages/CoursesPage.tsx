@@ -418,7 +418,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
                 type="url"
                 value={form.imageUrl}
                 onChange={(e) => setForm((p) => ({ ...p, imageUrl: e.target.value }))}
-                placeholder="https://..."
+                placeholder={tr("https://...")}
               />
             </label>
             <div className="form-row-2">
