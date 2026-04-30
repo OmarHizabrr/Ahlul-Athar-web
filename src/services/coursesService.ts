@@ -134,13 +134,22 @@ export type ActivationOptions = {
 
 export const coursesService = {
   async listCoursesForRole(role: PlatformUser["role"]) {
-    const q =
-      role === "student"
-        ? query(coursesCollection, where("isActive", "==", true), orderBy("createdAt", "desc"))
-        : query(coursesCollection, orderBy("createdAt", "desc"));
-
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => mapCourse(d.id, d.data()));
+    try {
+      const q =
+        role === "student"
+          ? query(coursesCollection, where("isActive", "==", true), orderBy("createdAt", "desc"))
+          : query(coursesCollection, orderBy("createdAt", "desc"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map((d) => mapCourse(d.id, d.data()));
+    } catch {
+      const raw = (await getDocs(coursesCollection)).docs.map((d) => mapCourse(d.id, d.data()));
+      const filtered = role === "student" ? raw.filter((c) => c.isActive !== false) : raw;
+      return filtered.sort((a, b) => {
+        const at = String((a as { createdAt?: unknown }).createdAt ?? "");
+        const bt = String((b as { createdAt?: unknown }).createdAt ?? "");
+        return bt.localeCompare(at);
+      });
+    }
   },
 
   async getCourseById(courseId: string): Promise<Course | null> {

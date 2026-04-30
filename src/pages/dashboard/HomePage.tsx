@@ -8,7 +8,7 @@ import { coursesService } from "../../services/coursesService";
 import { myCoursesService } from "../../services/myCoursesService";
 import { notificationsService } from "../../services/notificationsService";
 import { postsService } from "../../services/postsService";
-import type { UserRole } from "../../types";
+import type { Course, EnrollmentRequest, MyCourseEntry, Post, UserRole } from "../../types";
 
 const SHORTCUTS_ADMIN = [
   { to: "/admin/courses", label: "الدورات" },
@@ -47,37 +47,55 @@ export function HomePage({ role }: { role: UserRole }) {
     }
     setLoading(true);
     setLoadError(null);
+    let hasPartialFailure = false;
     try {
-      const courses = await coursesService.listCoursesForRole(role);
+      const coursesResult = await coursesService.listCoursesForRole(role).catch(() => {
+        hasPartialFailure = true;
+        return [] as Course[];
+      });
+      const courses = coursesResult;
       setCourseCount(courses.length);
       setTotalStudents(courses.reduce((sum, c) => sum + (Number.isFinite(c.studentCount) ? c.studentCount : 0), 0));
       setTotalLessons(courses.reduce((sum, c) => sum + (Number.isFinite(c.lessonCount) ? c.lessonCount : 0), 0));
       if (role === "admin") {
-        const pending = await coursesService.listCourseEnrollmentRequests("pending");
+        const pending = await coursesService.listCourseEnrollmentRequests("pending").catch(() => {
+          hasPartialFailure = true;
+          return [] as EnrollmentRequest[];
+        });
         setPendingCount(pending.length);
         setPendingEnrollmentCount(0);
       } else {
         setPendingCount(0);
-        const mine = await myCoursesService.listForStudent(user.uid);
+        const mine = await myCoursesService.listForStudent(user.uid).catch(() => {
+          hasPartialFailure = true;
+          return [] as MyCourseEntry[];
+        });
         setMyCoursesCount(mine.length);
         setMyLessonsCount(
           mine.reduce((sum, c) => sum + (typeof c.lessonCount === "number" && Number.isFinite(c.lessonCount) ? c.lessonCount : 0), 0),
         );
         setMyActiveCoursesCount(mine.filter((c) => c.isActiveOnCatalog !== false).length);
-        try {
-          const myReqs = await coursesService.listStudentEnrollmentRequests(user.uid);
-          setPendingEnrollmentCount(myReqs.filter((r) => r.status === "pending").length);
-        } catch {
-          setPendingEnrollmentCount(0);
-        }
+        const myReqs = await coursesService.listStudentEnrollmentRequests(user.uid).catch(() => {
+          hasPartialFailure = true;
+          return [] as EnrollmentRequest[];
+        });
+        setPendingEnrollmentCount(myReqs.filter((r) => r.status === "pending").length);
       }
-      const u = await notificationsService.countUnread(user.uid);
+      const u = await notificationsService.countUnread(user.uid).catch(() => {
+        hasPartialFailure = true;
+        return 0;
+      });
       setUnread(u);
-      const posts = await postsService.listForRole(role);
+      const posts = await postsService.listForRole(role).catch(() => {
+        hasPartialFailure = true;
+        return [] as Post[];
+      });
       setRecentTitles(posts.slice(0, 3).map((p) => p.title));
+      if (hasPartialFailure) {
+        setLoadError("تم تحميل الإحصائيات جزئياً. تحقق من صلاحيات بعض المجموعات.");
+      }
     } catch {
       setLoadError("تعذر تحميل بعض بيانات الصفحة. حاول التحديث لاحقاً.");
-      setRecentTitles([]);
     } finally {
       setLoading(false);
     }
