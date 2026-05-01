@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useI18n } from "../context/I18nContext";
+import { useTheme } from "../context/ThemeContext";
 import { cn } from "../utils/cn";
 
 type Props = {
@@ -14,6 +15,8 @@ type Props = {
  */
 export function AuthPageShell({ children, className }: Props) {
   const { t } = useI18n();
+  const { mode, setMode } = useTheme();
+  const S = "web_shell" as const;
   return (
     <main className={cn("center-page center-page--auth", className)}>
       <div className="auth-shell">
@@ -27,7 +30,20 @@ export function AuthPageShell({ children, className }: Props) {
               </p>
             </div>
           </Link>
-          <div className="auth-header-lang">
+          <div className="auth-header-actions">
+            <label className="theme-switcher theme-switcher--auth" title={t(`${S}.topbar_theme`, "المظهر")}>
+              <span className="theme-switcher-label">{t(`${S}.topbar_theme`, "المظهر")}</span>
+              <select
+                className="theme-switcher-select"
+                value={mode}
+                onChange={(e) => setMode(e.target.value as "light" | "dark" | "system")}
+                aria-label={t(`${S}.topbar_theme_aria`, "تبديل المظهر")}
+              >
+                <option value="system">{t(`${S}.theme_system`, "تلقائي")}</option>
+                <option value="dark">{t(`${S}.theme_dark`, "ليلي")}</option>
+                <option value="light">{t(`${S}.theme_light`, "نهاري")}</option>
+              </select>
+            </label>
             <LanguageSwitcher />
           </div>
         </header>
