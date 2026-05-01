@@ -727,7 +727,8 @@ input:focus {
   grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
   gap: 1rem;
   padding: 1rem;
-  align-items: stretch;
+  /* المحتوى الرئيسي قد يكون طويلاً جداً؛ لا نمدّ اللوحة الجانبية لنفس الارتفاع */
+  align-items: start;
 }
 
 .dashboard-main {
@@ -1121,7 +1122,16 @@ input:focus {
   box-sizing: border-box;
   overflow-x: hidden;
   overflow-y: auto;
+  /* ارتفاع حسب عناصر القائمة فقط، مع سقف الشاشة إن كانت الروابط كثيرة */
+  max-height: calc(100vh - 2rem);
   box-shadow: 0 4px 24px color-mix(in srgb, var(--theme-shadow) 25%, transparent);
+}
+
+@media (min-width: 901px) {
+  .dashboard-page > .sidebar {
+    position: sticky;
+    top: 1rem;
+  }
 }
 
 .sidebar h3 {
@@ -1226,7 +1236,7 @@ input:focus {
 
 .nav-list--drawer {
   gap: 0.28rem;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   min-height: 0;
 }
@@ -1400,7 +1410,7 @@ html[dir="rtl"] .nav-drawer-chevron {
   justify-content: center;
   gap: 0.5rem;
   width: 100%;
-  margin-top: auto;
+  margin-top: 0.35rem;
   padding: 0.85rem 0.85rem 0.65rem;
   flex-shrink: 0;
   border-radius: var(--ah-radius-sm);
@@ -2576,6 +2586,7 @@ button:disabled {
     right: 0;
     width: min(288px, 90vw);
     max-width: min(288px, 90vw);
+    max-height: none;
     height: 100%;
     min-height: 100dvh;
     z-index: 200;
