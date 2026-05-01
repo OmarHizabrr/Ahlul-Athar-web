@@ -3424,6 +3424,32 @@ button:disabled {
   max-width: min(440px, 100%);
 }
 
+.contact-admin-banner {
+  margin: 0.85rem 0 1rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--ah-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--theme-primary-a) 35%, var(--theme-border));
+  background: color-mix(in srgb, var(--theme-primary-a) 12%, var(--theme-surface));
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  align-items: stretch;
+}
+
+.contact-admin-banner__text {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--theme-text);
+  line-height: 1.45;
+}
+
+.contact-admin-banner__btn {
+  align-self: flex-start;
+  width: auto !important;
+  text-decoration: none;
+  text-align: center;
+}
+
 .contact-page-actions {
   display: flex;
   flex-direction: column;

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { IoLogoWhatsapp, IoMailOutline, IoCallOutline, IoOpenOutline } from "react-icons/io5";
 import { AuthPageShell } from "../components/AuthPageShell";
 import { PageLoadHint } from "../components/ButtonBusyLabel";
+import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../context/I18nContext";
 import { contactChannelHref, listContactChannels } from "../services/contactInfoService";
 import type { ContactChannel } from "../types";
@@ -24,6 +25,8 @@ function KindIcon({ kind }: { kind: ContactChannel["kind"] }) {
 
 export function ContactPage() {
   const { t } = useI18n();
+  const { user, ready } = useAuth();
+  const isAdmin = ready && user?.role === "admin";
   const [rows, setRows] = useState<ContactChannel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -54,6 +57,23 @@ export function ContactPage() {
         </div>
         <p className="muted">{t(`${P}.subtitle`, "يسعدنا مساعدتك. اختر وسيلة التواصل المناسبة.")}</p>
 
+        {isAdmin ? (
+          <div className="contact-admin-banner">
+            <p className="contact-admin-banner__text">
+              {t(
+                `${P}.admin_banner`,
+                "أنت مسجّل كمسؤول. إضافة وتعديل أرقام التواصل تتم من لوحة الإدارة (/admin/contact) وليس من هذه الصفحة العامة.",
+              )}
+            </p>
+            <Link
+              to="/admin/contact"
+              className="primary-btn contact-admin-banner__btn"
+            >
+              {t(`${P}.admin_manage`, "فتح صفحة إدارة التواصل")}
+            </Link>
+          </div>
+        ) : null}
+
         {loading ? (
           <PageLoadHint text={t(`${P}.loading`, "جاري التحميل...")} />
         ) : error ? (
@@ -61,7 +81,14 @@ export function ContactPage() {
             {t(`${P}.load_error`, "تعذر تحميل بيانات التواصل. حاول لاحقاً.")}
           </p>
         ) : rows.length === 0 ? (
-          <p className="muted">{t(`${P}.empty`, "لم تُضف أرقام تواصل بعد. راجع المسؤول.")}</p>
+          <p className="muted">
+            {isAdmin
+              ? t(
+                  `${P}.empty_admin`,
+                  "لا توجد قنوات تظهر للزوار بعد. استخدم «فتح صفحة إدارة التواصل» أعلاه لإضافتها.",
+                )
+              : t(`${P}.empty`, "لم تُضف أرقام تواصل بعد. راجع المسؤول.")}
+          </p>
         ) : (
           <ul className="contact-channel-list">
             {rows.map((c) => {

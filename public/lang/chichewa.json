@@ -3161,6 +3161,18 @@
         "topbar_my_requests_badge": "Zanga"
     },
     "web_pages": {
+        "contact": {
+            "title": "Lumikizanani nafe",
+            "subtitle": "Tikondwera kukuthandizani. Sankhani njira.",
+            "loading": "Ikulowetsa...",
+            "load_error": "Sitingathe kulodza. Yesaninso pambere.",
+            "empty": "Palibe njira zolumikizira. Funzani admin.",
+            "empty_admin": "Palibe chowonetsedwa kwa aliyense. Gwiritsani batani pamwamba kuwonjeza mu admin.",
+            "admin_banner": "Muli ndi admin. Onjezani kapena sinthani manambala mu tsamba la admin la «Contact», osati pano.",
+            "admin_manage": "Tsegulani management ya contact",
+            "back_login": "Bwerani ku sign in",
+            "back_role": "Sankhani mtundu wa akaunti"
+        },
         "login": {
             "title": "Lowani",
             "subtitle": "Monga app: Google kapena nambala yafoni ndi chinsinsi zolumikizana ndi akaunti yanu.",

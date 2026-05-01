@@ -3718,6 +3718,18 @@
         "topbar_my_requests_badge": "Mine"
     },
     "web_pages": {
+        "contact": {
+            "title": "Contact us",
+            "subtitle": "We are glad to help. Choose how to reach us.",
+            "loading": "Loading...",
+            "load_error": "Could not load contact details. Try again later.",
+            "empty": "No contact channels yet. Ask an administrator.",
+            "empty_admin": "Nothing is shown to visitors yet. Use the button above to add channels in the admin panel.",
+            "admin_banner": "You are signed in as an admin. Add or edit contact channels from the admin «Contact management» page, not on this public page.",
+            "admin_manage": "Open contact management",
+            "back_login": "Back to sign in",
+            "back_role": "Choose account type"
+        },
         "login": {
             "title": "Sign in",
             "subtitle": "Same as the app: Google or phone number and password linked to your account.",
