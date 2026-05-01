@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { IoAddCircleOutline, IoCallOutline } from "react-icons/io5";
 import { Link } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { AlertMessage, AppModal, EmptyState, PageToolbar, SectionTitle } from "../components/ui";
@@ -41,6 +42,15 @@ export function AdminContactPage() {
   const [editLabel, setEditLabel] = useState("");
   const [editValue, setEditValue] = useState("");
   const [editOrder, setEditOrder] = useState(0);
+
+  const addSectionRef = useRef<HTMLElement | null>(null);
+
+  const scrollToAddForm = () => {
+    addSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => {
+      document.getElementById("admin-contact-label-input")?.focus();
+    }, 320);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -148,6 +158,19 @@ export function AdminContactPage() {
       ) : null}
 
       <PageToolbar>
+        <button
+          type="button"
+          className="toolbar-btn primary-btn admin-contact-toolbar-add"
+          onClick={scrollToAddForm}
+          disabled={loading}
+          title={t(`${A}.toolbar_add_aria`, "الانتقال إلى نموذج إضافة أرقام التواصل")}
+        >
+          <span className="admin-contact-toolbar-add-icons" aria-hidden>
+            <IoCallOutline size={18} />
+            <IoAddCircleOutline size={22} />
+          </span>
+          {t(`${A}.toolbar_add`, "إضافة أرقام التواصل")}
+        </button>
         <Link className="toolbar-btn ghost-btn" to="/contact" target="_blank" rel="noopener noreferrer">
           {t(`${A}.preview`, "معاينة الصفحة العامة")}
         </Link>
@@ -160,7 +183,7 @@ export function AdminContactPage() {
         <PageLoadHint text={t("common.loading", "جاري التحميل...")} />
       ) : (
         <>
-          <section className="card-elevated admin-contact-form">
+          <section ref={addSectionRef} id="admin-contact-add" className="card-elevated admin-contact-form">
             <SectionTitle>{t(`${A}.add_section`, "إضافة قناة جديدة")}</SectionTitle>
             <div className="admin-contact-grid">
               <label className="admin-contact-field">
@@ -176,6 +199,7 @@ export function AdminContactPage() {
               <label className="admin-contact-field">
                 <span>{t(`${A}.field_label`, "العنوان الظاهر")}</span>
                 <input
+                  id="admin-contact-label-input"
                   className="text-input"
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
@@ -199,7 +223,10 @@ export function AdminContactPage() {
               )}
             </p>
             <button type="button" className="primary-btn admin-contact-add-submit" onClick={() => void onAdd()} disabled={saving} aria-busy={saving}>
-              <ButtonBusyLabel busy={saving}>{t(`${A}.add_btn`, "إضافة")}</ButtonBusyLabel>
+              <span className="admin-contact-submit-inner">
+                {saving ? null : <IoAddCircleOutline size={20} className="admin-contact-submit-ico" aria-hidden />}
+                <ButtonBusyLabel busy={saving}>{t(`${A}.add_btn`, "إضافة")}</ButtonBusyLabel>
+              </span>
             </button>
           </section>
 

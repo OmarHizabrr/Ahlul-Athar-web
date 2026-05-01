@@ -3419,10 +3419,42 @@ button:disabled {
   word-break: break-word;
 }
 
+.admin-contact-toolbar-add {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: auto !important;
+  margin: 0 !important;
+  padding-inline: 0.95rem;
+}
+
+.admin-contact-toolbar-add-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.05rem;
+  flex-shrink: 0;
+  opacity: 0.95;
+}
+
+.admin-contact-submit-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.admin-contact-submit-ico {
+  flex-shrink: 0;
+}
+
 .admin-contact-form .admin-contact-add-submit {
   width: auto;
   max-width: 14rem;
   margin-top: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .admin-contact-grid {
