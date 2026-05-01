@@ -16,15 +16,9 @@ import { lessonCommentsService } from "../services/lessonCommentsService";
 import { lessonsService } from "../services/lessonsService";
 import type { Lesson, LessonComment, PlatformUser } from "../types";
 import { formatFirestoreTime } from "../utils/firestoreTime";
+import { lessonContentTypeLabel } from "../utils/lessonContentTypeLabel";
 import { AlertMessage, AppTabPanel, AppTabs, Avatar, EmptyState, PageToolbar, Panel, SectionTitle } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
-
-const CONTENT_TYPE_LABEL: Record<string, string> = {
-  text: "نص",
-  video: "فيديو",
-  pdf: "PDF",
-  audio: "صوت",
-};
 
 export function StudentLessonViewPage() {
   const { courseId = "", lessonId = "" } = useParams();
@@ -35,7 +29,7 @@ export function StudentLessonViewPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [err, setErr] = useState("");
-  const { tr } = useI18n();
+  const { t } = useI18n();
 
   const runLoad = useCallback(
     async (mode: "initial" | "refresh") => {
@@ -55,7 +49,7 @@ export function StudentLessonViewPage() {
           const qz = await getLessonQuizzesForAdminPreview(lessonId);
           setQuizzes(qz);
         } catch {
-          setErr(tr("تعذر تحميل الدرس (صلاحيات أو الدرس غير موجود)."));
+          setErr(t("web_pages.student_lesson.load_failed", "تعذر تحميل الدرس (صلاحيات أو الدرس غير موجود)."));
           setLesson(null);
           setQuizzes([]);
         } finally {
@@ -69,7 +63,7 @@ export function StudentLessonViewPage() {
       }
       const ok = await isStudentEnrolledInCourse(user.uid, courseId);
       if (!ok) {
-        setErr(tr("ليس لديك صلاحية لعرض دروس هذا المقرر."));
+        setErr(t("web_pages.student_lesson.not_enrolled", "ليس لديك صلاحية لعرض دروس هذا المقرر."));
         setLesson(null);
         setQuizzes([]);
         if (mode === "initial") {
@@ -81,7 +75,7 @@ export function StudentLessonViewPage() {
       }
       const access = await canStudentOpenLesson(user.uid, courseId, lessonId);
       if (!access.ok) {
-          setErr(tr(access.message ?? "لا يمكن فتح هذا الدرس."));
+        setErr(access.message ?? t("web_pages.student_lesson.cannot_open", "لا يمكن فتح هذا الدرس."));
         setLesson(null);
         setQuizzes([]);
         if (mode === "initial") {
@@ -97,7 +91,7 @@ export function StudentLessonViewPage() {
         const qz = await getLessonQuizzesForStudent(user.uid, lessonId);
         setQuizzes(qz);
       } catch {
-        setErr(tr("تعذر تحميل الدرس (صلاحيات أو الدرس غير موجود)."));
+        setErr(t("web_pages.student_lesson.load_failed", "تعذر تحميل الدرس (صلاحيات أو الدرس غير موجود)."));
         setLesson(null);
         setQuizzes([]);
       } finally {
@@ -108,7 +102,7 @@ export function StudentLessonViewPage() {
         }
       }
     },
-    [user, courseId, lessonId, isAdminPreview],
+    [user, courseId, lessonId, isAdminPreview, t],
   );
 
   useEffect(() => {
@@ -134,8 +128,8 @@ export function StudentLessonViewPage() {
 
   if (!ready) {
     return (
-      <DashboardLayout role={layoutRole} title={tr("درس")} lede={undefined}>
-        <PageLoadHint text={tr("جاري التهيئة...")} />
+      <DashboardLayout role={layoutRole} title={t("web_pages.student_lesson.title_fallback", "درس")} lede={undefined}>
+        <PageLoadHint text={t("web_shell.auth_initializing", "جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -150,23 +144,24 @@ export function StudentLessonViewPage() {
       title={
         isAdminPreview
           ? lesson?.title
-            ? `${tr("معاينة")}: ${lesson.title}`
-            : tr("معاينة درس")
-          : (lesson?.title ?? (loading ? "…" : tr("درس")))
+            ? `${t("web_pages.student_lesson.preview_prefix", "معاينة")}: ${lesson.title}`
+            : t("web_pages.student_lesson.preview_title_fallback", "معاينة درس")
+          : (lesson?.title ??
+            (loading ? t("web_pages.student_lesson.loading_title", "…") : t("web_pages.student_lesson.title_fallback", "درس")))
       }
-      lede={isAdminPreview ? tr("معاينة واجهة الطالب (مشرف).") : undefined}
+      lede={isAdminPreview ? t("web_pages.student_lesson.lede_preview", "معاينة واجهة الطالب (مشرف).") : undefined}
     >
       {isAdminPreview ? (
         <p className="admin-preview-banner" role="status">
-          <strong>{tr("معاينة واجهة الطالب")}</strong> —{" "}
+          <strong>{t("web_pages.student_lesson.preview_banner_title", "معاينة واجهة الطالب")}</strong> —{" "}
           <Link to={`/admin/course/${courseId}/lessons`} className="inline-link">
-            {tr("إدارة الدروس")}
+            {t("web_pages.student_lesson.manage_lessons", "إدارة الدروس")}
           </Link>
         </p>
       ) : null}
       <p className="lesson-back">
         <Link to={courseListHref} className="inline-link">
-          {tr("← العودة لقائمة دروس المقرر")}
+          {t("web_pages.student_lesson.back_to_course", "← العودة لقائمة دروس المقرر")}
         </Link>
       </p>
       {loading ? (
@@ -174,7 +169,7 @@ export function StudentLessonViewPage() {
       ) : err ? (
         <AlertMessage kind="error">{err}</AlertMessage>
       ) : !lesson ? (
-        <EmptyState message={tr("الدرس غير موجود أو أُزيل.")} />
+        <EmptyState message={t("web_pages.student_lesson.not_found", "الدرس غير موجود أو أُزيل.")} />
       ) : (
         <StudentLessonBody
           courseId={courseId}
@@ -205,11 +200,11 @@ function StudentLessonBody({
   refreshing: boolean;
 }) {
   const { user } = useAuth();
-  const { tr } = useI18n();
+  const { t } = useI18n();
   const isAdminPreview = useIsAdminPreview();
   const viewRoot = isAdminPreview ? "/admin/preview" : "/student";
-  const ct = lesson.contentType?.trim().toLowerCase() ?? "";
-  const typeLabel = ct ? CONTENT_TYPE_LABEL[ct] ?? lesson.contentType : null;
+  const contentTypeTrimmed = lesson.contentType?.trim() ?? "";
+  const typeLabel = lessonContentTypeLabel(lesson.contentType, t);
   const [activeTab, setActiveTab] = useState<"view" | "attachments" | "comments" | "quizzes">("view");
   const [comments, setComments] = useState<LessonComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -218,9 +213,9 @@ function StudentLessonBody({
   const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   const mediaItems = [
-    { key: "video", label: tr("فيديو"), value: lesson.videoUrl },
-    { key: "pdf", label: "PDF", value: lesson.pdfUrl },
-    { key: "audio", label: tr("صوت"), value: lesson.audioUrl },
+    { key: "video", label: t("web_pages.student_lesson.media_video", "فيديو"), value: lesson.videoUrl },
+    { key: "pdf", label: t("web_pages.student_lesson.media_pdf", "PDF"), value: lesson.pdfUrl },
+    { key: "audio", label: t("web_pages.student_lesson.media_audio", "صوت"), value: lesson.audioUrl },
   ].filter((x) => Boolean(x.value && String(x.value).trim()));
 
   const loadComments = useCallback(async () => {
@@ -231,11 +226,11 @@ function StudentLessonBody({
       setComments(rows);
     } catch {
       setComments([]);
-      setCommentsError(tr("تعذر تحميل التعليقات حالياً."));
+      setCommentsError(t("web_pages.student_lesson.comments_load_failed", "تعذر تحميل التعليقات حالياً."));
     } finally {
       setCommentsLoading(false);
     }
-  }, [courseId, lessonId]);
+  }, [courseId, lessonId, t]);
 
   useEffect(() => {
     if (activeTab === "comments") {
@@ -254,7 +249,7 @@ function StudentLessonBody({
       setCommentBody("");
       await loadComments();
     } catch {
-      setCommentsError(tr("تعذر إرسال التعليق. تحقق من الاتصال ثم حاول مرة أخرى."));
+      setCommentsError(t("web_pages.student_lesson.comment_send_failed", "تعذر إرسال التعليق. تحقق من الاتصال ثم حاول مرة أخرى."));
     } finally {
       setCommentSubmitting(false);
     }
@@ -270,7 +265,7 @@ function StudentLessonBody({
           disabled={refreshing}
           aria-busy={refreshing}
         >
-          <ButtonBusyLabel busy={refreshing}>{tr("تحديث")}</ButtonBusyLabel>
+          <ButtonBusyLabel busy={refreshing}>{t("web_pages.student_lesson.refresh", "تحديث")}</ButtonBusyLabel>
         </button>
       </PageToolbar>
 
@@ -288,17 +283,24 @@ function StudentLessonBody({
         ) : null}
         <div className="lesson-hero-inner">
           {lesson.description ? <p className="lesson-hero-sub">{lesson.description}</p> : null}
-          <div className="lesson-chips" aria-label={tr("معلومات الدرس")}>
-            {typeLabel ? (
-              <span className="meta-pill meta-pill--info" title={tr("نوع المحتوى")}>
-                {typeLabel ? tr(typeLabel) : typeLabel}
+          <div className="lesson-chips" aria-label={t("web_pages.student_lesson.lesson_meta_aria", "معلومات الدرس")}>
+            {contentTypeTrimmed ? (
+              <span className="meta-pill meta-pill--info" title={t("web_pages.student_lesson.content_type", "نوع المحتوى")}>
+                {typeLabel}
               </span>
             ) : null}
-            {lesson.duration != null ? <span className="meta-pill meta-pill--muted">{lesson.duration} {tr("دقيقة")}</span> : null}
-            {lesson.difficulty ? <span className="meta-pill meta-pill--muted">{tr(lesson.difficulty)}</span> : null}
+            {lesson.duration != null ? (
+              <span className="meta-pill meta-pill--muted">
+                {lesson.duration} {t("web_pages.student_lesson.minute", "دقيقة")}
+              </span>
+            ) : null}
+            {lesson.difficulty ? <span className="meta-pill meta-pill--muted">{lesson.difficulty}</span> : null}
             {lesson.hasMandatoryQuiz ? (
-              <span className="meta-pill meta-pill--ok" title={tr("للمتابعة إلى الدرس التالي")}>
-                {tr("اختبار إجباري")}
+              <span
+                className="meta-pill meta-pill--ok"
+                title={t("web_pages.student_lesson.mandatory_quiz_badge_title", "للمتابعة إلى الدرس التالي")}
+              >
+                {t("web_pages.student_lesson.mandatory_quiz_badge", "اختبار إجباري")}
               </span>
             ) : null}
           </div>
@@ -311,19 +313,22 @@ function StudentLessonBody({
 
       {lesson.hasMandatoryQuiz ? (
         <p className="lesson-mandatory-hint muted small" role="note">
-          {tr("قد يُطلب اجتياز اختبار هذا الدرس حسب إعدادات المقرر للانتقال للدرس التالي.")}
+          {t(
+            "web_pages.student_lesson.mandatory_quiz_note",
+            "قد يُطلب اجتياز اختبار هذا الدرس حسب إعدادات المقرر للانتقال للدرس التالي.",
+          )}
         </p>
       ) : null}
       <AppTabs
         groupId={`lesson-${lessonId}`}
-        ariaLabel={tr("أقسام الدرس")}
+        ariaLabel={t("web_pages.student_lesson.tabs_aria", "أقسام الدرس")}
         value={activeTab}
         onChange={(id) => setActiveTab(id as "view" | "attachments" | "comments" | "quizzes")}
         tabs={[
-          { id: "view" as const, label: tr("المشاهدة") },
-          { id: "attachments" as const, label: tr("المرفقات") },
-          { id: "comments" as const, label: tr("التعليقات") },
-          { id: "quizzes" as const, label: tr("الاختبارات") },
+          { id: "view" as const, label: t("web_pages.student_lesson.tab_view", "المشاهدة") },
+          { id: "attachments" as const, label: t("web_pages.student_lesson.tab_attachments", "المرفقات") },
+          { id: "comments" as const, label: t("web_pages.student_lesson.tab_comments", "التعليقات") },
+          { id: "quizzes" as const, label: t("web_pages.student_lesson.tab_quizzes", "الاختبارات") },
         ]}
       />
 
@@ -337,101 +342,101 @@ function StudentLessonBody({
       </AppTabPanel>
 
       <AppTabPanel tabId="attachments" groupId={`lesson-${lessonId}`} hidden={activeTab !== "attachments"} className="lesson-tab-panel">
-          <SectionTitle as="h3">{tr("مرفقات الدرس")}</SectionTitle>
-          {mediaItems.length === 0 ? (
-            <EmptyState message={tr("لا توجد مرفقات مباشرة لهذا الدرس.")} />
-          ) : (
-            <ul className="lesson-attachments-list">
-              {mediaItems.map((m) => (
-                <li key={m.key} className="lesson-attachment-item">
-                  <span className="meta-pill meta-pill--muted">{m.label}</span>
-                  <a className="inline-link" href={String(m.value)} target="_blank" rel="noopener noreferrer">
-                    {tr("فتح المرفق")}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
+        <SectionTitle as="h3">{t("web_pages.student_lesson.attachments_heading", "مرفقات الدرس")}</SectionTitle>
+        {mediaItems.length === 0 ? (
+          <EmptyState message={t("web_pages.student_lesson.attachments_empty", "لا توجد مرفقات مباشرة لهذا الدرس.")} />
+        ) : (
+          <ul className="lesson-attachments-list">
+            {mediaItems.map((m) => (
+              <li key={m.key} className="lesson-attachment-item">
+                <span className="meta-pill meta-pill--muted">{m.label}</span>
+                <a className="inline-link" href={String(m.value)} target="_blank" rel="noopener noreferrer">
+                  {t("web_pages.student_lesson.open_attachment", "فتح المرفق")}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
       </AppTabPanel>
 
       <AppTabPanel tabId="comments" groupId={`lesson-${lessonId}`} hidden={activeTab !== "comments"} className="lesson-tab-panel">
-          <SectionTitle as="h3">{tr("تعليقات الدرس")}</SectionTitle>
-          <div className="lesson-comment-box">
-            <textarea
-              className="text-input textarea"
-              rows={3}
-              value={commentBody}
-              onChange={(e) => setCommentBody(e.target.value)}
-              placeholder={tr("اكتب تعليقك هنا...")}
-            />
-            <button
-              type="button"
-              className="primary-btn"
-              onClick={() => void onAddComment()}
-              disabled={commentSubmitting || !commentBody.trim()}
-              aria-busy={commentSubmitting}
-            >
-              <ButtonBusyLabel busy={commentSubmitting}>{tr("إرسال التعليق")}</ButtonBusyLabel>
-            </button>
-          </div>
-          {commentsLoading ? (
-            <PageLoadHint text={tr("جاري تحميل التعليقات...")} />
-          ) : commentsError ? (
-            <AlertMessage kind="error">{commentsError}</AlertMessage>
-          ) : comments.length === 0 ? (
-            <EmptyState message={tr("لا توجد تعليقات بعد.")} />
-          ) : (
-            <ul className="lesson-comments-list">
-              {comments.map((c) => (
-                <li key={c.id} className="lesson-comment-item">
-                  <div className="person-meta-row">
-                    <Avatar
-                      photoURL={c.userPhotoURL}
-                      displayName={c.userName}
-                      email={null}
-                      imageClassName="person-meta-avatar"
-                      fallbackClassName="person-meta-avatar person-meta-avatar--fallback"
-                      size={28}
-                    />
-                    <p className="muted small">
-                      <strong>{c.userName}</strong> · {formatFirestoreTime(c.createdAt)}
-                    </p>
-                  </div>
-                  <p className="post-body">{c.body}</p>
-                </li>
-              ))}
-            </ul>
-          )}
+        <SectionTitle as="h3">{t("web_pages.student_lesson.comments_heading", "تعليقات الدرس")}</SectionTitle>
+        <div className="lesson-comment-box">
+          <textarea
+            className="text-input textarea"
+            rows={3}
+            value={commentBody}
+            onChange={(e) => setCommentBody(e.target.value)}
+            placeholder={t("web_pages.student_lesson.comment_placeholder", "اكتب تعليقك هنا...")}
+          />
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={() => void onAddComment()}
+            disabled={commentSubmitting || !commentBody.trim()}
+            aria-busy={commentSubmitting}
+          >
+            <ButtonBusyLabel busy={commentSubmitting}>{t("web_pages.student_lesson.send_comment", "إرسال التعليق")}</ButtonBusyLabel>
+          </button>
+        </div>
+        {commentsLoading ? (
+          <PageLoadHint text={t("web_pages.student_lesson.comments_loading", "جاري تحميل التعليقات...")} />
+        ) : commentsError ? (
+          <AlertMessage kind="error">{commentsError}</AlertMessage>
+        ) : comments.length === 0 ? (
+          <EmptyState message={t("web_pages.student_lesson.comments_empty", "لا توجد تعليقات بعد.")} />
+        ) : (
+          <ul className="lesson-comments-list">
+            {comments.map((c) => (
+              <li key={c.id} className="lesson-comment-item">
+                <div className="person-meta-row">
+                  <Avatar
+                    photoURL={c.userPhotoURL}
+                    displayName={c.userName}
+                    email={null}
+                    imageClassName="person-meta-avatar"
+                    fallbackClassName="person-meta-avatar person-meta-avatar--fallback"
+                    size={28}
+                  />
+                  <p className="muted small">
+                    <strong>{c.userName}</strong> · {formatFirestoreTime(c.createdAt)}
+                  </p>
+                </div>
+                <p className="post-body">{c.body}</p>
+              </li>
+            ))}
+          </ul>
+        )}
       </AppTabPanel>
 
       <AppTabPanel tabId="quizzes" groupId={`lesson-${lessonId}`} hidden={activeTab !== "quizzes"} className="lesson-quiz-section lesson-tab-panel">
-          <SectionTitle as="h3">{tr("اختبارات الدرس")}</SectionTitle>
-          {quizzes.length > 0 ? (
-            <ul className="lesson-quiz-list">
-              {quizzes.map((q) => (
-                <li key={q.quizFileId}>
-                  <div className="lesson-quiz-row">
-                    <span className="lesson-quiz-title">{q.title}</span>
-                    <span className="lesson-quiz-pill" data-st={q.status === "none" ? "none" : q.status}>
-                      {q.status === "graded"
-                        ? tr("مُتاح / مقيّم")
-                        : q.status === "pending"
-                          ? tr("مُرسل — بانتظار التصحيح")
-                          : tr("لم يُرسل بعد")}
-                    </span>
-                    <Link
-                      className="ghost-btn"
-                      to={`${viewRoot}/course/${courseId}/lesson/${lessonId}/quiz/${q.quizFileId}`}
-                    >
-                      {tr("فتح الاختبار")}
-                    </Link>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState message={tr("لا توجد اختبارات لهذا الدرس بعد.")} />
-          )}
+        <SectionTitle as="h3">{t("web_pages.student_lesson.quizzes_heading", "اختبارات الدرس")}</SectionTitle>
+        {quizzes.length > 0 ? (
+          <ul className="lesson-quiz-list">
+            {quizzes.map((q) => (
+              <li key={q.quizFileId}>
+                <div className="lesson-quiz-row">
+                  <span className="lesson-quiz-title">{q.title}</span>
+                  <span className="lesson-quiz-pill" data-st={q.status === "none" ? "none" : q.status}>
+                    {q.status === "graded"
+                      ? t("web_pages.student_lesson.quiz_graded", "مُتاح / مقيّم")
+                      : q.status === "pending"
+                        ? t("web_pages.student_lesson.quiz_pending", "مُرسل — بانتظار التصحيح")
+                        : t("web_pages.student_lesson.quiz_none", "لم يُرسل بعد")}
+                  </span>
+                  <Link
+                    className="ghost-btn"
+                    to={`${viewRoot}/course/${courseId}/lesson/${lessonId}/quiz/${q.quizFileId}`}
+                  >
+                    {t("web_pages.student_lesson.open_quiz", "فتح الاختبار")}
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyState message={t("web_pages.student_lesson.quizzes_empty", "لا توجد اختبارات لهذا الدرس بعد.")} />
+        )}
       </AppTabPanel>
     </article>
   );

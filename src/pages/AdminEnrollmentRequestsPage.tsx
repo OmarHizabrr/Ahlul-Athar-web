@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AlertMessage } from "../components/ui";
 import { DashboardLayout } from "./DashboardLayout";
 import { coursesService } from "../services/coursesService";
@@ -11,9 +11,11 @@ import { useI18n } from "../context/I18nContext";
 import { PageLoadHint } from "../components/ButtonBusyLabel";
 import { Navigate } from "react-router-dom";
 
+const P = "web_pages.admin_enrollment_requests" as const;
+
 export function AdminEnrollmentRequestsPage() {
   const { user, ready } = useAuth();
-  const { tr } = useI18n();
+  const { t } = useI18n();
   const [requests, setRequests] = useState<EnrollmentRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -26,24 +28,25 @@ export function AdminEnrollmentRequestsPage() {
   const [isLifetimeActivation, setIsLifetimeActivation] = useState(true);
   const [activationDays, setActivationDays] = useState(30);
 
-  const loadRequests = async () => {
+  const loadRequests = useCallback(async () => {
+    if (!user) return;
     setRequestsLoading(true);
     try {
       const data = await coursesService.listAnyEnrollmentRequests({ status: requestFilter, type: typeFilter });
       setRequests(data);
     } catch {
-      setMessage(tr("تعذر تحميل طلبات الالتحاق."));
+      setMessage(t(`${P}.load_failed`, "تعذر تحميل طلبات الالتحاق."));
       setIsError(true);
     } finally {
       setRequestsLoading(false);
     }
-  };
+  }, [user, requestFilter, typeFilter, t]);
 
   useEffect(() => {
     if (ready && user) {
       void loadRequests();
     }
-  }, [requestFilter, typeFilter, ready, user]);
+  }, [ready, user, loadRequests]);
 
   const openActivationDialog = (req: EnrollmentRequest) => {
     setActivationTarget(req);
@@ -80,7 +83,7 @@ export function AdminEnrollmentRequestsPage() {
           },
           activation: { isLifetime: isLifetimeActivation, days: activationDays, expiresAt },
         });
-        setMessage(tr("تم قبول طلب المجلد وإضافة الطالب للأعضاء."));
+        setMessage(t(`${P}.folder_accepted`, "تم قبول طلب المجلد وإضافة الطالب للأعضاء."));
       } else {
         const { alreadyEnrolled } = await coursesService.approveEnrollmentRequest(activationTarget, {
           isLifetime: isLifetimeActivation,
@@ -89,8 +92,8 @@ export function AdminEnrollmentRequestsPage() {
         });
         setMessage(
           alreadyEnrolled
-            ? tr("تم اعتماد الطلب وتحديث بيانات التفعيل. الطالب مسجل مسبقًا.")
-            : tr("تم قبول الطلب وإضافة الطالب للمقرر بنجاح."),
+            ? t(`${P}.course_reactivate`, "تم اعتماد الطلب وتحديث بيانات التفعيل. الطالب مسجل مسبقًا.")
+            : t(`${P}.course_accepted`, "تم قبول الطلب وإضافة الطالب للمقرر بنجاح."),
         );
       }
       setIsError(false);
@@ -99,7 +102,7 @@ export function AdminEnrollmentRequestsPage() {
       window.dispatchEvent(new CustomEvent("ah:enrollment-requests-updated"));
       await loadRequests();
     } catch {
-      setMessage(tr("تعذر قبول الطلب. تحقق من صلاحيات Firestore أو الفهارس."));
+      setMessage(t(`${P}.accept_failed`, "تعذر قبول الطلب. تحقق من صلاحيات Firestore أو الفهارس."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -107,19 +110,19 @@ export function AdminEnrollmentRequestsPage() {
   };
 
   const onRejectRequest = async (requestId: string) => {
-    const reason = window.prompt(tr("سبب الرفض (يُحفظ في ملاحظات الإدارة):"), "");
+    const reason = window.prompt(t(`${P}.reject_prompt`, "سبب الرفض (يُحفظ في ملاحظات الإدارة):"), "");
     if (reason === null) {
       return;
     }
     setSubmitting(true);
     try {
-      await coursesService.rejectEnrollmentRequest(requestId, reason.trim() || tr("مرفوض"));
-      setMessage(tr("تم رفض الطلب وتسجيل الملاحظة."));
+      await coursesService.rejectEnrollmentRequest(requestId, reason.trim() || t(`${P}.reject_note_default`, "مرفوض"));
+      setMessage(t(`${P}.rejected_ok`, "تم رفض الطلب وتسجيل الملاحظة."));
       setIsError(false);
       window.dispatchEvent(new CustomEvent("ah:enrollment-requests-updated"));
       await loadRequests();
     } catch {
-      setMessage(tr("تعذر رفض الطلب."));
+      setMessage(t(`${P}.reject_failed`, "تعذر رفض الطلب."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -130,10 +133,10 @@ export function AdminEnrollmentRequestsPage() {
     return (
       <DashboardLayout
         role="admin"
-        title={tr("طلبات الالتحاق")}
-        lede={tr("قسم مستقل لمراجعة طلبات انضمام الطلاب للمقررات والمجلدات، مطابق لتدفق التطبيق.")}
+        title={t(`${P}.title`, "طلبات الالتحاق")}
+        lede={t(`${P}.lede`, "قسم مستقل لمراجعة طلبات انضمام الطلاب للمقررات والمجلدات، مطابق لتدفق التطبيق.")}
       >
-        <PageLoadHint text={tr("جاري التهيئة...")} />
+        <PageLoadHint text={t("web_shell.auth_initializing", "جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -145,19 +148,34 @@ export function AdminEnrollmentRequestsPage() {
   return (
     <DashboardLayout
       role="admin"
-      title={tr("طلبات الالتحاق")}
-      lede={tr("قسم مستقل لمراجعة طلبات انضمام الطلاب للمقررات والمجلدات، مطابق لتدفق التطبيق.")}
+      title={t(`${P}.title`, "طلبات الالتحاق")}
+      lede={t(`${P}.lede`, "قسم مستقل لمراجعة طلبات انضمام الطلاب للمقررات والمجلدات، مطابق لتدفق التطبيق.")}
     >
       {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
       <div className="request-filters admin-requests-filters">
-        <button type="button" className={`${typeFilter === "all" ? "primary-btn" : "ghost-btn"} toolbar-btn`} onClick={() => setTypeFilter("all")} disabled={submitting || requestsLoading}>
-          {tr("الكل")}
+        <button
+          type="button"
+          className={`${typeFilter === "all" ? "primary-btn" : "ghost-btn"} toolbar-btn`}
+          onClick={() => setTypeFilter("all")}
+          disabled={submitting || requestsLoading}
+        >
+          {t("web_shell.filter_all", "الكل")}
         </button>
-        <button type="button" className={`${typeFilter === "course" ? "primary-btn" : "ghost-btn"} toolbar-btn`} onClick={() => setTypeFilter("course")} disabled={submitting || requestsLoading}>
-          {tr("الدورات")}
+        <button
+          type="button"
+          className={`${typeFilter === "course" ? "primary-btn" : "ghost-btn"} toolbar-btn`}
+          onClick={() => setTypeFilter("course")}
+          disabled={submitting || requestsLoading}
+        >
+          {t(`${P}.type_courses`, "الدورات")}
         </button>
-        <button type="button" className={`${typeFilter === "folder" ? "primary-btn" : "ghost-btn"} toolbar-btn`} onClick={() => setTypeFilter("folder")} disabled={submitting || requestsLoading}>
-          {tr("المجلدات")}
+        <button
+          type="button"
+          className={`${typeFilter === "folder" ? "primary-btn" : "ghost-btn"} toolbar-btn`}
+          onClick={() => setTypeFilter("folder")}
+          disabled={submitting || requestsLoading}
+        >
+          {t(`${P}.type_folders`, "المجلدات")}
         </button>
       </div>
       <AdminEnrollmentRequestsPanel

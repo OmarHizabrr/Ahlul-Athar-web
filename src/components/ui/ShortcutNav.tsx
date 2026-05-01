@@ -11,8 +11,8 @@ export function ShortcutNav({
   className?: string;
   "aria-label"?: string;
 }) {
-  const { tr } = useI18n();
-  const label = ariaLabel ?? tr("اختصارات سريعة");
+  const { t } = useI18n();
+  const label = ariaLabel ?? t("web_shell.shortcut_nav_aria", "اختصارات سريعة");
   return (
     <nav className={cn("home-shortcuts", "shortcut-nav", className)} aria-label={label}>
       {items.map((x) => (

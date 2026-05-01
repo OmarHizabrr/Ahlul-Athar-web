@@ -21,9 +21,9 @@ type PageLoadProps = {
 };
 
 /** سطر «جاري التحميل / التهيئة…» مع دوّار بجانب النص. */
-export function PageLoadHint({ text = "جاري التحميل..." }: PageLoadProps) {
-  const { tr } = useI18n();
-  const label = text === "جاري التحميل..." ? tr("جاري التحميل...") : text;
+export function PageLoadHint({ text }: PageLoadProps) {
+  const { t } = useI18n();
+  const label = text ?? t("web_shell.page_loading", "جاري التحميل...");
   return (
     <p className="page-load-hint muted" role="status">
       <span className="btn-spinner btn-spinner--muted" aria-hidden />

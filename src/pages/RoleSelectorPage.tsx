@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AuthPageShell } from "../components/AuthPageShell";
 import { PageLoadHint } from "../components/ButtonBusyLabel";
 import { useAuth } from "../context/AuthContext";
@@ -20,7 +20,6 @@ export function RoleSelectorPage() {
     return (
       <AuthPageShell>
         <section className="card">
-          <p className="badge">{t("web_shell.app_badge", "أهل الأثر")}</p>
           <PageLoadHint text={t("web_shell.auth_initializing", "جاري التهيئة...")} />
         </section>
       </AuthPageShell>
@@ -30,8 +29,12 @@ export function RoleSelectorPage() {
   return (
     <AuthPageShell>
       <section className="card">
-        <p className="badge">{t("web_shell.app_badge", "أهل الأثر")}</p>
-        <h1>{t("web_shell.role_selector_title", "اختر نوع الحساب")}</h1>
+        <div className="auth-title-block">
+          <h1 className="auth-title">{t("web_shell.role_selector_title", "اختر نوع الحساب")}</h1>
+        </div>
+        <div className="auth-divider" aria-hidden>
+          <span className="auth-divider-icon">◆</span>
+        </div>
         <p className="muted">{t("web_shell.role_selector_subtitle", "نفس تدفق تطبيق الجوال: طالب أو مسؤول، ثم تسجيل الدخول.")}</p>
 
         <div className="grid-2">
@@ -42,6 +45,13 @@ export function RoleSelectorPage() {
             {t("web_shell.login_as_admin", "دخول كمسؤول")}
           </button>
         </div>
+
+        <p className="auth-footer-help role-selector-help">
+          {t("web_shell.role_selector_help_lead", "تحتاج مساعدة قبل الدخول؟")}{" "}
+          <Link to="/contact" className="auth-footer-help-link">
+            {t("web_pages.login.help_cta", "تواصل معنا")}
+          </Link>
+        </p>
       </section>
     </AuthPageShell>
   );

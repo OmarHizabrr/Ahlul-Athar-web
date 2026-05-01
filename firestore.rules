@@ -122,5 +122,11 @@ service cloud.firestore {
       allow update: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow delete: if isAdmin();
     }
+
+    // قنوات التواصل العامة (صفحة «تواصل معنا») — قراءة للجميع، التعديل للمسؤولين فقط
+    match /contact_infos/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
   }
 }

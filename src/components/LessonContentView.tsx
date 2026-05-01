@@ -4,41 +4,39 @@ import type { Lesson } from "../types";
 import { looksLikeLessonHtml, sanitizeLessonHtml } from "../utils/lessonBodyFormat";
 import { resolveVideoEmbed } from "../utils/lessonMedia";
 import { useI18n } from "../context/I18nContext";
-
-const CONTENT_TYPE_LABEL: Record<string, string> = {
-  text: "نص",
-  video: "فيديو",
-  pdf: "PDF",
-  audio: "صوت",
-};
+import { lessonContentTypeLabel } from "../utils/lessonContentTypeLabel";
 
 function lessonBodyText(lesson: Lesson): string {
   return String(lesson.txtContent ?? lesson.content ?? "").trim();
 }
 
-function VideoSection({ title, videoUrl, tr }: { title: string; videoUrl: string; tr: (text: string) => string }) {
+type TFn = (key: string, fallback?: string) => string;
+
+function VideoSection({ title, videoUrl, t }: { title: string; videoUrl: string; t: TFn }) {
   const { kind, embedSrc } = resolveVideoEmbed(videoUrl);
   if (kind === "file" && embedSrc) {
     return (
-      <Panel as="section" className="lesson-media-block" aria-label={tr("فيديو الدرس")}>
+      <Panel as="section" className="lesson-media-block" aria-label={t("web_pages.lesson_content.video_block_aria", "فيديو الدرس")}>
         <SectionTitle as="h3" className="lesson-section-label">
-          {tr("مشغّل الفيديو")}
+          {t("web_pages.lesson_content.video_player", "مشغّل الفيديو")}
         </SectionTitle>
         <div className="lesson-video-file-wrap">
           <video className="lesson-video-file" controls playsInline src={embedSrc} preload="metadata" />
         </div>
         <a href={videoUrl} className="inline-link" target="_blank" rel="noopener noreferrer">
-          {tr("فتح الرابط مباشرة")}
+          {t("web_pages.lesson_content.open_link_direct", "فتح الرابط مباشرة")}
         </a>
-        <p className="muted small">{tr("ملف فيديو مباشر (mp4 / webm / …).")}</p>
+        <p className="muted small">{t("web_pages.lesson_content.video_file_hint", "ملف فيديو مباشر (mp4 / webm / …).")}</p>
       </Panel>
     );
   }
   if ((kind === "youtube" || kind === "vimeo") && embedSrc) {
     return (
-      <Panel as="section" className="lesson-media-block" aria-label={tr("فيديو الدرس")}>
+      <Panel as="section" className="lesson-media-block" aria-label={t("web_pages.lesson_content.video_block_aria", "فيديو الدرس")}>
         <SectionTitle as="h3" className="lesson-section-label">
-          {kind === "youtube" ? tr("فيديو (YouTube)") : tr("فيديو (Vimeo)")}
+          {kind === "youtube"
+            ? t("web_pages.lesson_content.video_youtube", "فيديو (YouTube)")
+            : t("web_pages.lesson_content.video_vimeo", "فيديو (Vimeo)")}
         </SectionTitle>
         <div className="lesson-youtube-embed" style={{ width: "100%", maxWidth: 900 }}>
           <iframe
@@ -49,60 +47,61 @@ function VideoSection({ title, videoUrl, tr }: { title: string; videoUrl: string
           />
         </div>
         <a href={videoUrl} className="inline-link" target="_blank" rel="noopener noreferrer">
-          {tr("فتح في تبويب جديد")}
+          {t("web_pages.lesson_content.open_new_tab", "فتح في تبويب جديد")}
         </a>
       </Panel>
     );
   }
   return (
-    <Panel as="section" className="lesson-media-block" aria-label={tr("رابط فيديو")}>
+    <Panel as="section" className="lesson-media-block" aria-label={t("web_pages.lesson_content.video_link_aria", "رابط فيديو")}>
       <SectionTitle as="h3" className="lesson-section-label">
-        {tr("رابط الفيديو")}
+        {t("web_pages.lesson_content.video_url_title", "رابط الفيديو")}
       </SectionTitle>
-      <p className="muted small">{tr("افتح الرابط في المتصفح إن لم يُضمَّن تلقائياً.")}</p>
+      <p className="muted small">{t("web_pages.lesson_content.video_fallback_hint", "افتح الرابط في المتصفح إن لم يُضمَّن تلقائياً.")}</p>
       <a
         href={videoUrl}
         className="primary-btn lesson-external-fallback-btn"
         target="_blank"
         rel="noopener noreferrer"
       >
-        {tr("فتح رابط الفيديو")}
+        {t("web_pages.lesson_content.open_video_link", "فتح رابط الفيديو")}
       </a>
     </Panel>
   );
 }
 
-function PdfSection({ pdfUrl, tr }: { pdfUrl: string; tr: (text: string) => string }) {
+function PdfSection({ pdfUrl, t }: { pdfUrl: string; t: TFn }) {
+  const pdfTitle = t("web_pages.lesson_content.pdf_title", "مستند PDF");
   return (
-    <Panel as="section" className="lesson-media-block" aria-label={tr("مستند PDF")}>
+    <Panel as="section" className="lesson-media-block" aria-label={t("web_pages.lesson_content.pdf_aria", "مستند PDF")}>
       <SectionTitle as="h3" className="lesson-section-label">
-        {tr("مستند PDF")}
+        {pdfTitle}
       </SectionTitle>
       <div className="lesson-pdf-frame-wrap">
-        <iframe className="lesson-pdf-iframe" title={tr("مستند PDF")} src={pdfUrl} />
+        <iframe className="lesson-pdf-iframe" title={pdfTitle} src={pdfUrl} />
       </div>
       <div className="lesson-file-toolbar">
         <a href={pdfUrl} className="ghost-btn lesson-file-btn" target="_blank" rel="noopener noreferrer">
-          {tr("فتح في تبويب جديد")}
+          {t("web_pages.lesson_content.open_new_tab", "فتح في تبويب جديد")}
         </a>
         <a href={pdfUrl} className="ghost-btn lesson-file-btn" download>
-          {tr("تنزيل")}
+          {t("web_pages.lesson_content.download", "تنزيل")}
         </a>
       </div>
-      <p className="muted small">{tr("إن لم تظهر المعاينة، استخدم «فتح في تبويب جديد».")}</p>
+      <p className="muted small">{t("web_pages.lesson_content.pdf_hint", "إن لم تظهر المعاينة، استخدم «فتح في تبويب جديد».")}</p>
     </Panel>
   );
 }
 
-function AudioSection({ audioUrl, tr }: { audioUrl: string; tr: (text: string) => string }) {
+function AudioSection({ audioUrl, t }: { audioUrl: string; t: TFn }) {
   return (
-    <Panel as="section" className="lesson-media-block" aria-label={tr("تسجيل صوتي")}>
+    <Panel as="section" className="lesson-media-block" aria-label={t("web_pages.lesson_content.audio_aria", "تسجيل صوتي")}>
       <SectionTitle as="h3" className="lesson-section-label">
-        {tr("تسجيل صوتي")}
+        {t("web_pages.lesson_content.audio_title", "تسجيل صوتي")}
       </SectionTitle>
       <audio className="lesson-audio-element" controls preload="metadata" src={audioUrl} />
       <a href={audioUrl} className="inline-link" target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: "0.65rem" }}>
-        {tr("فتح الرابط")}
+        {t("web_pages.lesson_content.open_link", "فتح الرابط")}
       </a>
     </Panel>
   );
@@ -112,19 +111,21 @@ function TextSection({
   body,
   ct,
   typeLabel,
-  tr,
+  t,
 }: {
   body: string;
   ct: string;
   typeLabel: string;
-  tr: (text: string) => string;
+  t: TFn;
 }) {
   const useHtml = looksLikeLessonHtml(body);
   const html = useHtml ? sanitizeLessonHtml(body) : "";
   return (
     <Panel as="section" className="lesson-text-block">
       <SectionTitle as="h3">
-        {ct === "text" ? tr("نص الدرس") : tr("الشرح والملاحظات")}{" "}
+        {ct === "text"
+          ? t("web_pages.lesson_content.text_body", "نص الدرس")
+          : t("web_pages.lesson_content.text_notes", "الشرح والملاحظات")}{" "}
         <span className="meta-pill meta-pill--muted lesson-type-pill">{typeLabel}</span>
       </SectionTitle>
       <div className="lesson-body lesson-body--flush">
@@ -142,10 +143,10 @@ function TextSection({
  * عرض محتوى الدرس بترتيب «النوع الأساسي» أولاً (مثل تطبيق الجوال) ثم باقي الوسائط والنص.
  */
 export function LessonContentView({ lesson }: { lesson: Lesson }) {
-  const { tr } = useI18n();
+  const { t } = useI18n();
   const body = lessonBodyText(lesson);
   const ctRaw = (lesson.contentType?.trim() || "text").toLowerCase();
-  const typeLabel = tr(CONTENT_TYPE_LABEL[ctRaw] ?? lesson.contentType ?? ctRaw);
+  const typeLabel = lessonContentTypeLabel(lesson.contentType, t);
   const primary: "video" | "pdf" | "audio" | "text" =
     ctRaw === "video" || ctRaw === "pdf" || ctRaw === "audio" || ctRaw === "text" ? ctRaw : "text";
 
@@ -162,16 +163,16 @@ export function LessonContentView({ lesson }: { lesson: Lesson }) {
   const blocks: ReactNode[] = [];
   for (const k of order) {
     if (k === "video" && hasVideo) {
-      blocks.push(<VideoSection key="slot-video" title={lesson.title} videoUrl={lesson.videoUrl!} tr={tr} />);
+      blocks.push(<VideoSection key="slot-video" title={lesson.title} videoUrl={lesson.videoUrl!} t={t} />);
     }
     if (k === "pdf" && hasPdf) {
-      blocks.push(<PdfSection key="slot-pdf" pdfUrl={lesson.pdfUrl!} tr={tr} />);
+      blocks.push(<PdfSection key="slot-pdf" pdfUrl={lesson.pdfUrl!} t={t} />);
     }
     if (k === "audio" && hasAudio) {
-      blocks.push(<AudioSection key="slot-audio" audioUrl={lesson.audioUrl!} tr={tr} />);
+      blocks.push(<AudioSection key="slot-audio" audioUrl={lesson.audioUrl!} t={t} />);
     }
     if (k === "text" && hasText) {
-      blocks.push(<TextSection key="slot-text" body={body} ct={ctRaw} typeLabel={typeLabel} tr={tr} />);
+      blocks.push(<TextSection key="slot-text" body={body} ct={ctRaw} typeLabel={typeLabel} t={t} />);
     }
   }
 
@@ -185,15 +186,26 @@ export function LessonContentView({ lesson }: { lesson: Lesson }) {
     <div className="lesson-content-stack">
       {blocks}
 
-      {showVideoErr ? <AlertMessage kind="error">{tr("مُعيّن كفيديو دون رابط فيديو.")}</AlertMessage> : null}
-      {showPdfErr ? <AlertMessage kind="error">{tr("مُعيّن كـ PDF دون رابط للملف.")}</AlertMessage> : null}
-      {showAudioErr ? <AlertMessage kind="error">{tr("مُعيّن كصوت دون رابط.")}</AlertMessage> : null}
-      {showTextErr ? <AlertMessage kind="error">{tr("مُعيّن كنص ولا يوجد نص في الحقل.")}</AlertMessage> : null}
+      {showVideoErr ? (
+        <AlertMessage kind="error">{t("web_pages.lesson_content.err_video", "مُعيّن كفيديو دون رابط فيديو.")}</AlertMessage>
+      ) : null}
+      {showPdfErr ? (
+        <AlertMessage kind="error">{t("web_pages.lesson_content.err_pdf", "مُعيّن كـ PDF دون رابط للملف.")}</AlertMessage>
+      ) : null}
+      {showAudioErr ? (
+        <AlertMessage kind="error">{t("web_pages.lesson_content.err_audio", "مُعيّن كصوت دون رابط.")}</AlertMessage>
+      ) : null}
+      {showTextErr ? (
+        <AlertMessage kind="error">{t("web_pages.lesson_content.err_text", "مُعيّن كنص ولا يوجد نص في الحقل.")}</AlertMessage>
+      ) : null}
 
       {empty ? (
         <EmptyState
           className="lesson-empty-content"
-          message={tr("لا يوجد محتوى مضاف (نص / فيديو / PDF / صوت). راجع الدرس من لوحة المشرف إن لزم.")}
+          message={t(
+            "web_pages.lesson_content.empty",
+            "لا يوجد محتوى مضاف (نص / فيديو / PDF / صوت). راجع الدرس من لوحة المشرف إن لزم.",
+          )}
         />
       ) : null}
     </div>

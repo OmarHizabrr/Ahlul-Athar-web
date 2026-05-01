@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageLoadHint } from "../components/ButtonBusyLabel";
 import { AlertMessage, ContentList, ContentListItem, CoverImage, EmptyState, PageToolbar, StatTile, cn } from "../components/ui";
@@ -8,29 +8,29 @@ import type { Folder } from "../types";
 import { DashboardLayout } from "./DashboardLayout";
 
 export function AdminFoldersPage() {
-  const { tr } = useI18n();
+  const { t } = useI18n();
   const [rows, setRows] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setMessage(null);
     try {
       const data = await foldersService.listFoldersForAdmin();
       setRows(data);
     } catch {
-      setMessage(tr("تعذر تحميل المجلدات. تحقق من صلاحيات Firestore."));
+      setMessage(t("web_pages.admin_folders.load_failed", "تعذر تحميل المجلدات. تحقق من صلاحيات Firestore."));
       setRows([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -39,30 +39,37 @@ export function AdminFoldersPage() {
   }, [rows, search]);
 
   return (
-    <DashboardLayout role="admin" title={tr("المجلدات")} lede={tr("إدارة المجلدات (عرض/بحث/تفاصيل) بنفس فكرة تبويب «المجلدات» في التطبيق.")} >
+    <DashboardLayout
+      role="admin"
+      title={t("web_pages.nav.folders", "المجلدات")}
+      lede={t(
+        "web_pages.admin_folders.lede",
+        "إدارة المجلدات (عرض/بحث/تفاصيل) بنفس فكرة تبويب «المجلدات» في التطبيق.",
+      )}
+    >
       <PageToolbar>
         <button type="button" className="ghost-btn toolbar-btn" onClick={() => void load()} disabled={loading} aria-busy={loading}>
-          {tr("تحديث")}
+          {t("web_pages.admin_folders.refresh", "تحديث")}
         </button>
         <input
           className="text-input"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={tr("بحث في المجلدات")}
-          aria-label={tr("بحث في المجلدات")}
+          placeholder={t("web_pages.admin_folders.search_ph", "بحث في المجلدات")}
+          aria-label={t("web_pages.admin_folders.search_ph", "بحث في المجلدات")}
         />
       </PageToolbar>
       {message ? <AlertMessage kind="error">{message}</AlertMessage> : null}
       {!loading ? (
         <div className="grid-2 home-stats-grid">
-          <StatTile title={tr("إجمالي المجلدات")} highlight={rows.length} />
-          <StatTile title={tr("النتائج")} highlight={visible.length} />
+          <StatTile title={t("web_pages.admin_folders.stat_total", "إجمالي المجلدات")} highlight={rows.length} />
+          <StatTile title={t("web_pages.admin_folders.stat_results", "النتائج")} highlight={visible.length} />
         </div>
       ) : null}
       {loading ? (
         <PageLoadHint />
       ) : visible.length === 0 ? (
-        <EmptyState message={tr("لا توجد مجلدات حتى الآن.")} />
+        <EmptyState message={t("web_pages.admin_folders.empty", "لا توجد مجلدات حتى الآن.")} />
       ) : (
         <ContentList>
           {visible.map((f) => {
@@ -76,13 +83,25 @@ export function AdminFoldersPage() {
                   <h3 className="post-title">{f.name}</h3>
                   {f.description ? <p className="muted small">{f.description}</p> : null}
                   <div className="course-meta lesson-course-meta">
-                    <span>{typeof f.fileCount === "number" ? `${f.fileCount} ${tr("ملف")}` : tr("—")}</span>
-                    <span>{typeof f.memberCount === "number" ? `${f.memberCount} ${tr("عضو")}` : tr("—")}</span>
-                    <span>{f.folderType === "private" ? tr("خاص") : tr("عام")}</span>
+                    <span>
+                      {typeof f.fileCount === "number"
+                        ? `${f.fileCount} ${t("web_pages.admin_folders.file_word", "ملف")}`
+                        : t("web_shell.dash_em", "—")}
+                    </span>
+                    <span>
+                      {typeof f.memberCount === "number"
+                        ? `${f.memberCount} ${t("web_pages.admin_folders.member_word", "عضو")}`
+                        : t("web_shell.dash_em", "—")}
+                    </span>
+                    <span>
+                      {f.folderType === "private"
+                        ? t("web_pages.admin_folders.type_private", "خاص")
+                        : t("web_pages.admin_folders.type_public", "عام")}
+                    </span>
                   </div>
                   <div className="course-actions">
                     <Link className="primary-btn" to={`/admin/folder/${f.id}`}>
-                      {tr("فتح التفاصيل")}
+                      {t("web_pages.admin_folders.open_details", "فتح التفاصيل")}
                     </Link>
                   </div>
                 </div>

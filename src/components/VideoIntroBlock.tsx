@@ -9,10 +9,12 @@ type VideoIntroBlockProps = {
   compact?: boolean;
 };
 
+const V = "web_pages.quiz_video" as const;
+
 /** معاينة رابط فيديو الاختبار/الوسيط — YouTube / Vimeo / ملف مباشر / رابط خارجي. */
 export function VideoIntroBlock({ mediaUrl, title, compact }: VideoIntroBlockProps) {
-  const { tr } = useI18n();
-  const frameTitle = title ?? tr("مقطع فيديو");
+  const { t } = useI18n();
+  const frameTitle = title ?? t(`${V}.frame_title`, "مقطع فيديو");
   const trimmed = mediaUrl.trim();
   if (!trimmed) {
     return null;
@@ -27,7 +29,7 @@ export function VideoIntroBlock({ mediaUrl, title, compact }: VideoIntroBlockPro
           <video className="lesson-video-file" controls playsInline src={embedSrc} preload="metadata" />
         </div>
         <a className="inline-link" href={trimmed} target="_blank" rel="noopener noreferrer">
-          {tr("فتح الرابط")}
+          {t(`${V}.open_link`, "فتح الرابط")}
         </a>
       </div>
     );
@@ -44,7 +46,7 @@ export function VideoIntroBlock({ mediaUrl, title, compact }: VideoIntroBlockPro
           />
         </div>
         <a className="inline-link" href={trimmed} target="_blank" rel="noopener noreferrer">
-          {tr("فتح في تبويب جديد")}
+          {t(`${V}.open_new_tab`, "فتح في تبويب جديد")}
         </a>
       </div>
     );
@@ -52,9 +54,9 @@ export function VideoIntroBlock({ mediaUrl, title, compact }: VideoIntroBlockPro
   return (
     <div className={wrapClass}>
       <a className="primary-btn lesson-external-fallback-btn" href={trimmed} target="_blank" rel="noopener noreferrer">
-        {tr("فتح رابط المقطع")}
+        {t(`${V}.open_clip`, "فتح رابط المقطع")}
       </a>
-      <p className="muted small">{tr("رابط غير قابل للتضمين التلقائي — يُفتح في المتصفح.")}</p>
+      <p className="muted small">{t(`${V}.no_embed_hint`, "رابط غير قابل للتضمين التلقائي — يُفتح في المتصفح.")}</p>
     </div>
   );
 }

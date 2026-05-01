@@ -26,7 +26,7 @@ import { formatFirestoreTime } from "../../utils/firestoreTime";
 
 export function NotificationsPage({ role }: { role: UserRole }) {
   const { user: u, ready } = useAuth();
-  const { tr } = useI18n();
+  const { t } = useI18n();
   const [items, setItems] = useState<Awaited<ReturnType<typeof notificationsService.listForUser>>>([]);
   const [usersPick, setUsersPick] = useState<
     { uid: string; displayName: string; role: UserRole; photoURL?: string; email?: string; isActive?: boolean }[]
@@ -58,12 +58,12 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       setItems(inboxData);
       setSentItems(sentData);
     } catch {
-      setMessage(tr("تعذر تحميل الإشعارات."));
+      setMessage(t("web_pages.notifications.load_failed", "تعذر تحميل الإشعارات."));
       setIsError(true);
     } finally {
       setLoading(false);
     }
-  }, [u, role]);
+  }, [u, role, t]);
 
   useEffect(() => {
     if (!ready || !u) {
@@ -136,12 +136,12 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       setNBody("");
       setNImageUrl("");
       setSendModalOpen(false);
-      setMessage(`${tr("تم إرسال الإشعار.")} (${sentCount})`);
+      setMessage(`${t("web_pages.notifications.sent_ok", "تم إرسال الإشعار.")} (${sentCount})`);
       setIsError(false);
       await load();
       window.dispatchEvent(new CustomEvent("ah:notifications-updated"));
     } catch {
-      setMessage(tr("تعذر الإرسال. تأكد من معرّف المستخدم وصلاحياتك."));
+      setMessage(t("web_pages.notifications.send_failed", "تعذر الإرسال. تأكد من معرّف المستخدم وصلاحياتك."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -174,10 +174,13 @@ export function NotificationsPage({ role }: { role: UserRole }) {
     return (
       <DashboardLayout
         role={role}
-        title={tr("الإشعارات")}
-        lede={tr("نفس مزامنة الإشعارات مع تطبيق الجوال. يُحدَّث العداد في الشريط عند تعليم القراءة.")}
+        title={t("web_pages.nav.notifications", "الإشعارات")}
+        lede={t(
+          "web_pages.notifications.lede",
+          "نفس مزامنة الإشعارات مع تطبيق الجوال. يُحدَّث العداد في الشريط عند تعليم القراءة.",
+        )}
       >
-        <PageLoadHint text={tr("جاري التهيئة...")} />
+        <PageLoadHint text={t("web_shell.auth_initializing", "جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -185,13 +188,16 @@ export function NotificationsPage({ role }: { role: UserRole }) {
   return (
     <DashboardLayout
       role={role}
-      title={tr("الإشعارات")}
-      lede={tr("نفس مزامنة الإشعارات مع تطبيق الجوال. يُحدَّث العداد في الشريط عند تعليم القراءة.")}
+      title={t("web_pages.nav.notifications", "الإشعارات")}
+      lede={t(
+        "web_pages.notifications.lede",
+        "نفس مزامنة الإشعارات مع تطبيق الجوال. يُحدَّث العداد في الشريط عند تعليم القراءة.",
+      )}
     >
       {role === "admin" && u ? (
         <PageToolbar>
           <button type="button" className="primary-btn toolbar-btn" onClick={() => setSendModalOpen(true)}>
-            {tr("إرسال إشعار")}
+            {t("web_pages.notifications.send_action", "إرسال إشعار")}
           </button>
         </PageToolbar>
       ) : null}
@@ -199,27 +205,34 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
       {!loading ? (
         <div className="grid-2 home-stats-grid">
-          <StatTile title={tr("إجمالي الإشعارات")} highlight={statItems.length} />
-          <StatTile title={tr("غير المقروءة")} highlight={statItems.filter((n) => !n.read).length} />
-          <StatTile title={tr("بصور")} highlight={statItems.filter((n) => (n.imageUrl ?? "").trim().length > 0).length} />
+          <StatTile title={t("web_pages.notifications.stat_total", "إجمالي الإشعارات")} highlight={statItems.length} />
+          <StatTile title={t("web_pages.notifications.stat_unread", "غير المقروءة")} highlight={statItems.filter((n) => !n.read).length} />
+          <StatTile
+            title={t("web_pages.notifications.stat_with_images", "بصور")}
+            highlight={statItems.filter((n) => (n.imageUrl ?? "").trim().length > 0).length}
+          />
         </div>
       ) : null}
 
       {role === "admin" ? (
         <AppTabs
           groupId="admin-notifications-tabs"
-          ariaLabel={tr("أقسام الإشعارات")}
+          ariaLabel={t("web_pages.notifications.tabs_aria", "أقسام الإشعارات")}
           value={adminTab}
           onChange={(id) => setAdminTab(id as "sent" | "inbox")}
           tabs={[
-            { id: "sent", label: tr("المرسلة") },
-            { id: "inbox", label: tr("الواردة لي") },
+            { id: "sent", label: t("web_pages.notifications.tab_sent", "المرسلة") },
+            { id: "inbox", label: t("web_pages.notifications.tab_inbox", "الواردة لي") },
           ]}
         />
       ) : null}
 
       <PageToolbar className="notif-toolbar">
-        <p className="muted">{role === "admin" && adminTab === "sent" ? tr("الإشعارات المرسلة") : tr("الإشعارات الخاصة بك")}</p>
+        <p className="muted">
+          {role === "admin" && adminTab === "sent"
+            ? t("web_pages.notifications.list_heading_sent", "الإشعارات المرسلة")
+            : t("web_pages.notifications.list_heading_inbox", "الإشعارات الخاصة بك")}
+        </p>
         {role !== "admin" || adminTab === "inbox" ? (
           <>
             <button
@@ -227,7 +240,9 @@ export function NotificationsPage({ role }: { role: UserRole }) {
               className="ghost-btn toolbar-btn"
               onClick={() => setShowUnreadOnly((v) => !v)}
             >
-              {showUnreadOnly ? tr("عرض الكل") : tr("غير المقروء فقط")}
+              {showUnreadOnly
+                ? t("web_pages.notifications.show_all", "عرض الكل")
+                : t("web_pages.notifications.unread_only", "غير المقروء فقط")}
             </button>
             {items.some((i) => !i.read) ? (
               <button
@@ -237,7 +252,9 @@ export function NotificationsPage({ role }: { role: UserRole }) {
                 disabled={submitting}
                 aria-busy={submitting}
               >
-                <ButtonBusyLabel busy={submitting}>{tr("تعليم الكل كمقروء")}</ButtonBusyLabel>
+                <ButtonBusyLabel busy={submitting}>
+                  {t("web_pages.notifications.mark_all_read", "تعليم الكل كمقروء")}
+                </ButtonBusyLabel>
               </button>
             ) : null}
           </>
@@ -247,7 +264,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       {loading ? (
         <PageLoadHint />
       ) : renderedItems.length === 0 ? (
-        <EmptyState message={tr("لا توجد إشعارات.")} />
+        <EmptyState message={t("web_pages.notifications.empty", "لا توجد إشعارات.")} />
       ) : (
         <ContentList>
           {renderedItems.map((n) => {
@@ -270,9 +287,10 @@ export function NotificationsPage({ role }: { role: UserRole }) {
                       size={28}
                     />
                     <p className="muted post-meta">
-                      {(n.senderName?.trim() || tr("الإدارة"))} · {formatFirestoreTime(n.createdAt)}
+                      {(n.senderName?.trim() || t("web_pages.notifications.sender_default", "الإدارة"))} ·{" "}
+                      {formatFirestoreTime(n.createdAt)}
                       {role === "admin" && adminTab === "sent"
-                        ? ` · ${tr("إلى")}: ${recipientNameMap.get(n.userId) ?? n.userId}`
+                        ? ` · ${t("web_pages.notifications.to_prefix", "إلى")}: ${recipientNameMap.get(n.userId) ?? n.userId}`
                         : null}
                     </p>
                   </div>
@@ -286,7 +304,9 @@ export function NotificationsPage({ role }: { role: UserRole }) {
                         disabled={submitting}
                         aria-busy={submitting}
                       >
-                        <ButtonBusyLabel busy={submitting}>{tr("تعليم كمقروء")}</ButtonBusyLabel>
+                        <ButtonBusyLabel busy={submitting}>
+                          {t("web_pages.notifications.mark_read", "تعليم كمقروء")}
+                        </ButtonBusyLabel>
                       </button>
                     </div>
                   ) : null}
@@ -300,7 +320,7 @@ export function NotificationsPage({ role }: { role: UserRole }) {
       {role === "admin" && u ? (
         <AppModal
           open={sendModalOpen}
-          title={tr("إرسال إشعار لمستخدم")}
+          title={t("web_pages.notifications.modal_title", "إرسال إشعار لمستخدم")}
           onClose={() => {
             if (!submitting) {
               setSendModalOpen(false);
@@ -309,28 +329,32 @@ export function NotificationsPage({ role }: { role: UserRole }) {
           contentClassName="course-form-modal"
         >
           <FormPanel onSubmit={onSend} elevated={false} className="course-form-modal__form">
-            <SectionTitle as="h4">{tr("إرسال إشعار")}</SectionTitle>
+            <SectionTitle as="h4">{t("web_pages.notifications.form_heading", "إرسال إشعار")}</SectionTitle>
             <label>
-              <span>{tr("نوع الإرسال")}</span>
+              <span>{t("web_pages.notifications.audience_label", "نوع الإرسال")}</span>
               <select className="text-input" value={audience} onChange={(e) => setAudience(e.target.value as typeof audience)}>
-                <option value="single">{tr("مستخدم واحد")}</option>
-                <option value="students">{tr("كل الطلاب")}</option>
-                <option value="admins">{tr("كل المشرفين")}</option>
-                <option value="all">{tr("كل المستخدمين")}</option>
+                <option value="single">{t("web_pages.notifications.aud_single", "مستخدم واحد")}</option>
+                <option value="students">{t("web_pages.notifications.aud_students", "كل الطلاب")}</option>
+                <option value="admins">{t("web_pages.notifications.aud_admins", "كل المشرفين")}</option>
+                <option value="all">{t("web_pages.notifications.aud_all", "كل المستخدمين")}</option>
               </select>
             </label>
             <label>
-              <span>{tr("المستلم")}</span>
+              <span>{t("web_pages.notifications.recipient_label", "المستلم")}</span>
               {audience === "single" && usersPick.length > 0 ? (
                 <div className="recipient-picker">
                   <input
                     className="text-input"
                     value={recipientSearch}
                     onChange={(e) => setRecipientSearch(e.target.value)}
-                    placeholder={tr("ابحث بالاسم أو البريد أو المعرّف")}
-                    aria-label={tr("بحث عن مستلم")}
+                    placeholder={t("web_pages.notifications.recipient_search_ph", "ابحث بالاسم أو البريد أو المعرّف")}
+                    aria-label={t("web_pages.notifications.recipient_search_aria", "بحث عن مستلم")}
                   />
-                  <div className="recipient-picker-list" role="listbox" aria-label={tr("قائمة المستلمين")}>
+                  <div
+                    className="recipient-picker-list"
+                    role="listbox"
+                    aria-label={t("web_pages.notifications.recipient_list_aria", "قائمة المستلمين")}
+                  >
                     {visibleRecipients.map((x) => (
                       <button
                         key={x.uid}
@@ -348,9 +372,18 @@ export function NotificationsPage({ role }: { role: UserRole }) {
                         />
                         <span className="recipient-option-main">
                           <strong>{x.displayName || x.uid}</strong>
-                          <small>{x.role === "admin" ? tr("مسؤول") : tr("طالب")} · {x.email || x.uid}</small>
+                          <small>
+                            {x.role === "admin"
+                              ? t("web_pages.login.role_admin", "مسؤول")
+                              : t("web_pages.login.role_student", "طالب")}{" "}
+                            · {x.email || x.uid}
+                          </small>
                         </span>
-                        {x.isActive === false ? <span className="meta-pill meta-pill--warn">{tr("موقوف")}</span> : null}
+                        {x.isActive === false ? (
+                          <span className="meta-pill meta-pill--warn">
+                            {t("web_pages.notifications.suspended", "موقوف")}
+                          </span>
+                        ) : null}
                       </button>
                     ))}
                   </div>
@@ -360,25 +393,25 @@ export function NotificationsPage({ role }: { role: UserRole }) {
                   className="text-input"
                   value={targetUid}
                   onChange={(e) => setTargetUid(e.target.value)}
-                  placeholder={tr("معرّف المستخدم")}
+                  placeholder={t("web_pages.notifications.uid_placeholder", "معرّف المستخدم")}
                   required
                 />
               ) : (
                 <p className="muted small">
                   {audience === "students"
-                    ? tr("سيتم الإرسال لكل الطلاب النشطين.")
+                    ? t("web_pages.notifications.hint_students", "سيتم الإرسال لكل الطلاب النشطين.")
                     : audience === "admins"
-                      ? tr("سيتم الإرسال لكل المشرفين النشطين.")
-                      : tr("سيتم الإرسال لكل المستخدمين النشطين.")}
+                      ? t("web_pages.notifications.hint_admins", "سيتم الإرسال لكل المشرفين النشطين.")
+                      : t("web_pages.notifications.hint_all", "سيتم الإرسال لكل المستخدمين النشطين.")}
                 </p>
               )}
             </label>
             <label>
-              <span>{tr("العنوان")}</span>
+              <span>{t("web_pages.posts.field_title", "العنوان")}</span>
               <input className="text-input" value={nTitle} onChange={(e) => setNTitle(e.target.value)} required />
             </label>
             <label>
-              <span>{tr("النص")}</span>
+              <span>{t("web_pages.posts.field_body", "النص")}</span>
               <textarea
                 className="text-input textarea"
                 value={nBody}
@@ -388,21 +421,23 @@ export function NotificationsPage({ role }: { role: UserRole }) {
               />
             </label>
             <label>
-              <span>{tr("رابط صورة الإشعار (اختياري)")}</span>
+              <span>{t("web_pages.notifications.image_url_label", "رابط صورة الإشعار (اختياري)")}</span>
               <input
                 className="text-input"
                 type="url"
                 value={nImageUrl}
                 onChange={(e) => setNImageUrl(e.target.value)}
-                placeholder={tr("https://...")}
+                placeholder={t("web_pages.notifications.image_url_ph", "https://...")}
               />
             </label>
             <div className="course-actions">
               <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
-                <ButtonBusyLabel busy={submitting}>{tr("إرسال")}</ButtonBusyLabel>
+                <ButtonBusyLabel busy={submitting}>
+                  {t("web_pages.notifications.submit_send", "إرسال")}
+                </ButtonBusyLabel>
               </button>
               <button type="button" className="ghost-btn" onClick={() => setSendModalOpen(false)} disabled={submitting}>
-                {tr("إلغاء")}
+                {t("web_pages.notifications.cancel", "إلغاء")}
               </button>
             </div>
           </FormPanel>

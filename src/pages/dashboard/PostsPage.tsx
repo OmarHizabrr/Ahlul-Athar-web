@@ -20,14 +20,16 @@ import {
 } from "../../components/ui";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
 
-const postsLede: Record<UserRole, string> = {
-  admin: "كتابة منشور ونشره للطلاب. الطلاب يرون المنشورات المفعّلة فقط (كما في التطبيق).",
-  student: "الإعلانات والمنشورات التي نشرتها الإدارة للطلاب.",
-};
-
 export function PostsPage({ role }: { role: UserRole }) {
   const { user, ready } = useAuth();
-  const { tr } = useI18n();
+  const { t } = useI18n();
+  const postsLede =
+    role === "admin"
+      ? t(
+          "web_pages.posts.lede_admin",
+          "كتابة منشور ونشره للطلاب. الطلاب يرون المنشورات المفعّلة فقط (كما في التطبيق).",
+        )
+      : t("web_pages.posts.lede_student", "الإعلانات والمنشورات التي نشرتها الإدارة للطلاب.");
   const [posts, setPosts] = useState<Awaited<ReturnType<typeof postsService.listForRole>>>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -49,12 +51,14 @@ export function PostsPage({ role }: { role: UserRole }) {
       const data = await postsService.listForRole(role);
       setPosts(data);
     } catch {
-      setMessage(tr("تعذر تحميل المنشورات. تحقق من القواعد والفهارس في Firestore."));
+      setMessage(
+        t("web_pages.posts.load_failed", "تعذر تحميل المنشورات. تحقق من القواعد والفهارس في Firestore."),
+      );
       setIsError(true);
     } finally {
       setLoading(false);
     }
-  }, [role]);
+  }, [role, t]);
 
   useEffect(() => {
     void load();
@@ -98,19 +102,23 @@ export function PostsPage({ role }: { role: UserRole }) {
     try {
       if (editingId) {
         await postsService.updatePost(editingId, { title, body, isPublished: publish });
-        setMessage(tr("تم حفظ تعديلات المنشور."));
+        setMessage(t("web_pages.posts.saved_edit", "تم حفظ تعديلات المنشور."));
         resetForm();
       } else {
         await postsService.create(user, { title, body, publish });
         setTitle("");
         setBody("");
         setPublish(true);
-        setMessage(tr("تم حفظ المنشور."));
+        setMessage(t("web_pages.posts.saved_new", "تم حفظ المنشور."));
       }
       setIsError(false);
       await load();
     } catch {
-      setMessage(editingId ? tr("تعذر حفظ التعديل.") : tr("تعذر إنشاء المنشور."));
+      setMessage(
+        editingId
+          ? t("web_pages.posts.save_failed_edit", "تعذر حفظ التعديل.")
+          : t("web_pages.posts.save_failed_create", "تعذر إنشاء المنشور."),
+      );
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -119,18 +127,18 @@ export function PostsPage({ role }: { role: UserRole }) {
 
   if (!ready) {
     return (
-      <DashboardLayout role={role} title={tr("المنشورات")} lede={tr(postsLede[role])}>
-        <PageLoadHint text={tr("جاري التهيئة...")} />
+      <DashboardLayout role={role} title={t("web_pages.nav.posts", "المنشورات")} lede={postsLede}>
+        <PageLoadHint text={t("web_shell.auth_initializing", "جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout role={role} title={tr("المنشورات")} lede={tr(postsLede[role])}>
+    <DashboardLayout role={role} title={t("web_pages.nav.posts", "المنشورات")} lede={postsLede}>
       {role === "admin" && user ? (
         <PageToolbar>
           <button type="button" className="primary-btn toolbar-btn" onClick={onOpenCreateModal}>
-            {tr("إضافة منشور")}
+            {t("web_pages.posts.add_post", "إضافة منشور")}
           </button>
         </PageToolbar>
       ) : null}
@@ -138,10 +146,10 @@ export function PostsPage({ role }: { role: UserRole }) {
       {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
       {!loading ? (
         <div className="grid-2 home-stats-grid">
-          <StatTile title={tr("إجمالي المنشورات")} highlight={posts.length} />
-          <StatTile title={tr("منشورة")} highlight={posts.filter((p) => p.isPublished).length} />
+          <StatTile title={t("web_pages.posts.stat_total", "إجمالي المنشورات")} highlight={posts.length} />
+          <StatTile title={t("web_pages.posts.stat_published", "منشورة")} highlight={posts.filter((p) => p.isPublished).length} />
           {role === "admin" ? (
-            <StatTile title={tr("مسودات")} highlight={posts.filter((p) => !p.isPublished).length} />
+            <StatTile title={t("web_pages.posts.stat_drafts", "مسودات")} highlight={posts.filter((p) => !p.isPublished).length} />
           ) : null}
         </div>
       ) : null}
@@ -152,7 +160,9 @@ export function PostsPage({ role }: { role: UserRole }) {
             className="ghost-btn toolbar-btn"
             onClick={() => setShowPublishedOnly((v) => !v)}
           >
-            {showPublishedOnly ? tr("عرض كل المنشورات") : tr("عرض المنشور فقط")}
+            {showPublishedOnly
+              ? t("web_pages.posts.show_all", "عرض كل المنشورات")
+              : t("web_pages.posts.published_only", "عرض المنشور فقط")}
           </button>
         </PageToolbar>
       ) : null}
@@ -162,7 +172,7 @@ export function PostsPage({ role }: { role: UserRole }) {
       ) : (
         <ContentList>
           {visiblePosts.length === 0 ? (
-            <EmptyState message={tr("لا توجد منشورات بعد.")} />
+            <EmptyState message={t("web_pages.posts.empty", "لا توجد منشورات بعد.")} />
           ) : (
             visiblePosts.map((p) => (
               <ContentListItem key={p.id}>
@@ -178,7 +188,11 @@ export function PostsPage({ role }: { role: UserRole }) {
                   />
                   <p className="muted post-meta">
                     {p.authorName} · {formatFirestoreTime(p.createdAt)}
-                    {role === "admin" ? (p.isPublished ? ` · ${tr("منشور")}` : ` · ${tr("مسودة")}`) : null}
+                    {role === "admin"
+                      ? (p.isPublished
+                          ? ` · ${t("web_pages.posts.badge_published", "منشور")}`
+                          : ` · ${t("web_pages.posts.badge_draft", "مسودة")}`)
+                      : null}
                   </p>
                 </div>
                 <p className="post-body">{p.body}</p>
@@ -190,7 +204,7 @@ export function PostsPage({ role }: { role: UserRole }) {
                       onClick={() => startEdit(p)}
                       disabled={submitting}
                     >
-                      {tr("تعديل")}
+                      {t("web_pages.posts.edit", "تعديل")}
                     </button>
                     <button
                       type="button"
@@ -211,7 +225,9 @@ export function PostsPage({ role }: { role: UserRole }) {
                       }}
                     >
                       <ButtonBusyLabel busy={submitting}>
-                        {p.isPublished ? tr("إلغاء النشر") : tr("نشر")}
+                        {p.isPublished
+                          ? t("web_pages.posts.unpublish", "إلغاء النشر")
+                          : t("web_pages.posts.publish", "نشر")}
                       </ButtonBusyLabel>
                     </button>
                     <button
@@ -220,7 +236,7 @@ export function PostsPage({ role }: { role: UserRole }) {
                       disabled={submitting}
                       aria-busy={submitting}
                       onClick={async () => {
-                        if (!window.confirm(tr("حذف المنشور؟"))) {
+                        if (!window.confirm(t("web_pages.posts.delete_confirm", "حذف المنشور؟"))) {
                           return;
                         }
                         setSubmitting(true);
@@ -235,7 +251,7 @@ export function PostsPage({ role }: { role: UserRole }) {
                         }
                       }}
                     >
-                      <ButtonBusyLabel busy={submitting}>{tr("حذف")}</ButtonBusyLabel>
+                      <ButtonBusyLabel busy={submitting}>{t("web_pages.posts.delete", "حذف")}</ButtonBusyLabel>
                     </button>
                   </div>
                 ) : null}
@@ -248,7 +264,11 @@ export function PostsPage({ role }: { role: UserRole }) {
       {role === "admin" && user ? (
         <AppModal
           open={postModalOpen}
-          title={editingId ? tr("تعديل منشور") : tr("إنشاء منشور")}
+          title={
+            editingId
+              ? t("web_pages.posts.modal_edit_title", "تعديل منشور")
+              : t("web_pages.posts.modal_create_title", "إنشاء منشور")
+          }
           onClose={() => {
             if (!submitting) {
               resetForm();
@@ -257,13 +277,17 @@ export function PostsPage({ role }: { role: UserRole }) {
           contentClassName="course-form-modal"
         >
           <FormPanel onSubmit={onSubmit} elevated={false} className="course-form-modal__form">
-            <SectionTitle as="h4">{editingId ? tr("تحديث المنشور") : tr("منشور جديد")}</SectionTitle>
+            <SectionTitle as="h4">
+              {editingId
+                ? t("web_pages.posts.form_edit_heading", "تحديث المنشور")
+                : t("web_pages.posts.form_new_heading", "منشور جديد")}
+            </SectionTitle>
             <label>
-              <span>{tr("العنوان")}</span>
+              <span>{t("web_pages.posts.field_title", "العنوان")}</span>
               <input className="text-input" value={title} onChange={(e) => setTitle(e.target.value)} required />
             </label>
             <label>
-              <span>{tr("النص")}</span>
+              <span>{t("web_pages.posts.field_body", "النص")}</span>
               <textarea
                 className="text-input textarea"
                 value={body}
@@ -274,14 +298,20 @@ export function PostsPage({ role }: { role: UserRole }) {
             </label>
             <label className="switch-line">
               <input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} />
-              <span>{tr("نشر للطلاب (يظهر في التطبيق والويب)")}</span>
+              <span>
+                {t("web_pages.posts.publish_for_students", "نشر للطلاب (يظهر في التطبيق والويب)")}
+              </span>
             </label>
             <div className="course-actions">
               <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
-                <ButtonBusyLabel busy={submitting}>{editingId ? tr("حفظ التعديلات") : tr("نشر")}</ButtonBusyLabel>
+                <ButtonBusyLabel busy={submitting}>
+                  {editingId
+                    ? t("web_pages.posts.save_changes", "حفظ التعديلات")
+                    : t("web_pages.posts.publish", "نشر")}
+                </ButtonBusyLabel>
               </button>
               <button type="button" className="ghost-btn" onClick={resetForm} disabled={submitting}>
-                {tr("إلغاء")}
+                {t("web_pages.posts.cancel", "إلغاء")}
               </button>
             </div>
           </FormPanel>

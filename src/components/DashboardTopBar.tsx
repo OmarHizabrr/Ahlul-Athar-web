@@ -12,9 +12,11 @@ import { notificationsService } from "../services/notificationsService";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import type { UserRole } from "../types";
 
+const S = "web_shell" as const;
+
 export function DashboardTopBar({ role }: { role: UserRole }) {
   const { user, ready } = useAuth();
-  const { tr } = useI18n();
+  const { t } = useI18n();
   const { mode, setMode } = useTheme();
   const navigate = useNavigate();
   const base = role === "admin" ? "/admin" : "/student";
@@ -59,7 +61,7 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
     }
     void refreshUnread();
     void refreshPendingEnrollments();
-    const t = window.setInterval(() => void refreshUnread(), 60_000);
+    const tmr = window.setInterval(() => void refreshUnread(), 60_000);
     const tReq = window.setInterval(() => void refreshPendingEnrollments(), 60_000);
     const onVis = () => {
       if (document.visibilityState === "visible") {
@@ -74,7 +76,7 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
     return () => {
       window.removeEventListener("ah:notifications-updated", onNotifUpdated);
       window.removeEventListener("ah:enrollment-requests-updated", onEnrollmentUpdated);
-      window.clearInterval(t);
+      window.clearInterval(tmr);
       window.clearInterval(tReq);
       document.removeEventListener("visibilitychange", onVis);
     };
@@ -105,23 +107,23 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
     return null;
   }
 
-  const name = user.displayName || user.email || tr("مستخدم");
+  const name = user.displayName || user.email || t(`${S}.topbar_user_fallback`, "مستخدم");
   const photo = user.photoURL;
 
   return (
     <header className="dashboard-topbar">
       <div className="topbar-trailing">
-        <label className="theme-switcher" title={tr("المظهر")}>
-          <span className="theme-switcher-label">{tr("المظهر")}</span>
+        <label className="theme-switcher" title={t(`${S}.topbar_theme`, "المظهر")}>
+          <span className="theme-switcher-label">{t(`${S}.topbar_theme`, "المظهر")}</span>
           <select
             className="theme-switcher-select"
             value={mode}
             onChange={(e) => setMode(e.target.value as "light" | "dark" | "system")}
-            aria-label={tr("تبديل المظهر")}
+            aria-label={t(`${S}.topbar_theme_aria`, "تبديل المظهر")}
           >
-            <option value="system">{tr("تلقائي")}</option>
-            <option value="dark">{tr("ليلي")}</option>
-            <option value="light">{tr("نهاري")}</option>
+            <option value="system">{t(`${S}.theme_system`, "تلقائي")}</option>
+            <option value="dark">{t(`${S}.theme_dark`, "ليلي")}</option>
+            <option value="light">{t(`${S}.theme_light`, "نهاري")}</option>
           </select>
         </label>
         <LanguageSwitcher />
@@ -152,7 +154,7 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
                 role="menuitem"
                 onClick={() => setMenuOpen(false)}
               >
-                {tr("الملف الشخصي")}
+                {t(`${S}.topbar_profile`, "الملف الشخصي")}
               </Link>
               <Link
                 to={`${base}/settings`}
@@ -160,7 +162,7 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
                 role="menuitem"
                 onClick={() => setMenuOpen(false)}
               >
-                {tr("الإعدادات")}
+                {t(`${S}.topbar_settings`, "الإعدادات")}
               </Link>
               <Link
                 to={`${base}/notifications`}
@@ -168,7 +170,7 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
                 role="menuitem"
                 onClick={() => setMenuOpen(false)}
               >
-                {tr("الإشعارات")}
+                {t(`${S}.topbar_notifications`, "الإشعارات")}
               </Link>
               <button
                 type="button"
@@ -178,7 +180,7 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
                 aria-busy={loggingOut}
                 onClick={() => void onLogout()}
               >
-                <ButtonBusyLabel busy={loggingOut}>{tr("تسجيل الخروج")}</ButtonBusyLabel>
+                <ButtonBusyLabel busy={loggingOut}>{t(`${S}.topbar_logout`, "تسجيل الخروج")}</ButtonBusyLabel>
               </button>
             </div>
           ) : null}
@@ -187,8 +189,8 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
         <Link
           to={`${base}/notifications`}
           className="topbar-notif-btn"
-          title={tr("الإشعارات")}
-          aria-label={tr("الإشعارات")}
+          title={t(`${S}.topbar_notifications`, "الإشعارات")}
+          aria-label={t(`${S}.topbar_notifications`, "الإشعارات")}
         >
           <span className="topbar-notif-icon-wrap">
             <IoNotificationsOutline className="topbar-notif-icon" />
@@ -198,11 +200,23 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
         <Link
           to={role === "admin" ? "/admin/enrollment-requests" : "/student/enrollment-requests"}
           className="topbar-notif-btn"
-          title={role === "admin" ? tr("طلبات الالتحاق") : tr("طلباتي")}
-          aria-label={role === "admin" ? tr("طلبات الالتحاق") : tr("طلباتي")}
+          title={
+            role === "admin"
+              ? t(`${S}.topbar_enrollment_requests`, "طلبات الالتحاق")
+              : t(`${S}.topbar_my_requests`, "طلباتي")
+          }
+          aria-label={
+            role === "admin"
+              ? t(`${S}.topbar_enrollment_requests`, "طلبات الالتحاق")
+              : t(`${S}.topbar_my_requests`, "طلباتي")
+          }
         >
           <span className="topbar-notif-icon-wrap topbar-notif-icon-wrap--text">
-            <span className="topbar-mini-label">{role === "admin" ? tr("طلبات") : tr("طلباتي")}</span>
+            <span className="topbar-mini-label">
+              {role === "admin"
+                ? t(`${S}.topbar_requests_badge`, "طلبات")
+                : t(`${S}.topbar_my_requests_badge`, "طلباتي")}
+            </span>
             {pendingEnrollments > 0 ? (
               <span className="notif-badge">{pendingEnrollments > 99 ? "99+" : pendingEnrollments}</span>
             ) : null}

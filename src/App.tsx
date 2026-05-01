@@ -59,33 +59,35 @@ const AdminLessonQuizzesPage = lazy(() =>
 const AdminQuizEditorPage = lazy(() =>
   import("./pages/AdminQuizEditorPage").then((m) => ({ default: m.AdminQuizEditorPage })),
 );
+const ContactPage = lazy(() => import("./pages/ContactPage").then((m) => ({ default: m.ContactPage })));
+const AdminContactPage = lazy(() => import("./pages/AdminContactPage").then((m) => ({ default: m.AdminContactPage })));
 
 function AuthLoading() {
-  const { tr } = useI18n();
+  const { t } = useI18n();
   return (
     <AuthPageShell>
       <section className="card splash-card" aria-busy="true">
-        <p className="badge">{tr("أهل الأثر")}</p>
+        <p className="badge">{t("web_shell.app_badge", "أهل الأثر")}</p>
         <div className="splash-page-spinner" aria-hidden>
           <span className="btn-spinner" />
         </div>
-        <h1>{tr("جاري التهيئة...")}</h1>
-        <p className="muted">{tr("مزامنة الجلسة مع السحابة")}</p>
+        <h1>{t("web_shell.auth_initializing", "جاري التهيئة...")}</h1>
+        <p className="muted">{t("web_shell.auth_sync_cloud", "مزامنة الجلسة مع السحابة")}</p>
       </section>
     </AuthPageShell>
   );
 }
 
 function RouteLoading() {
-  const { tr } = useI18n();
+  const { t } = useI18n();
   return (
     <AuthPageShell>
       <section className="card splash-card" aria-busy="true">
-        <p className="badge">{tr("أهل الأثر")}</p>
+        <p className="badge">{t("web_shell.app_badge", "أهل الأثر")}</p>
         <div className="splash-page-spinner" aria-hidden>
           <span className="btn-spinner" />
         </div>
-        <h1>{tr("جاري فتح الصفحة...")}</h1>
+        <h1>{t("web_shell.route_opening", "جاري فتح الصفحة...")}</h1>
       </section>
     </AuthPageShell>
   );
@@ -113,6 +115,7 @@ function App() {
           <Route path="/" element={<SplashPage />} />
           <Route path="/role-selector" element={<RoleSelectorPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route
             path="/admin"
             element={
@@ -260,6 +263,14 @@ function App() {
             element={
               <ProtectedRoute role="admin">
                 <SettingsPage role="admin" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/contact"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminContactPage />
               </ProtectedRoute>
             }
           />

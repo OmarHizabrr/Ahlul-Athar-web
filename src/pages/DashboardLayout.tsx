@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { IoCloseOutline, IoMenuOutline } from "react-icons/io5";
-import { Link, useLocation } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { DashboardTopBar } from "../components/DashboardTopBar";
 import { useI18n } from "../context/I18nContext";
 import type { UserRole } from "../types";
@@ -14,7 +14,7 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ role, title, lede, children }: DashboardLayoutProps) {
-  const { tr } = useI18n();
+  const { t } = useI18n();
   const base = role === "admin" ? "/admin" : "/student";
   const location = useLocation();
   const [navOpen, setNavOpen] = useState(false);
@@ -44,73 +44,81 @@ export function DashboardLayout({ role, title, lede, children }: DashboardLayout
           onClick={() => setNavOpen(false)}
         />
       ) : null}
-      <aside className="sidebar" aria-label={tr("قائمة التنقل")}>
+      <aside className="sidebar" aria-label={t("web_pages.nav.nav_aria", "قائمة التنقل")}>
         <div className="sidebar-top">
           <button
             type="button"
             className="sidebar-close-btn"
             onClick={() => setNavOpen(false)}
-            aria-label={tr("إغلاق القائمة")}
+            aria-label={t("web_pages.nav.close_menu", "إغلاق القائمة")}
           >
             <IoCloseOutline size={24} />
           </button>
         </div>
-        <p className="badge">{role === "admin" ? tr("مسؤول") : tr("طالب")}</p>
-        <h3>{tr("المنصة الموحدة")}</h3>
+        <p className="badge">{role === "admin" ? t("web_pages.login.role_admin", "مسؤول") : t("web_pages.login.role_student", "طالب")}</p>
+        <h3>{t("web_pages.nav.platform_title", "المنصة الموحدة")}</h3>
         <nav className="nav-list">
-          <Link to={base} onClick={() => setNavOpen(false)}>
-            {tr("الرئيسية")}
-          </Link>
+          <NavLink to={base} end onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? "nav-link--active" : undefined)}>
+            {t("web_pages.nav.home", "الرئيسية")}
+          </NavLink>
           {role === "admin" ? (
-            <Link to="/admin/admins" onClick={() => setNavOpen(false)}>
-              {tr("المشرفون")}
-            </Link>
+            <NavLink to="/admin/admins" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? "nav-link--active" : undefined)}>
+              {t("web_pages.nav.admins", "المشرفون")}
+            </NavLink>
           ) : null}
           {role === "admin" ? (
-            <Link to="/admin/students" onClick={() => setNavOpen(false)}>
-              {tr("الطلاب")}
-            </Link>
+            <NavLink to="/admin/students" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? "nav-link--active" : undefined)}>
+              {t("web_pages.nav.students", "الطلاب")}
+            </NavLink>
           ) : null}
-          <Link to={`${base}/courses`} onClick={() => setNavOpen(false)}>
-            {tr("الدورات")}
-          </Link>
+          <NavLink to={`${base}/courses`} onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? "nav-link--active" : undefined)}>
+            {t("web_pages.nav.courses", "الدورات")}
+          </NavLink>
           {role === "admin" ? (
-            <Link to="/admin/folders" onClick={() => setNavOpen(false)}>
-              {tr("المجلدات")}
-            </Link>
+            <NavLink to="/admin/folders" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? "nav-link--active" : undefined)}>
+              {t("web_pages.nav.folders", "المجلدات")}
+            </NavLink>
           ) : null}
           {role === "admin" ? (
-            <Link to="/admin/enrollment-requests" onClick={() => setNavOpen(false)}>
-              {tr("طلبات الالتحاق")}
-            </Link>
+            <NavLink to="/admin/enrollment-requests" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? "nav-link--active" : undefined)}>
+              {t("web_pages.nav.enrollment_requests_admin", "طلبات الالتحاق")}
+            </NavLink>
+          ) : null}
+          {role === "admin" ? (
+            <NavLink to="/admin/contact" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? "nav-link--active" : undefined)}>
+              {t("web_pages.nav.contact_admin", "إدارة التواصل")}
+            </NavLink>
           ) : null}
           {role === "student" ? (
             <>
-              <Link to="/student/mycourses" onClick={() => setNavOpen(false)}>
-                {tr("مقرراتي")}
-              </Link>
-              <Link to="/student/myfiles" onClick={() => setNavOpen(false)}>
-                {tr("ملفاتي")}
-              </Link>
-              <Link to="/student/explore" onClick={() => setNavOpen(false)}>
-                {tr("الاستكشاف")}
-              </Link>
-              <Link to="/student/enrollment-requests" onClick={() => setNavOpen(false)}>
-                {tr("طلباتي")}
-              </Link>
+              <NavLink to="/student/mycourses" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? "nav-link--active" : undefined)}>
+                {t("web_pages.nav.my_courses", "مقرراتي")}
+              </NavLink>
+              <NavLink to="/student/myfiles" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? "nav-link--active" : undefined)}>
+                {t("web_pages.nav.my_files", "ملفاتي")}
+              </NavLink>
+              <NavLink to="/student/explore" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? "nav-link--active" : undefined)}>
+                {t("web_pages.nav.explore", "الاستكشاف")}
+              </NavLink>
+              <NavLink to="/student/enrollment-requests" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? "nav-link--active" : undefined)}>
+                {t("web_pages.nav.my_requests", "طلباتي")}
+              </NavLink>
             </>
           ) : null}
-          <Link to={`${base}/posts`} onClick={() => setNavOpen(false)}>
-            {tr("المنشورات")}
-          </Link>
-          <Link to={`${base}/notifications`} onClick={() => setNavOpen(false)}>
-            {tr("الإشعارات")}
-          </Link>
-          <Link to={`${base}/settings`} onClick={() => setNavOpen(false)}>
-            {tr("الإعدادات")}
-          </Link>
+          <NavLink to={`${base}/posts`} onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? "nav-link--active" : undefined)}>
+            {t("web_pages.nav.posts", "المنشورات")}
+          </NavLink>
+          <NavLink to={`${base}/notifications`} onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? "nav-link--active" : undefined)}>
+            {t("web_pages.nav.notifications", "الإشعارات")}
+          </NavLink>
+          <NavLink to={`${base}/settings`} onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? "nav-link--active" : undefined)}>
+            {t("web_pages.nav.settings", "الإعدادات")}
+          </NavLink>
+          <NavLink to="/contact" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? "nav-link--active" : undefined)}>
+            {t("web_pages.nav.contact_public", "تواصل معنا")}
+          </NavLink>
         </nav>
-        <p className="muted small sidebar-hint">{tr("الملف والجلسة من الشريط العلوي")}</p>
+        <p className="muted small sidebar-hint">{t("web_pages.nav.sidebar_hint", "الملف والجلسة من الشريط العلوي")}</p>
       </aside>
 
       <div className="dashboard-main">
@@ -119,7 +127,7 @@ export function DashboardLayout({ role, title, lede, children }: DashboardLayout
             type="button"
             className="mobile-menu-btn"
             onClick={() => setNavOpen(true)}
-            aria-label={tr("فتح القائمة")}
+            aria-label={t("web_pages.nav.open_menu", "فتح القائمة")}
             aria-expanded={navOpen}
           >
             <IoMenuOutline size={28} />

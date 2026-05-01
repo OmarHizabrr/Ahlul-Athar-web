@@ -15,7 +15,8 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 export function ProfilePage({ role }: { role: UserRole }) {
   const [searchParams] = useSearchParams();
   const { user: u, ready, syncUserFromStorage } = useAuth();
-  const { tr } = useI18n();
+  const { t } = useI18n();
+  const dashEm = t("web_shell.dash_em", "—");
   const [profile, setProfile] = useState<UserFirestoreProfile | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -47,23 +48,26 @@ export function ProfilePage({ role }: { role: UserRole }) {
         setDisplayName(p.displayName || u.displayName || "");
         setPhoneNumber(p.phoneNumber || u.phoneNumber || "");
       } catch {
-        showMsg(tr("تعذر تحميل الملف."), true);
+        showMsg(t("web_pages.profile.load_failed", "تعذر تحميل الملف."), true);
       } finally {
         setLoading(false);
       }
     })();
-  }, [ready, u]);
+  }, [ready, u, t]);
 
   useEffect(() => {
     if (searchParams.get("complete") === "1") {
       setProfileTab("edit");
-      showMsg(tr("يرجى إكمال الملف الشخصي (الاسم + الجوال) قبل متابعة الاستخدام."), false);
+      showMsg(
+        t("web_pages.profile.complete_hint", "يرجى إكمال الملف الشخصي (الاسم + الجوال) قبل متابعة الاستخدام."),
+        false,
+      );
     }
-  }, [searchParams]);
+  }, [searchParams, t]);
 
   const effectivePhoto = u?.photoURL || profile?.photoURL || null;
-  const emailDisplay = u?.email || profile?.email || tr("—");
-  const showName = displayName.trim() || u?.displayName || tr("—");
+  const emailDisplay = u?.email || profile?.email || dashEm;
+  const showName = displayName.trim() || u?.displayName || dashEm;
 
   const onSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -76,9 +80,9 @@ export function ProfilePage({ role }: { role: UserRole }) {
       const next = await userProfileService.updateProfile(u, { displayName, phoneNumber });
       authService.persistLocalUser(next);
       syncUserFromStorage();
-      showMsg(tr("تم حفظ التعديلات."), false);
+      showMsg(t("web_pages.profile.save_ok", "تم حفظ التعديلات."), false);
     } catch {
-      showMsg(tr("تعذر الحفظ."), true);
+      showMsg(t("web_pages.profile.save_failed", "تعذر الحفظ."), true);
     } finally {
       setSaving(false);
     }
@@ -92,11 +96,11 @@ export function ProfilePage({ role }: { role: UserRole }) {
         return;
       }
       if (!file.type.startsWith("image/")) {
-        showMsg(tr("اختر ملف صورة (PNG أو JPEG)."), true);
+        showMsg(t("web_pages.profile.err_image_type", "اختر ملف صورة (PNG أو JPEG)."), true);
         return;
       }
       if (file.size > MAX_PHOTO_BYTES) {
-        showMsg(tr("حجم الصورة كبير جداً (الحد 5 ميغابايت)."), true);
+        showMsg(t("web_pages.profile.err_image_size", "حجم الصورة كبير جداً (الحد 5 ميغابايت)."), true);
         return;
       }
       void (async () => {
@@ -108,34 +112,32 @@ export function ProfilePage({ role }: { role: UserRole }) {
           syncUserFromStorage();
           const p = await userProfileService.getProfile(u.uid, u.role);
           setProfile(p);
-          showMsg(tr("تم تحديث صورة الملف الشخصي."), false);
+          showMsg(t("web_pages.profile.photo_ok", "تم تحديث صورة الملف الشخصي."), false);
         } catch {
-          showMsg(tr("تعذر رفع الصورة. تحقق من صلاحيات التخزين."), true);
+          showMsg(t("web_pages.profile.photo_failed", "تعذر رفع الصورة. تحقق من صلاحيات التخزين."), true);
         } finally {
           setPhotoUploading(false);
         }
       })();
     },
-    [u, syncUserFromStorage],
+    [u, syncUserFromStorage, t],
   );
-
-  const profileLede = "تعديل الاسم والجوال وصورة الملف — يطابق مستند المستخدم في Firestore وتطبيق الجوال.";
 
   const onSavePassword = async (e: FormEvent) => {
     e.preventDefault();
     if (!u) return;
     const normalizedPhone = phoneNumber.replace(/[^\d]/g, "");
     if (!normalizedPhone) {
-      showMsg(tr("أدخل رقم الجوال أولاً ثم احفظه."), true);
+      showMsg(t("web_pages.profile.phone_required_first", "أدخل رقم الجوال أولاً ثم احفظه."), true);
       return;
     }
     setSavingPassword(true);
     try {
       await authService.setPhonePasswordForCurrentUser(normalizedPhone, password);
       setPassword("");
-      showMsg(tr("تم ضبط كلمة المرور للدخول برقم الجوال بنجاح."), false);
+      showMsg(t("web_pages.profile.password_ok", "تم ضبط كلمة المرور للدخول برقم الجوال بنجاح."), false);
     } catch {
-      showMsg(tr("تعذر ضبط كلمة المرور. أعد تسجيل الدخول وحاول مرة أخرى."), true);
+      showMsg(t("web_pages.profile.password_failed", "تعذر ضبط كلمة المرور. أعد تسجيل الدخول وحاول مرة أخرى."), true);
     } finally {
       setSavingPassword(false);
     }
@@ -143,8 +145,15 @@ export function ProfilePage({ role }: { role: UserRole }) {
 
   if (!ready) {
     return (
-      <DashboardLayout role={role} title={tr("الملف الشخصي")} lede={tr(profileLede)}>
-        <PageLoadHint text={tr("جاري التهيئة...")} />
+      <DashboardLayout
+        role={role}
+        title={t("web_pages.profile.title", "الملف الشخصي")}
+        lede={t(
+          "web_pages.profile.lede",
+          "تعديل الاسم والجوال وصورة الملف — يطابق مستند المستخدم في Firestore وتطبيق الجوال.",
+        )}
+      >
+        <PageLoadHint text={t("web_shell.auth_initializing", "جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -154,19 +163,26 @@ export function ProfilePage({ role }: { role: UserRole }) {
   }
 
   return (
-    <DashboardLayout role={role} title={tr("الملف الشخصي")} lede={tr(profileLede)}>
+    <DashboardLayout
+      role={role}
+      title={t("web_pages.profile.title", "الملف الشخصي")}
+      lede={t(
+        "web_pages.profile.lede",
+        "تعديل الاسم والجوال وصورة الملف — يطابق مستند المستخدم في Firestore وتطبيق الجوال.",
+      )}
+    >
       {loading ? (
         <PageLoadHint />
       ) : (
         <div className="profile-page">
           <AppTabs
             groupId={`profile-${u.uid}`}
-            ariaLabel={tr("أقسام الملف الشخصي")}
+            ariaLabel={t("web_pages.profile.tabs_aria", "أقسام الملف الشخصي")}
             value={profileTab}
             onChange={setProfileTab}
             tabs={[
-              { id: "card" as const, label: tr("البطاقة والصورة") },
-              { id: "edit" as const, label: tr("تعديل البيانات") },
+              { id: "card" as const, label: t("web_pages.profile.tab_card", "البطاقة والصورة") },
+              { id: "edit" as const, label: t("web_pages.profile.tab_edit", "تعديل البيانات") },
             ]}
           />
           <AppTabPanel tabId="card" groupId={`profile-${u.uid}`} hidden={profileTab !== "card"} className="lesson-tab-panel">
@@ -175,7 +191,7 @@ export function ProfilePage({ role }: { role: UserRole }) {
               <Avatar
                 photoURL={effectivePhoto}
                 displayName={displayName}
-                email={emailDisplay === tr("—") ? "" : emailDisplay}
+                email={emailDisplay === dashEm ? "" : emailDisplay}
                 alt={showName}
                 imageClassName="profile-avatar-lg"
                 fallbackClassName="profile-avatar-fallback-lg"
@@ -195,16 +211,20 @@ export function ProfilePage({ role }: { role: UserRole }) {
                 onClick={() => fileInputRef.current?.click()}
                 aria-busy={photoUploading}
               >
-                <ButtonBusyLabel busy={photoUploading}>{tr("تغيير الصورة")}</ButtonBusyLabel>
+                <ButtonBusyLabel busy={photoUploading}>
+                  {t("web_pages.profile.change_photo", "تغيير الصورة")}
+                </ButtonBusyLabel>
               </button>
             </div>
             <div className="profile-hero-text">
               <h2 className="profile-display-name">{showName}</h2>
               <p className="muted profile-email-line">{emailDisplay}</p>
               {profile != null && profile.profileCompleted ? (
-                <span className="profile-badge-complete">{tr("مكتمل")}</span>
+                <span className="profile-badge-complete">{t("web_pages.profile.badge_complete", "مكتمل")}</span>
               ) : (
-                <span className="profile-badge-incomplete">{tr("يُنصح بإكمال البيانات")}</span>
+                <span className="profile-badge-incomplete">
+                  {t("web_pages.profile.badge_incomplete", "يُنصح بإكمال البيانات")}
+                </span>
               )}
             </div>
           </Panel>
@@ -212,10 +232,12 @@ export function ProfilePage({ role }: { role: UserRole }) {
 
           <AppTabPanel tabId="edit" groupId={`profile-${u.uid}`} hidden={profileTab !== "edit"} className="lesson-tab-panel">
           <FormPanel className="profile-form" onSubmit={onSave}>
-            <SectionTitle as="h3">{tr("تعديل البيانات")}</SectionTitle>
-            <p className="muted small">{tr("المعرّف")}: {u.uid}</p>
+            <SectionTitle as="h3">{t("web_pages.profile.tab_edit", "تعديل البيانات")}</SectionTitle>
+            <p className="muted small">
+              {t("web_pages.profile.uid_label", "المعرّف")}: {u.uid}
+            </p>
             <label>
-              <span>{tr("الاسم الظاهر")}</span>
+              <span>{t("web_pages.profile.display_name", "الاسم الظاهر")}</span>
               <input
                 className="text-input"
                 value={displayName}
@@ -224,7 +246,7 @@ export function ProfilePage({ role }: { role: UserRole }) {
               />
             </label>
             <label>
-              <span>{tr("رقم الجوال (للتوثيق داخل التطبيق)")}</span>
+              <span>{t("web_pages.profile.phone_label", "رقم الجوال (للتوثيق داخل التطبيق)")}</span>
               <input
                 className="text-input"
                 value={phoneNumber}
@@ -234,14 +256,19 @@ export function ProfilePage({ role }: { role: UserRole }) {
               />
             </label>
             <button className="primary-btn" type="submit" disabled={saving} aria-busy={saving}>
-              <ButtonBusyLabel busy={saving}>{tr("حفظ التعديلات")}</ButtonBusyLabel>
+              <ButtonBusyLabel busy={saving}>{t("web_pages.posts.save_changes", "حفظ التعديلات")}</ButtonBusyLabel>
             </button>
           </FormPanel>
           <FormPanel className="profile-form" onSubmit={onSavePassword}>
-            <SectionTitle as="h3">{tr("إعداد كلمة مرور دخول الجوال")}</SectionTitle>
-            <p className="muted small">{tr("بعد الدخول عبر Google، يمكنك تعيين كلمة مرور للدخول لاحقاً باستخدام الجوال + كلمة المرور.")}</p>
+            <SectionTitle as="h3">{t("web_pages.profile.password_section", "إعداد كلمة مرور دخول الجوال")}</SectionTitle>
+            <p className="muted small">
+              {t(
+                "web_pages.profile.password_hint",
+                "بعد الدخول عبر Google، يمكنك تعيين كلمة مرور للدخول لاحقاً باستخدام الجوال + كلمة المرور.",
+              )}
+            </p>
             <label>
-              <span>{tr("كلمة المرور الجديدة")}</span>
+              <span>{t("web_pages.profile.new_password", "كلمة المرور الجديدة")}</span>
               <input
                 className="text-input"
                 type={showPassword ? "text" : "password"}
@@ -251,11 +278,18 @@ export function ProfilePage({ role }: { role: UserRole }) {
                 required
               />
             </label>
-            <button type="button" className="ghost-btn" onClick={() => setShowPassword((v) => !v)} aria-label={tr("إظهار أو إخفاء كلمة المرور")}>
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={t("web_pages.login.toggle_password_aria", "إظهار أو إخفاء كلمة المرور")}
+            >
               {showPassword ? <FiEyeOff /> : <FiEye />}
             </button>
             <button className="primary-btn" type="submit" disabled={savingPassword} aria-busy={savingPassword}>
-              <ButtonBusyLabel busy={savingPassword}>{tr("حفظ كلمة المرور")}</ButtonBusyLabel>
+              <ButtonBusyLabel busy={savingPassword}>
+                {t("web_pages.profile.save_password", "حفظ كلمة المرور")}
+              </ButtonBusyLabel>
             </button>
           </FormPanel>
           </AppTabPanel>

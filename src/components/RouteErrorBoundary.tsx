@@ -16,24 +16,27 @@ function RouteErrorFallback({
   onReload: () => void;
   onGoHome: () => void;
 }) {
-  const { tr } = useI18n();
+  const { t } = useI18n();
   return (
     <AuthPageShell>
       <section className="card">
-        <p className="badge">{tr("تنبيه")}</p>
-        <h1>{tr("حدث خطأ في التحميل")}</h1>
+        <p className="badge">{t("web_shell.error_alert_badge", "تنبيه")}</p>
+        <h1>{t("web_shell.error_load_title", "حدث خطأ في التحميل")}</h1>
         <p className="muted">
-          {tr("يمكنك العودة للرئيسية أو إعادة تحميل الصفحة. إن تكرر الخطأ، تحقق من الاتصال والتحديثات.")}
+          {t(
+            "web_shell.error_load_body",
+            "يمكنك العودة للرئيسية أو إعادة تحميل الصفحة. إن تكرر الخطأ، تحقق من الاتصال والتحديثات.",
+          )}
         </p>
         <AlertMessage kind="error" className="error-detail" role="alert">
           {error.message}
         </AlertMessage>
         <div className="course-actions error-boundary-actions">
           <button type="button" className="primary-btn" onClick={onReload}>
-            {tr("تحديث الصفحة")}
+            {t("web_shell.reload_page", "تحديث الصفحة")}
           </button>
           <button type="button" className="ghost-btn" onClick={onGoHome}>
-            {tr("الذهاب للرئيسية")}
+            {t("web_shell.go_home", "الذهاب للرئيسية")}
           </button>
         </div>
       </section>

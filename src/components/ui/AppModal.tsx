@@ -17,7 +17,7 @@ export function AppModal({
   className?: string;
   contentClassName?: string;
 }) {
-  const { tr } = useI18n();
+  const { t } = useI18n();
   if (!open) {
     return null;
   }
@@ -31,7 +31,7 @@ export function AppModal({
       >
         <header className="app-modal-head">
           <h3 className="app-modal-title">{title}</h3>
-          <button type="button" className="app-modal-close" onClick={onClose} aria-label={tr("إغلاق النافذة")}>
+          <button type="button" className="app-modal-close" onClick={onClose} aria-label={t("web_shell.modal_close_aria", "إغلاق النافذة")}>
             ×
           </button>
         </header>

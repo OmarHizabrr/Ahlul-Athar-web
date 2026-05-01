@@ -21,11 +21,11 @@ export function CourseActivationModal({
   onConfirm,
   onClose,
 }: CourseActivationModalProps) {
-  const { tr } = useI18n();
+  const { t } = useI18n();
   return (
     <AppModal
       open
-      title={tr("فترة تفعيل الدورة")}
+      title={t("web_shell.activation_modal_title", "فترة تفعيل الدورة")}
       onClose={() => {
         if (!submitting) {
           onClose();
@@ -35,7 +35,10 @@ export function CourseActivationModal({
     >
       <div>
         <p className="muted small-print">
-          {tr("نفس منطق تطبيق Flutter: اختر \"مدى الحياة\" أو عدد الأيام قبل انتهاء التفعيل.")}
+          {t(
+            "web_shell.activation_modal_hint",
+            "نفس منطق تطبيق Flutter: اختر \"مدى الحياة\" أو عدد الأيام قبل انتهاء التفعيل.",
+          )}
         </p>
         <label className="switch-line">
           <input
@@ -44,11 +47,11 @@ export function CourseActivationModal({
             onChange={(e) => onLifetimeChange(e.target.checked)}
             disabled={submitting}
           />
-          <span>{tr("تفعيل مدى الحياة (بدون انتهاء)")}</span>
+          <span>{t("web_shell.activation_lifetime", "تفعيل مدى الحياة (بدون انتهاء)")}</span>
         </label>
         {!isLifetimeActivation ? (
           <label className="field-block">
-            <span>{tr("عدد أيام التفعيل")}</span>
+            <span>{t("web_shell.activation_days_label", "عدد أيام التفعيل")}</span>
             <input
               type="number"
               min={1}
@@ -66,7 +69,7 @@ export function CourseActivationModal({
             disabled={submitting}
             aria-busy={submitting}
           >
-            <ButtonBusyLabel busy={submitting}>{tr("تأكيد القبول")}</ButtonBusyLabel>
+            <ButtonBusyLabel busy={submitting}>{t("web_shell.confirm_accept", "تأكيد القبول")}</ButtonBusyLabel>
           </button>
           <button
             type="button"
@@ -79,7 +82,7 @@ export function CourseActivationModal({
             disabled={submitting}
             aria-busy={submitting}
           >
-            <ButtonBusyLabel busy={submitting}>{tr("إلغاء")}</ButtonBusyLabel>
+            <ButtonBusyLabel busy={submitting}>{t("web_shell.btn_cancel", "إلغاء")}</ButtonBusyLabel>
           </button>
         </div>
       </div>

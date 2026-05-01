@@ -40,16 +40,16 @@ const initialForm: CourseForm = {
 
 export function CoursesPage({ role }: { role: UserRole }) {
   const { user, ready } = useAuth();
-  const { tr } = useI18n();
+  const { t } = useI18n();
   const STUDENT_ACTION_LABELS = useMemo(
     () => ({
-      directEnroll: tr("تسجيل مباشر"),
-      requestJoin: tr("طلب الانضمام"),
-      requestJoinRetry: tr("إعادة طلب الانضمام"),
-      pending: tr("الطلب قيد المراجعة"),
-      openCourse: tr("فتح المقرر"),
+      directEnroll: t("web_pages.student_course_actions.direct_enroll", "تسجيل مباشر"),
+      requestJoin: t("web_pages.student_course_actions.request_join", "طلب الانضمام"),
+      requestJoinRetry: t("web_pages.student_course_actions.request_join_retry", "إعادة طلب الانضمام"),
+      pending: t("web_pages.student_course_actions.pending", "الطلب قيد المراجعة"),
+      openCourse: t("web_pages.student_course_actions.open_course", "فتح المقرر"),
     }),
-    [tr],
+    [t],
   );
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,22 +87,22 @@ export function CoursesPage({ role }: { role: UserRole }) {
     }
   }, [user, role]);
 
-  const loadCourses = async () => {
+  const loadCourses = useCallback(async () => {
     setLoading(true);
     try {
       const data = await coursesService.listCoursesForRole(role);
       setCourses(data);
     } catch {
-      setMessage(tr("تعذر تحميل الدورات."));
+      setMessage(t("web_pages.courses.load_failed", "تعذر تحميل الدورات."));
       setIsError(true);
     } finally {
       setLoading(false);
     }
-  };
+  }, [role, t]);
 
   useEffect(() => {
     void loadCourses();
-  }, [role]);
+  }, [loadCourses]);
 
   useEffect(() => {
     if (role === "student" && user) {
@@ -139,19 +139,19 @@ export function CoursesPage({ role }: { role: UserRole }) {
           ...form,
           imageUrl: form.imageUrl.trim(),
         });
-        setMessage(tr("تم تحديث الدورة بنجاح."));
+        setMessage(t("web_pages.courses.update_ok", "تم تحديث الدورة بنجاح."));
       } else {
         await coursesService.createCourse(user, {
           ...form,
           imageUrl: form.imageUrl.trim(),
         });
-        setMessage(tr("تم إنشاء الدورة بنجاح."));
+        setMessage(t("web_pages.courses.create_ok", "تم إنشاء الدورة بنجاح."));
       }
       setIsError(false);
       resetForm();
       await loadCourses();
     } catch {
-      setMessage(tr("فشلت العملية، تحقق من صلاحيات Firestore."));
+      setMessage(t("web_pages.courses.save_failed", "فشلت العملية، تحقق من صلاحيات Firestore."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -177,18 +177,18 @@ export function CoursesPage({ role }: { role: UserRole }) {
   };
 
   const onDelete = async (course: Course) => {
-    const ok = window.confirm(`${tr("حذف الدورة")}: ${course.title} ؟`);
+    const ok = window.confirm(`${t("web_pages.courses.delete_confirm_prefix", "حذف الدورة")}: ${course.title} ؟`);
     if (!ok) {
       return;
     }
     setSubmitting(true);
     try {
       await coursesService.deleteCourse(course.id);
-      setMessage(tr("تم حذف الدورة."));
+      setMessage(t("web_pages.courses.delete_ok", "تم حذف الدورة."));
       setIsError(false);
       await loadCourses();
     } catch {
-      setMessage(tr("فشل حذف الدورة."));
+      setMessage(t("web_pages.courses.delete_failed", "فشل حذف الدورة."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -201,19 +201,19 @@ export function CoursesPage({ role }: { role: UserRole }) {
     }
     const pending = latestReqByCourse.get(course.id);
     if (pending?.status === "pending") {
-      setMessage(tr("لديك طلب قيد المراجعة لهذا المقرر."));
+      setMessage(t("web_pages.courses.pending_exists", "لديك طلب قيد المراجعة لهذا المقرر."));
       setIsError(true);
       return;
     }
     setSubmitting(true);
     try {
       await coursesService.requestEnrollment(user, course);
-      setMessage(tr("تم إرسال طلب الانضمام للإدارة."));
+      setMessage(t("web_pages.courses.request_sent", "تم إرسال طلب الانضمام للإدارة."));
       setIsError(false);
       window.dispatchEvent(new CustomEvent("ah:enrollment-requests-updated"));
       await loadStudentCourseContext();
     } catch {
-      setMessage(tr("فشل إرسال طلب الانضمام."));
+      setMessage(t("web_pages.courses.request_failed", "فشل إرسال طلب الانضمام."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -225,11 +225,11 @@ export function CoursesPage({ role }: { role: UserRole }) {
     setSubmitting(true);
     try {
       await coursesService.enrollStudentInPublicCourse(user, course);
-      setMessage(tr("تم تسجيلك في المقرر مباشرة."));
+      setMessage(t("web_pages.courses.enroll_ok", "تم تسجيلك في المقرر مباشرة."));
       setIsError(false);
       await loadStudentCourseContext();
     } catch {
-      setMessage(tr("تعذر التسجيل المباشر."));
+      setMessage(t("web_pages.courses.enroll_failed", "تعذر التسجيل المباشر."));
       setIsError(true);
     } finally {
       setSubmitting(false);
@@ -238,13 +238,19 @@ export function CoursesPage({ role }: { role: UserRole }) {
 
   const pageLede =
     role === "admin"
-      ? "إنشاء وتعديل المقررات، إدارة طلبات الانضمام، وربط الدروس من صفحة «دروس المقرر»."
-      : "تصفح المقررات المتاحة، اطلب الانضمام، أو انتقل إلى «مقرراتي» بعد الموافقة.";
+      ? t(
+          "web_pages.courses.lede_admin",
+          "إنشاء وتعديل المقررات، إدارة طلبات الانضمام، وربط الدروس من صفحة «دروس المقرر».",
+        )
+      : t(
+          "web_pages.courses.lede_student",
+          "تصفح المقررات المتاحة، اطلب الانضمام، أو انتقل إلى «مقرراتي» بعد الموافقة.",
+        );
 
   if (!ready) {
     return (
-      <DashboardLayout role={role} title={tr("الدورات")} lede={tr(pageLede)}>
-        <PageLoadHint text={tr("جاري التهيئة...")} />
+      <DashboardLayout role={role} title={t("web_pages.nav.courses", "الدورات")} lede={pageLede}>
+        <PageLoadHint text={t("web_shell.auth_initializing", "جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -254,31 +260,31 @@ export function CoursesPage({ role }: { role: UserRole }) {
   }
 
   return (
-    <DashboardLayout role={role} title={tr("الدورات")} lede={tr(pageLede)}>
+    <DashboardLayout role={role} title={t("web_pages.nav.courses", "الدورات")} lede={pageLede}>
       <PageToolbar>
         <input
           className="course-search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={tr("بحث بالدورات...")}
+          placeholder={t("web_pages.courses.search_ph", "بحث بالدورات...")}
         />
         {role === "admin" ? (
           <>
             <button type="button" className="primary-btn toolbar-btn" onClick={onOpenCreateModal}>
-              {tr("إضافة دورة")}
+              {t("web_pages.courses.add_course", "إضافة دورة")}
             </button>
             <Link to="/admin/enrollment-requests" className="ghost-btn toolbar-btn">
-              {tr("طلبات الالتحاق")}
+              {t("web_pages.courses.enrollment_requests_link", "طلبات الالتحاق")}
             </Link>
           </>
         ) : null}
         {role === "student" ? (
           <>
             <Link to="/student/mycourses" className="ghost-btn toolbar-btn">
-              {tr("مقرراتي")}
+              {t("web_pages.nav.my_courses", "مقرراتي")}
             </Link>
             <Link to="/student/enrollment-requests" className="ghost-btn toolbar-btn">
-              {tr("طلباتي")}
+              {t("web_pages.nav.my_requests", "طلباتي")}
             </Link>
           </>
         ) : null}
@@ -289,20 +295,20 @@ export function CoursesPage({ role }: { role: UserRole }) {
           disabled={loading || submitting}
           aria-busy={loading}
         >
-          <ButtonBusyLabel busy={loading}>{tr("تحديث الدورات")}</ButtonBusyLabel>
+          <ButtonBusyLabel busy={loading}>{t("web_pages.courses.refresh", "تحديث الدورات")}</ButtonBusyLabel>
         </button>
       </PageToolbar>
 
       {message ? <AlertMessage kind={isError ? "error" : "success"}>{message}</AlertMessage> : null}
 
       {loading ? (
-        <PageLoadHint text={tr("جاري تحميل الدورات...")} />
+        <PageLoadHint text={t("web_pages.courses.loading", "جاري تحميل الدورات...")} />
       ) : filtered.length === 0 ? (
         <EmptyState
           message={
             search.trim()
-              ? tr("لا نتائج تطابق البحث. جرّب كلمات أخرى أو امسح حقل البحث.")
-              : tr("لا توجد مقررات في القائمة بعد.")
+              ? t("web_pages.courses.empty_search", "لا نتائج تطابق البحث. جرّب كلمات أخرى أو امسح حقل البحث.")
+              : t("web_pages.courses.empty", "لا توجد مقررات في القائمة بعد.")
           }
         />
       ) : (
@@ -316,10 +322,22 @@ export function CoursesPage({ role }: { role: UserRole }) {
               <h3>{course.title}</h3>
               <p className="muted">{course.description}</p>
               <div className="course-meta">
-                <span>{course.courseType === "private" ? tr("خاصة") : tr("عامة")}</span>
-                <span>{course.isActive ? tr("نشطة") : tr("موقفة")}</span>
-                <span>{course.studentCount} {tr("طالب")}</span>
-                <span>{course.lessonCount} {tr("درس")}</span>
+                <span>
+                  {course.courseType === "private"
+                    ? t("web_pages.courses.type_private", "خاصة")
+                    : t("web_pages.courses.type_public", "عامة")}
+                </span>
+                <span>
+                  {course.isActive
+                    ? t("web_pages.courses.status_active", "نشطة")
+                    : t("web_pages.courses.status_inactive", "موقفة")}
+                </span>
+                <span>
+                  {course.studentCount} {t("web_pages.courses.student_word", "طالب")}
+                </span>
+                <span>
+                  {course.lessonCount} {t("web_pages.courses.lesson_word", "درس")}
+                </span>
               </div>
               <div className="course-actions">
                 {role === "admin" ? (
@@ -327,17 +345,17 @@ export function CoursesPage({ role }: { role: UserRole }) {
                     <Link
                       to={`/admin/preview/course/${course.id}`}
                       className="icon-tool-btn"
-                      title={tr("معاينة واجهة الطالب (المقرر والدروس)")}
-                      aria-label={tr("معاينة المقرر كطالب")}
+                      title={t("web_pages.courses.preview_title", "معاينة واجهة الطالب (المقرر والدروس)")}
+                      aria-label={t("web_pages.courses.preview_aria", "معاينة المقرر كطالب")}
                     >
                       <IoEyeOutline size={20} />
-                      <span className="icon-tool-label">{tr("معاينة")}</span>
+                      <span className="icon-tool-label">{t("web_pages.courses.preview_label", "معاينة")}</span>
                     </Link>
                     <Link
                       to={`/admin/course/${course.id}/lessons`}
                       className="primary-btn"
                     >
-                      {tr("دروس")}
+                      {t("web_pages.courses.lessons", "دروس")}
                     </Link>
                     <button
                       className="ghost-btn"
@@ -346,7 +364,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
                       type="button"
                       aria-busy={submitting}
                     >
-                      <ButtonBusyLabel busy={submitting}>{tr("تعديل")}</ButtonBusyLabel>
+                      <ButtonBusyLabel busy={submitting}>{t("web_pages.posts.edit", "تعديل")}</ButtonBusyLabel>
                     </button>
                     <button
                       className="ghost-btn"
@@ -355,7 +373,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
                       type="button"
                       aria-busy={submitting}
                     >
-                      <ButtonBusyLabel busy={submitting}>{tr("حذف")}</ButtonBusyLabel>
+                      <ButtonBusyLabel busy={submitting}>{t("web_pages.posts.delete", "حذف")}</ButtonBusyLabel>
                     </button>
                   </>
                 ) : (
@@ -366,7 +384,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
                     submitting={submitting}
                     onRequest={() => void onRequest(course)}
                     onDirectEnroll={() => void onDirectEnroll(course)}
-                    tr={tr}
+                    t={t}
                     labels={STUDENT_ACTION_LABELS}
                   />
                 )}
@@ -381,7 +399,11 @@ export function CoursesPage({ role }: { role: UserRole }) {
       {role === "admin" ? (
         <AppModal
           open={courseModalOpen}
-          title={editingId ? tr("تعديل بيانات الدورة") : tr("إضافة دورة جديدة")}
+          title={
+            editingId
+              ? t("web_pages.courses.modal_edit_title", "تعديل بيانات الدورة")
+              : t("web_pages.courses.modal_create_title", "إضافة دورة جديدة")
+          }
           onClose={() => {
             if (!submitting) {
               resetForm();
@@ -390,47 +412,51 @@ export function CoursesPage({ role }: { role: UserRole }) {
           contentClassName="course-form-modal"
         >
           <FormPanel onSubmit={onSubmit} elevated={false} className="course-form-modal__form">
-            <SectionTitle as="h4">{editingId ? tr("تحديث الدورة") : tr("إضافة دورة")}</SectionTitle>
+            <SectionTitle as="h4">
+              {editingId
+                ? t("web_pages.courses.form_edit_heading", "تحديث الدورة")
+                : t("web_pages.courses.form_create_heading", "إضافة دورة")}
+            </SectionTitle>
             <label>
-              <span>{tr("عنوان الدورة")}</span>
+              <span>{t("web_pages.courses.field_title", "عنوان الدورة")}</span>
               <input
                 className="text-input"
                 value={form.title}
                 onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                placeholder={tr("عنوان الدورة")}
+                placeholder={t("web_pages.courses.field_title_ph", "عنوان الدورة")}
                 required
               />
             </label>
             <label>
-              <span>{tr("وصف مختصر")}</span>
+              <span>{t("web_pages.courses.field_description", "وصف مختصر")}</span>
               <input
                 className="text-input"
                 value={form.description}
                 onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                placeholder={tr("وصف مختصر")}
+                placeholder={t("web_pages.courses.field_description_ph", "وصف مختصر")}
                 required
               />
             </label>
             <label>
-              <span>{tr("رابط صورة الدورة (اختياري)")}</span>
+              <span>{t("web_pages.courses.field_image", "رابط صورة الدورة (اختياري)")}</span>
               <input
                 className="text-input"
                 type="url"
                 value={form.imageUrl}
                 onChange={(e) => setForm((p) => ({ ...p, imageUrl: e.target.value }))}
-                placeholder={tr("https://...")}
+                placeholder={t("web_pages.courses.field_image_ph", "https://...")}
               />
             </label>
             <div className="form-row-2">
               <label>
-              <span>{tr("نوع الدورة")}</span>
+              <span>{t("web_pages.courses.field_course_type", "نوع الدورة")}</span>
                 <select
                   className="text-input"
                   value={form.courseType}
                   onChange={(e) => setForm((p) => ({ ...p, courseType: e.target.value as "public" | "private" }))}
                 >
-                  <option value="public">{tr("عامة")}</option>
-                  <option value="private">{tr("خاصة")}</option>
+                  <option value="public">{t("web_pages.courses.type_public", "عامة")}</option>
+                  <option value="private">{t("web_pages.courses.type_private", "خاصة")}</option>
                 </select>
               </label>
               <label className="switch-line course-form-modal__switch">
@@ -439,17 +465,19 @@ export function CoursesPage({ role }: { role: UserRole }) {
                   checked={form.isActive}
                   onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
                 />
-                <span>{tr("نشطة في الكتالوج")}</span>
+                <span>{t("web_pages.courses.active_in_catalog", "نشطة في الكتالوج")}</span>
               </label>
             </div>
             <div className="course-actions">
               <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
                 <ButtonBusyLabel busy={submitting}>
-                  {editingId ? tr("حفظ التعديلات") : tr("إنشاء دورة")}
+                  {editingId
+                    ? t("web_pages.posts.save_changes", "حفظ التعديلات")
+                    : t("web_pages.courses.submit_create", "إنشاء دورة")}
                 </ButtonBusyLabel>
               </button>
               <button type="button" className="ghost-btn" onClick={resetForm} disabled={submitting}>
-                {tr("إلغاء")}
+                {t("web_pages.posts.cancel", "إلغاء")}
               </button>
             </div>
           </FormPanel>
@@ -466,7 +494,7 @@ function StudentCourseRowActions({
   submitting,
   onRequest,
   onDirectEnroll,
-  tr,
+  t,
   labels,
 }: {
   course: Course;
@@ -475,7 +503,7 @@ function StudentCourseRowActions({
   submitting: boolean;
   onRequest: () => void;
   onDirectEnroll: () => void;
-  tr: (s: string) => string;
+  t: (key: string, fallback?: string) => string;
   labels: {
     directEnroll: string;
     requestJoin: string;
@@ -491,8 +519,8 @@ function StudentCourseRowActions({
         <Link to={openCourse} className="primary-btn">
           {labels.openCourse}
         </Link>
-        <span className="meta-pill meta-pill--ok" title={tr("ضمن مقرراتك")}>
-          {tr("مسجّل")}
+        <span className="meta-pill meta-pill--ok" title={t("web_pages.courses.row_enrolled_title", "ضمن مقرراتك")}>
+          {t("web_pages.courses.row_enrolled_badge", "مسجّل")}
         </span>
       </>
     );
@@ -515,7 +543,7 @@ function StudentCourseRowActions({
     return (
       <>
         <Link to="/student/enrollment-requests" className="ghost-btn">
-          {tr("سجل الطلبات")}
+          {t("web_pages.courses.row_requests_log", "سجل الطلبات")}
         </Link>
         <button
           type="button"
@@ -536,7 +564,7 @@ function StudentCourseRowActions({
     return (
       <>
         <Link to={openCourse} className="ghost-btn">
-          {tr("تفاصيل المقرر")}
+          {t("web_pages.courses.row_course_details", "تفاصيل المقرر")}
         </Link>
         <button
           type="button"
@@ -553,7 +581,7 @@ function StudentCourseRowActions({
   return (
     <>
       <Link to={openCourse} className="ghost-btn">
-        {tr("تفاصيل المقرر")}
+        {t("web_pages.courses.row_course_details", "تفاصيل المقرر")}
       </Link>
       <button
         type="button"

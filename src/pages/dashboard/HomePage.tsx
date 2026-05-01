@@ -12,6 +12,7 @@ import { notificationsService } from "../../services/notificationsService";
 import { postsService } from "../../services/postsService";
 import type { Course, EnrollmentRequest, MyCourseEntry, Post, UserRole } from "../../types";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
+import { requestStatusLabel } from "../course/EnrollmentRequestHelpers";
 
 function toMillis(v: unknown): number {
   if (v == null) return 0;
@@ -29,7 +30,7 @@ function toMillis(v: unknown): number {
 
 export function HomePage({ role }: { role: UserRole }) {
   const { user, ready } = useAuth();
-  const { tr } = useI18n();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [courseCount, setCourseCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
@@ -49,17 +50,17 @@ export function HomePage({ role }: { role: UserRole }) {
   const base = role === "admin" ? "/admin" : "/student";
   const shortcuts = role === "admin"
     ? [
-        { to: "/admin/courses", label: tr("الدورات") },
-        { to: "/admin/posts", label: tr("المنشورات") },
-        { to: "/admin/notifications", label: tr("الإشعارات") },
-        { to: "/admin/settings", label: tr("الإعدادات") },
+        { to: "/admin/courses", label: t("web_pages.nav.courses", "الدورات") },
+        { to: "/admin/posts", label: t("web_pages.nav.posts", "المنشورات") },
+        { to: "/admin/notifications", label: t("web_pages.nav.notifications", "الإشعارات") },
+        { to: "/admin/settings", label: t("web_pages.nav.settings", "الإعدادات") },
       ]
     : [
-        { to: "/student/mycourses", label: tr("مقرراتي") },
-        { to: "/student/enrollment-requests", label: tr("طلباتي") },
-        { to: "/student/courses", label: tr("الدورات") },
-        { to: "/student/posts", label: tr("المنشورات") },
-        { to: "/student/notifications", label: tr("الإشعارات") },
+        { to: "/student/mycourses", label: t("web_pages.nav.my_courses", "مقرراتي") },
+        { to: "/student/enrollment-requests", label: t("web_pages.nav.my_requests", "طلباتي") },
+        { to: "/student/courses", label: t("web_pages.nav.courses", "الدورات") },
+        { to: "/student/posts", label: t("web_pages.nav.posts", "المنشورات") },
+        { to: "/student/notifications", label: t("web_pages.nav.notifications", "الإشعارات") },
       ];
 
   const load = useCallback(async () => {
@@ -142,14 +143,14 @@ export function HomePage({ role }: { role: UserRole }) {
       });
       setRecentTitles(posts.slice(0, 3).map((p) => p.title));
       if (hasPartialFailure) {
-        setLoadError(tr("تم تحميل الإحصائيات جزئياً. تحقق من صلاحيات بعض المجموعات."));
+        setLoadError(t("web_pages.home.load_partial", "تم تحميل الإحصائيات جزئياً. تحقق من صلاحيات بعض المجموعات."));
       }
     } catch {
-      setLoadError(tr("تعذر تحميل بعض بيانات الصفحة. حاول التحديث لاحقاً."));
+      setLoadError(t("web_pages.home.load_failed", "تعذر تحميل بعض بيانات الصفحة. حاول التحديث لاحقاً."));
     } finally {
       setLoading(false);
     }
-  }, [role, user]);
+  }, [role, user, t]);
 
   useEffect(() => {
     if (!ready || !user) {
@@ -160,115 +161,118 @@ export function HomePage({ role }: { role: UserRole }) {
 
   if (!ready) {
     return (
-      <DashboardLayout role={role} title={tr("الرئيسية")} lede={tr("نظرة سريعة على النشاط والأرقام.")}>
-        <PageLoadHint text={tr("جاري التهيئة...")} />
+      <DashboardLayout role={role} title={t("web_pages.home.title", "الرئيسية")} lede={t("web_pages.home.subtitle_short", "نظرة سريعة على النشاط والأرقام.")}>
+        <PageLoadHint text={t("web_shell.auth_initializing", "جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
 
-  const displayName = user?.displayName?.trim() || user?.email || tr("زائر");
+  const displayName = user?.displayName?.trim() || user?.email || t("web_pages.home.guest", "زائر");
   const lede =
     role === "admin"
-      ? "لوحة المسؤول: الدورات، الطلبات، والمنشورات."
-      : "لوحة الطالب: مقرراتي، طلبات الانضمام، كتالوج الدورات، والإشعارات — كما في تطبيق الجوال.";
+      ? t("web_pages.home.lede_admin", "لوحة المسؤول: الدورات، الطلبات، والمنشورات.")
+      : t("web_pages.home.lede_student", "لوحة الطالب: مقرراتي، طلبات الانضمام، كتالوج الدورات، والإشعارات — كما في تطبيق الجوال.");
 
   return (
-    <DashboardLayout role={role} title={tr("الرئيسية")} lede={tr(lede)}>
+    <DashboardLayout role={role} title={t("web_pages.home.title", "الرئيسية")} lede={lede}>
       {loading ? (
         <PageLoadHint />
       ) : (
         <>
-          <WelcomeHeading>{tr("مرحباً،")} {displayName}.</WelcomeHeading>
+          <WelcomeHeading>
+            {t("web_pages.home.welcome_prefix", "مرحباً،")} {displayName}.
+          </WelcomeHeading>
           <ShortcutNav items={shortcuts} />
           {loadError ? <AlertMessage kind="error">{loadError}</AlertMessage> : null}
           <div className="grid-2 home-stats-grid">
             <StatTile
-              title={tr("الدورات في الكتالوج")}
+              title={t("web_pages.home.catalog_courses", "الدورات في الكتالوج")}
               highlight={courseCount}
               action={
                 <Link to={`${base}/courses`} className="inline-link">
-                  {tr("الانتقال للدورات")}
+                  {t("web_pages.home.go_courses", "الانتقال للدورات")}
                 </Link>
               }
             />
             {role === "admin" ? (
               <StatTile
-                title={tr("طلبات معلّقة")}
+                title={t("web_pages.home.pending_requests", "طلبات معلّقة")}
                 highlight={pendingCount}
                 action={
                   <Link to={`${base}/courses`} className="inline-link">
-                    {tr("معالجة من صفحة الدورات")}
+                    {t("web_pages.home.process_from_courses", "معالجة من صفحة الدورات")}
                   </Link>
                 }
               />
             ) : (
               <StatTile
-                title={tr("مقرراتي")}
+                title={t("web_pages.nav.my_courses", "مقرراتي")}
                 highlight={myCoursesCount}
                 action={
                   <Link to="/student/mycourses" className="inline-link">
-                    {tr("فتح مقرراتي")}
+                    {t("web_pages.home.open_mycourses", "فتح مقرراتي")}
                   </Link>
                 }
               />
             )}
-            {role === "student" ? <StatTile title={tr("إجمالي دروس مقرراتي")} highlight={myLessonsCount} /> : null}
-            {role === "student" ? <StatTile title={tr("المقررات المفعّلة")} highlight={myActiveCoursesCount} /> : null}
+            {role === "student" ? <StatTile title={t("web_pages.home.total_my_lessons", "إجمالي دروس مقرراتي")} highlight={myLessonsCount} /> : null}
+            {role === "student" ? <StatTile title={t("web_pages.home.active_catalog_courses", "المقررات المفعّلة")} highlight={myActiveCoursesCount} /> : null}
             {role === "student" ? (
               <StatTile
-                title={tr("مجلداتي")}
+                title={t("web_pages.home.my_folders", "مجلداتي")}
                 highlight={myFoldersCount}
                 action={
                   <Link to="/student/myfiles" className="inline-link">
-                    {tr("فتح ملفاتي")}
+                    {t("web_pages.home.open_myfiles", "فتح ملفاتي")}
                   </Link>
                 }
               />
             ) : null}
-            {role === "student" ? <StatTile title={tr("إجمالي ملفاتي")} highlight={myFilesCount} /> : null}
+            {role === "student" ? <StatTile title={t("web_pages.home.total_my_files", "إجمالي ملفاتي")} highlight={myFilesCount} /> : null}
             {role === "admin" ? (
-              <StatTile title={tr("إجمالي الطلاب")} highlight={totalStudents} />
+              <StatTile title={t("web_pages.home.total_students", "إجمالي الطلاب")} highlight={totalStudents} />
             ) : null}
             {role === "admin" ? (
-              <StatTile title={tr("إجمالي الدروس")} highlight={totalLessons} />
+              <StatTile title={t("web_pages.home.total_lessons", "إجمالي الدروس")} highlight={totalLessons} />
             ) : null}
             {role === "student" ? (
               <StatTile
-                title={tr("طلبات انضمام معلّقة")}
+                title={t("web_pages.home.pending_enrollment", "طلبات انضمام معلّقة")}
                 highlight={pendingEnrollmentCount}
                 action={
                   <Link to="/student/enrollment-requests" className="inline-link">
-                    {tr("سجل «طلباتي»")}
+                    {t("web_pages.home.my_requests_log", "سجل «طلباتي»")}
                   </Link>
                 }
               />
             ) : null}
             {role === "student" ? (
               <StatTile
-                title={tr("آخر طلب انضمام")}
+                title={t("web_pages.home.last_enrollment_request", "آخر طلب انضمام")}
                 wide
                 action={
                   <Link to="/student/enrollment-requests" className="inline-link">
-                    {tr("عرض الطلبات")}
+                    {t("web_pages.home.view_requests", "عرض الطلبات")}
                   </Link>
                 }
               >
                 {latestRequest ? (
                   <p className="muted small">
-                    {latestRequest.targetName} · {tr(latestRequest.status)} · {formatFirestoreTime(latestRequest.requestedAt ?? latestRequest.processedAt)}
+                    {latestRequest.targetName} · {requestStatusLabel(latestRequest.status, t)} ·{" "}
+                    {formatFirestoreTime(latestRequest.requestedAt ?? latestRequest.processedAt)}
                   </p>
                 ) : (
-                  <p className="muted small">{tr("لا يوجد طلبات بعد.")}</p>
+                  <p className="muted small">{t("web_pages.home.no_requests_yet", "لا يوجد طلبات بعد.")}</p>
                 )}
               </StatTile>
             ) : null}
             {role === "student" ? (
               <StatTile
-                title={tr("آخر مقرر تم إضافته")}
+                title={t("web_pages.home.last_added_course", "آخر مقرر تم إضافته")}
                 wide
                 action={
                   <Link to="/student/mycourses" className="inline-link">
-                    {tr("فتح مقرراتي")}
+                    {t("web_pages.home.open_mycourses", "فتح مقرراتي")}
                   </Link>
                 }
               >
@@ -277,34 +281,34 @@ export function HomePage({ role }: { role: UserRole }) {
                     {latestMyCourse.courseTitle || latestMyCourse.courseId} · {formatFirestoreTime(latestMyCourse.enrolledAt)}
                   </p>
                 ) : (
-                  <p className="muted small">{tr("لا يوجد مقررات بعد.")}</p>
+                  <p className="muted small">{t("web_pages.home.no_courses_yet", "لا يوجد مقررات بعد.")}</p>
                 )}
               </StatTile>
             ) : null}
             <StatTile
-              title={tr("إشعارات غير مقروءة")}
+              title={t("web_pages.home.unread_notifications", "إشعارات غير مقروءة")}
               highlight={unread}
               action={
                 <Link to={`${base}/notifications`} className="inline-link">
-                  {tr("عرض الإشعارات")}
+                  {t("web_pages.home.view_notifications", "عرض الإشعارات")}
                 </Link>
               }
             />
             <StatTile
-              title={tr("آخر المنشورات")}
+              title={t("web_pages.home.latest_posts", "آخر المنشورات")}
               wide
               action={
                 <Link to={`${base}/posts`} className="inline-link">
-                  {tr("كل المنشورات")}
+                  {t("web_pages.home.all_posts", "كل المنشورات")}
                 </Link>
               }
             >
               {recentTitles.length === 0 ? (
-                <p className="muted small">{tr("لا توجد منشورات بعد.")}</p>
+                <p className="muted small">{t("web_pages.home.no_posts_yet", "لا توجد منشورات بعد.")}</p>
               ) : (
                 <ul className="post-preview-list">
-                  {recentTitles.map((t, i) => (
-                    <li key={`${i}-${t}`}>{t}</li>
+                  {recentTitles.map((postTitle, i) => (
+                    <li key={`${i}-${postTitle}`}>{postTitle}</li>
                   ))}
                 </ul>
               )}

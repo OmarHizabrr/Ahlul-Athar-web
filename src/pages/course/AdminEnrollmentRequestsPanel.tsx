@@ -34,12 +34,12 @@ export function AdminEnrollmentRequestsPanel({
   onOpenActivation,
   onRejectRequest,
 }: AdminEnrollmentRequestsPanelProps) {
-  const { tr } = useI18n();
+  const { t } = useI18n();
   const busy = submitting || requestsLoading;
   return (
     <section className="requests-panel">
       <div className="requests-header">
-        <SectionTitle as="h3">{tr("طلبات الانضمام للدورات")}</SectionTitle>
+        <SectionTitle as="h3">{t("web_shell.enrollment_panel_title", "طلبات الانضمام للدورات")}</SectionTitle>
         <PageToolbar>
           <button
             type="button"
@@ -48,20 +48,20 @@ export function AdminEnrollmentRequestsPanel({
             disabled={busy}
             aria-busy={busy}
           >
-            <ButtonBusyLabel busy={busy}>{tr("تحديث الطلبات")}</ButtonBusyLabel>
+            <ButtonBusyLabel busy={busy}>{t("web_shell.enrollment_refresh_requests", "تحديث الطلبات")}</ButtonBusyLabel>
           </button>
         </PageToolbar>
       </div>
       <div className="request-filters">
         {(
           [
-            ["pending", "معلّقة"] as const,
-            ["approved", "مقبولة"] as const,
-            ["rejected", "مرفوضة"] as const,
-            ["expired", "منتهية"] as const,
-            ["all", "الكل"] as const,
+            ["pending", "web_shell.filter_pending", "معلّقة"] as const,
+            ["approved", "web_shell.filter_approved", "مقبولة"] as const,
+            ["rejected", "web_shell.filter_rejected", "مرفوضة"] as const,
+            ["expired", "web_shell.filter_expired", "منتهية"] as const,
+            ["all", "web_shell.filter_all", "الكل"] as const,
           ] as const
-        ).map(([key, label]) => (
+        ).map(([key, labelKey, labelFallback]) => (
           <button
             key={key}
             className={requestFilter === key ? "primary-btn" : "ghost-btn"}
@@ -69,13 +69,15 @@ export function AdminEnrollmentRequestsPanel({
             disabled={busy}
             type="button"
           >
-            {tr(label)}
+            {t(labelKey, labelFallback)}
           </button>
         ))}
       </div>
-      {requestsLoading ? <PageLoadHint text={tr("جاري تحميل الطلبات...")} /> : null}
+      {requestsLoading ? (
+        <PageLoadHint text={t("web_shell.enrollment_loading_requests", "جاري تحميل الطلبات...")} />
+      ) : null}
       {!requestsLoading && requests.length === 0 ? (
-        <EmptyState message={emptyRequestsMessage(requestFilter, tr)} />
+        <EmptyState message={emptyRequestsMessage(requestFilter, t)} />
       ) : (
         <ContentList>
           {requests.map((request) => {
@@ -97,25 +99,28 @@ export function AdminEnrollmentRequestsPanel({
               <div className="enrollment-req-item__body">
               <h3>{request.targetName}</h3>
               <p className="muted">
-                {tr("الطالب:")} {request.studentName || tr("غير معروف")} ({request.studentEmail || tr("بدون بريد")})
+                {t("web_shell.enrollment_student_prefix", "الطالب:")}{" "}
+                {request.studentName || t("web_shell.unknown_person", "غير معروف")} (
+                {request.studentEmail || t("web_shell.no_email", "بدون بريد")})
               </p>
               <p className="muted">
-                {tr("السبب:")} {request.reason || tr("—")}
+                {t("web_shell.reason_prefix", "السبب:")} {request.reason || t("web_shell.dash_em", "—")}
               </p>
               {request.adminNotes ? (
                 <p className="muted">
-                  {tr("ملاحظات الإدارة:")} {request.adminNotes}
+                  {t("web_shell.admin_notes_prefix", "ملاحظات الإدارة:")} {request.adminNotes}
                 </p>
               ) : null}
               <p className="muted">
-                {tr("الحالة:")} <strong>{requestStatusLabel(request.status, tr)}</strong>
+                {t("web_shell.status_prefix", "الحالة:")} <strong>{requestStatusLabel(request.status, t)}</strong>
               </p>
               <p className="muted">
-                {tr("تاريخ الطلب:")} {formatFirestoreTime(request.requestedAt)}
+                {t("web_shell.requested_at_prefix", "تاريخ الطلب:")} {formatFirestoreTime(request.requestedAt)}
               </p>
               {request.processedAt != null ? (
                 <p className="muted">
-                  {tr("تاريخ المعالجة:")} {formatFirestoreTime(request.processedAt)}
+                  {t("web_shell.processed_at_prefix", "تاريخ المعالجة:")}{" "}
+                  {formatFirestoreTime(request.processedAt)}
                 </p>
               ) : null}
               <div className="course-actions">
@@ -128,7 +133,7 @@ export function AdminEnrollmentRequestsPanel({
                       type="button"
                       aria-busy={busy}
                     >
-                      <ButtonBusyLabel busy={submitting}>{tr("قبول (تفعيل)")}</ButtonBusyLabel>
+                      <ButtonBusyLabel busy={submitting}>{t("web_shell.enrollment_accept_activate", "قبول (تفعيل)")}</ButtonBusyLabel>
                     </button>
                     <button
                       className="ghost-btn"
@@ -137,11 +142,11 @@ export function AdminEnrollmentRequestsPanel({
                       type="button"
                       aria-busy={busy}
                     >
-                      <ButtonBusyLabel busy={submitting}>{tr("رفض")}</ButtonBusyLabel>
+                      <ButtonBusyLabel busy={submitting}>{t("web_shell.enrollment_reject", "رفض")}</ButtonBusyLabel>
                     </button>
                   </>
                 ) : (
-                  <span className="muted">{tr("تمت معالجة الطلب. عرض \"معلّقة\" للطلبات الجديدة.")}</span>
+                  <span className="muted">{t("web_shell.enrollment_processed_hint", "تمت معالجة الطلب. عرض \"معلّقة\" للطلبات الجديدة.")}</span>
                 )}
               </div>
               </div>

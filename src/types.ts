@@ -187,3 +187,16 @@ export interface FolderFile {
   isActive?: boolean;
   createdAt?: unknown;
 }
+
+/** عنصر في `contact_infos` — أرقام وروابط التواصل المعروضة للزوار. */
+export type ContactChannelKind = "phone" | "whatsapp" | "email" | "link";
+
+export interface ContactChannel {
+  id: string;
+  kind: ContactChannelKind;
+  /** وصف قصير يظهر للمستخدم (مثل: الدعم الفني). */
+  label: string;
+  /** رقم، بريد، أو رابط حسب النوع. */
+  value: string;
+  sortOrder: number;
+}
