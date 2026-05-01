@@ -16,10 +16,16 @@ service cloud.firestore {
       return /databases/$(database)/documents/users/$(request.auth.uid);
     }
 
+    // مسؤول: users.role (ويب/تطبيق) أو isAdmin أو وجود سجل في admins/{uid} (ميراث Flutter)
     function isAdmin() {
-      return signedIn() &&
-        exists(userPath()) &&
-        get(userPath()).data.role == 'admin';
+      return signedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (exists(userPath()) && (
+          get(userPath()).data.role == 'admin' ||
+          get(userPath()).data.role == 'Admin' ||
+          get(userPath()).data.isAdmin == true
+        ))
+      );
     }
 
     match /users/{userId} {

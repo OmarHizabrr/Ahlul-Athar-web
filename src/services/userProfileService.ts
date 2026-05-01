@@ -3,18 +3,19 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { updateProfile } from "firebase/auth";
 import { auth, db, storage } from "../firebase";
 import type { PlatformUser, UserFirestoreProfile, UserRole } from "../types";
+import { roleFromUserDoc } from "../utils/userDocRole";
 
 function mapUserDoc(uid: string, data: Record<string, unknown>, fallbackRole: UserRole): UserFirestoreProfile {
+  const inferred = roleFromUserDoc(data);
+  const role: UserRole =
+    inferred === "admin" ? "admin" : data.role === "student" ? "student" : fallbackRole;
   return {
     uid,
     displayName: String(data.displayName ?? ""),
     email: String(data.email ?? ""),
     phoneNumber: String(data.phoneNumber ?? ""),
     photoURL: String(data.photoURL ?? ""),
-    role:
-      data.role === "admin" || data.role === "student"
-        ? (data.role as UserRole)
-        : fallbackRole,
+    role,
     profileCompleted: Boolean(data.profileCompleted ?? false),
   };
 }

@@ -104,6 +104,23 @@ function timeMillisFromUnknown(v: unknown): number {
   return 0;
 }
 
+function enrollmentStudentPhotoFromData(data: DocumentData): string | undefined {
+  const candidates = [
+    data.studentPhotoURL,
+    data.studentPhotoUrl,
+    data.userPhotoURL,
+    data.userPhotoUrl,
+    data.studentImageUrl,
+    data.photoUrl,
+  ];
+  for (const c of candidates) {
+    if (c == null) continue;
+    const s = String(c).trim();
+    if (s) return s;
+  }
+  return undefined;
+}
+
 function mapEnrollmentRequest(docSnap: QueryDocumentSnapshot<DocumentData>): EnrollmentRequest {
   const data = docSnap.data();
   return {
@@ -112,7 +129,7 @@ function mapEnrollmentRequest(docSnap: QueryDocumentSnapshot<DocumentData>): Enr
     studentName: String(data.studentName ?? ""),
     studentEmail: String(data.studentEmail ?? ""),
     studentPhone: data.studentPhone != null ? String(data.studentPhone) : undefined,
-    studentPhotoURL: data.studentPhotoURL != null ? String(data.studentPhotoURL) : undefined,
+    studentPhotoURL: enrollmentStudentPhotoFromData(data),
     requestType: (data.requestType === "folder" ? "folder" : "course") as EnrollmentRequest["requestType"],
     targetId: String(data.targetId ?? ""),
     targetName: String(data.targetName ?? ""),

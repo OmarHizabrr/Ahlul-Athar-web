@@ -1,3 +1,4 @@
+import { FirebaseError } from "firebase/app";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IoAddCircleOutline, IoCallOutline } from "react-icons/io5";
 import { Link } from "react-router-dom";
@@ -15,6 +16,25 @@ import {
 import type { ContactChannel, ContactChannelKind } from "../types";
 
 const A = "web_pages.admin_contact" as const;
+
+function contactFirestoreErrorMessage(
+  e: unknown,
+  t: (key: string, fallback: string) => string,
+  fallback: string,
+): string {
+  if (e instanceof FirebaseError) {
+    if (e.code === "permission-denied") {
+      return t(
+        `${A}.err_firestore_permission`,
+        "رفض Firestore: انشر firestore.rules وتأكد أن حسابك مسؤول (users أو admins).",
+      );
+    }
+    if (e.code === "failed-precondition") {
+      return t(`${A}.err_firestore_index`, "يلزم فهرس Firestore — راجع الكونسول.");
+    }
+  }
+  return fallback;
+}
 
 const KINDS: { value: ContactChannelKind; labelKey: string; labelFallback: string }[] = [
   { value: "phone", labelKey: `${A}.kind_phone`, labelFallback: "هاتف" },
@@ -57,8 +77,11 @@ export function AdminContactPage() {
     setFlash(null);
     try {
       setRows(await listContactChannels());
-    } catch {
-      setFlash({ text: t(`${A}.load_failed`, "تعذر تحميل القائمة. تحقق من الصلاحيات."), kind: "error" });
+    } catch (e) {
+      setFlash({
+        text: contactFirestoreErrorMessage(e, t, t(`${A}.load_failed`, "تعذر تحميل القائمة. تحقق من الصلاحيات.")),
+        kind: "error",
+      });
       setRows([]);
     } finally {
       setLoading(false);
@@ -87,8 +110,11 @@ export function AdminContactPage() {
       setKind("phone");
       setFlash({ text: t(`${A}.added`, "تمت الإضافة."), kind: "success" });
       await load();
-    } catch {
-      setFlash({ text: t(`${A}.add_failed`, "تعذر الإضافة."), kind: "error" });
+    } catch (e) {
+      setFlash({
+        text: contactFirestoreErrorMessage(e, t, t(`${A}.add_failed`, "تعذر الإضافة.")),
+        kind: "error",
+      });
     } finally {
       setSaving(false);
     }
@@ -123,8 +149,11 @@ export function AdminContactPage() {
       setEditOpen(false);
       setFlash({ text: t(`${A}.saved`, "تم الحفظ."), kind: "success" });
       await load();
-    } catch {
-      setFlash({ text: t(`${A}.save_failed`, "تعذر الحفظ."), kind: "error" });
+    } catch (e) {
+      setFlash({
+        text: contactFirestoreErrorMessage(e, t, t(`${A}.save_failed`, "تعذر الحفظ.")),
+        kind: "error",
+      });
     } finally {
       setSaving(false);
     }
@@ -138,8 +167,11 @@ export function AdminContactPage() {
       await deleteContactChannel(row.id);
       setFlash({ text: t(`${A}.deleted`, "تم الحذف."), kind: "success" });
       await load();
-    } catch {
-      setFlash({ text: t(`${A}.delete_failed`, "تعذر الحذف."), kind: "error" });
+    } catch (e) {
+      setFlash({
+        text: contactFirestoreErrorMessage(e, t, t(`${A}.delete_failed`, "تعذر الحذف.")),
+        kind: "error",
+      });
     } finally {
       setSaving(false);
     }

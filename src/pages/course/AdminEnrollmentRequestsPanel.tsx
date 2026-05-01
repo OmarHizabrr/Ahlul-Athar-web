@@ -1,9 +1,9 @@
 import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
 import {
+  Avatar,
   ContentList,
   ContentListItem,
   CoverImage,
-  cn,
   EmptyState,
   PageToolbar,
   SectionTitle,
@@ -82,20 +82,35 @@ export function AdminEnrollmentRequestsPanel({
         <ContentList>
           {requests.map((request) => {
             const hasThumb = Boolean(request.targetImageURL?.trim());
+            const studentAlt =
+              request.studentName?.trim() ||
+              request.studentEmail?.trim() ||
+              t("web_shell.enrollment_requester_photo_alt", "صورة صاحب الطلب");
             return (
             <ContentListItem
               as="article"
               key={request.id}
-              className={cn(hasThumb && "enrollment-req-item--row")}
+              className="enrollment-req-item--row"
             >
-              {hasThumb ? (
-                <CoverImage
-                  variant="thumb"
-                  src={request.targetImageURL}
-                  alt={request.targetName}
-                  className="enrollment-req-thumb"
+              <div className="enrollment-req-media">
+                <Avatar
+                  photoURL={request.studentPhotoURL}
+                  displayName={request.studentName}
+                  email={request.studentEmail}
+                  alt={studentAlt}
+                  imageClassName="enrollment-req-student-photo"
+                  fallbackClassName="enrollment-req-student-fallback"
+                  size={52}
                 />
-              ) : null}
+                {hasThumb ? (
+                  <CoverImage
+                    variant="thumb"
+                    src={request.targetImageURL}
+                    alt={request.targetName}
+                    className="enrollment-req-thumb enrollment-req-thumb--target"
+                  />
+                ) : null}
+              </div>
               <div className="enrollment-req-item__body">
               <h3>{request.targetName}</h3>
               <p className="muted">

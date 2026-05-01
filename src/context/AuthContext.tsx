@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { auth, db } from "../firebase";
 import { authService, AUTH_LOCAL_KEY } from "../services/authService";
 import type { PlatformUser, UserRole } from "../types";
+import { roleFromUserDoc } from "../utils/userDocRole";
 
 type AuthState = {
   ready: boolean;
@@ -13,7 +14,7 @@ type AuthState = {
 const AuthContext = createContext<AuthState & { syncUserFromStorage: () => void } | null>(null);
 
 function buildPlatformUser(fb: FirebaseUser, data: Record<string, unknown> | undefined): PlatformUser {
-  const role: UserRole = data?.role === "admin" ? "admin" : "student";
+  const role: UserRole = roleFromUserDoc(data);
   return {
     uid: fb.uid,
     role,

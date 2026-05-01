@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import type { AdminRecord, StudentRecord } from "../types";
+import { roleFromUserDoc } from "../utils/userDocRole";
 
 function mapAdminDoc(d: QueryDocumentSnapshot<DocumentData>): AdminRecord {
   const data = d.data();
@@ -59,7 +60,7 @@ export const directoryService = {
     } catch {
       const snap = await getDocs(query(collection(db, "users"), limit(max)));
       return snap.docs
-        .filter((d) => String(d.data().role ?? "student") === "admin")
+        .filter((d) => roleFromUserDoc(d.data() as Record<string, unknown>) === "admin")
         .map((d) => ({ ...mapAdminDoc(d), role: "admin" as const }));
     }
   },
