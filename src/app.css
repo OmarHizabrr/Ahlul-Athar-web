@@ -737,6 +737,7 @@ input:focus {
 
 .dashboard-main {
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -749,13 +750,38 @@ input:focus {
   padding: 0.2rem 0.15rem 0.5rem;
   border-bottom: 1px solid var(--theme-border);
   flex-shrink: 0;
+  overflow: visible;
 }
 
 .topbar-trailing {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.5rem;
   flex-direction: row;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+
+/* تمرير أفقي فقط للمظهر+اللغة حتى لا يُقصّ القائمة المنسدلة للمستخدم */
+.topbar-trailing-scroll {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: min(100%, 22rem);
+  overflow-x: auto;
+  overflow-y: visible;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.topbar-trailing-scroll::-webkit-scrollbar {
+  display: none;
+  height: 0;
 }
 
 .theme-switcher {
@@ -788,6 +814,8 @@ input:focus {
 
 .user-menu-wrap {
   position: relative;
+  flex-shrink: 0;
+  z-index: 20;
 }
 
 .user-menu-trigger {
@@ -846,7 +874,7 @@ input:focus {
 
 .user-dropdown {
   position: absolute;
-  z-index: 50;
+  z-index: 400;
   top: calc(100% + 0.35rem);
   right: 0;
   min-width: 12rem;
@@ -913,6 +941,7 @@ html[dir="rtl"] .user-dropdown {
   color: var(--theme-text-muted-2);
   text-decoration: none;
   position: relative;
+  flex-shrink: 0;
 }
 
 .topbar-notif-btn:hover {
@@ -2640,24 +2669,19 @@ button:disabled {
     padding-top: 0.15rem;
     padding-bottom: 0.45rem;
     padding-inline: max(0.1rem, env(safe-area-inset-left)) max(0.1rem, env(safe-area-inset-right));
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    overflow: visible;
     border-bottom-color: var(--theme-border);
-  }
-
-  .dashboard-topbar::-webkit-scrollbar {
-    display: none;
-    height: 0;
   }
 
   .topbar-trailing {
     flex-wrap: nowrap;
     align-items: center;
-    width: max-content;
-    max-width: none;
     gap: 0.35rem;
+  }
+
+  .topbar-trailing-scroll {
+    gap: 0.35rem;
+    max-width: min(100%, 19rem);
   }
 
   .theme-switcher-label,
@@ -3498,6 +3522,10 @@ button:disabled {
     padding-left: max(0.85rem, env(safe-area-inset-left));
     padding-right: max(0.85rem, env(safe-area-inset-right));
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
   }
 }
 

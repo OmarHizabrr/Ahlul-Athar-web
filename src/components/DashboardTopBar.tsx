@@ -113,20 +113,23 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
   return (
     <header className="dashboard-topbar">
       <div className="topbar-trailing">
-        <label className="theme-switcher" title={t(`${S}.topbar_theme`, "المظهر")}>
-          <span className="theme-switcher-label">{t(`${S}.topbar_theme`, "المظهر")}</span>
-          <select
-            className="theme-switcher-select"
-            value={mode}
-            onChange={(e) => setMode(e.target.value as "light" | "dark" | "system")}
-            aria-label={t(`${S}.topbar_theme_aria`, "تبديل المظهر")}
-          >
-            <option value="system">{t(`${S}.theme_system`, "تلقائي")}</option>
-            <option value="dark">{t(`${S}.theme_dark`, "ليلي")}</option>
-            <option value="light">{t(`${S}.theme_light`, "نهاري")}</option>
-          </select>
-        </label>
-        <LanguageSwitcher />
+        <div className="topbar-trailing-scroll">
+          <label className="theme-switcher" title={t(`${S}.topbar_theme`, "المظهر")}>
+            <span className="theme-switcher-label">{t(`${S}.topbar_theme`, "المظهر")}</span>
+            <select
+              className="theme-switcher-select"
+              value={mode}
+              onChange={(e) => setMode(e.target.value as "light" | "dark" | "system")}
+              aria-label={t(`${S}.topbar_theme_aria`, "تبديل المظهر")}
+            >
+              <option value="system">{t(`${S}.theme_system`, "تلقائي")}</option>
+              <option value="dark">{t(`${S}.theme_dark`, "ليلي")}</option>
+              <option value="light">{t(`${S}.theme_light`, "نهاري")}</option>
+            </select>
+          </label>
+          <LanguageSwitcher />
+        </div>
+
         <div className="user-menu-wrap" ref={menuRef}>
           <button
             type="button"
