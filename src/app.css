@@ -1134,6 +1134,15 @@ input:focus {
   }
 }
 
+/* منع ضغط عناصر العمود داخل اللوحة؛ وإلا تُضغط القائمة وتتداخل مع زر الخروج */
+.sidebar > .sidebar-top,
+.sidebar > .sidebar-profile-card,
+.sidebar > .nav-drawer-intro,
+.sidebar > .nav-list--drawer,
+.sidebar > .sidebar-logout-btn {
+  flex-shrink: 0;
+}
+
 .sidebar h3 {
   margin: 0;
 }
@@ -1236,9 +1245,8 @@ input:focus {
 
 .nav-list--drawer {
   gap: 0.28rem;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   min-width: 0;
-  min-height: 0;
 }
 
 .nav-drawer-link {
@@ -1405,7 +1413,7 @@ html[dir="rtl"] .nav-drawer-chevron {
 }
 
 .sidebar-logout-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
