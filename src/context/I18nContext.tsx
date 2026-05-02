@@ -89,6 +89,22 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     document.documentElement.dir = dir;
   }, [lang]);
 
+  const t = useMemo(
+    () => (key: string, fallback?: string) => {
+      const fromTarget = targetFlat[key];
+      if (typeof fromTarget === "string" && fromTarget.trim()) return fromTarget;
+      const fromAr = arFlat[key];
+      if (typeof fromAr === "string" && fromAr.trim()) return fromAr;
+      return fallback ?? key;
+    },
+    [arFlat, targetFlat],
+  );
+
+  useEffect(() => {
+    if (!Object.keys(arFlat).length) return;
+    document.title = t("web_shell.document_title", "أهل الأثر | منصة تعليمية متكاملة");
+  }, [arFlat, targetFlat, t]);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -116,17 +132,6 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     }
     return m;
   }, [arFlat, targetFlat]);
-
-  const t = useMemo(
-    () => (key: string, fallback?: string) => {
-      const fromTarget = targetFlat[key];
-      if (typeof fromTarget === "string" && fromTarget.trim()) return fromTarget;
-      const fromAr = arFlat[key];
-      if (typeof fromAr === "string" && fromAr.trim()) return fromAr;
-      return fallback ?? key;
-    },
-    [arFlat, targetFlat],
-  );
 
   const tr = useMemo(
     () => (arabicText: string) => {

@@ -3642,6 +3642,7 @@
     },
     "web_shell": {
         "app_badge": "Ahlul Athar",
+        "document_title": "Ahlul Athar | Integrated learning platform",
         "auth_initializing": "Initializing...",
         "auth_sync_cloud": "Syncing your session with the cloud",
         "route_opening": "Opening page...",

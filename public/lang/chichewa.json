@@ -3085,6 +3085,7 @@
     },
     "web_shell": {
         "app_badge": "Ahlul Athar",
+        "document_title": "Ahlul Athar | Dziŵalo lophunzitsira",
         "auth_initializing": "Ikukonzekera...",
         "auth_sync_cloud": "Kusinthanitsa mndandanda wanu ndi mtambo",
         "route_opening": "Ikutsegula tsamba...",

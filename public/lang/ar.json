@@ -3641,6 +3641,7 @@
     },
     "web_shell": {
         "app_badge": "أهل الأثر",
+        "document_title": "أهل الأثر | منصة تعليمية متكاملة",
         "auth_initializing": "جاري التهيئة...",
         "auth_sync_cloud": "مزامنة الجلسة مع السحابة",
         "route_opening": "جاري فتح الصفحة...",
