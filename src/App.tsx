@@ -99,7 +99,7 @@ function ProtectedRoute({ role, children }: { role: UserRole; children: ReactEle
     return <AuthLoading />;
   }
   if (!user) {
-    return <Navigate to="/role-selector" replace />;
+    return <Navigate to="/" replace />;
   }
   if (user.role !== role) {
     return <Navigate to={`/${user.role}`} replace />;

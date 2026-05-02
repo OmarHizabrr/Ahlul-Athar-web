@@ -256,7 +256,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
   }
 
   if (!user) {
-    return <Navigate to="/role-selector" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return (

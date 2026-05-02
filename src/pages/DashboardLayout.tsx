@@ -99,7 +99,7 @@ export function DashboardLayout({ role, title, lede, children }: DashboardLayout
     setLoggingOut(true);
     try {
       await authService.logout();
-      navigate("/role-selector", { replace: true });
+      navigate("/", { replace: true });
     } finally {
       setLoggingOut(false);
     }

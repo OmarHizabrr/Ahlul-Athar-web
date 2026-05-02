@@ -46,7 +46,7 @@ export function SettingsPage({ role }: { role: UserRole }) {
     setLoggingOut(true);
     try {
       await authService.logout();
-      navigate("/role-selector", { replace: true });
+      navigate("/", { replace: true });
     } finally {
       setLoggingOut(false);
     }

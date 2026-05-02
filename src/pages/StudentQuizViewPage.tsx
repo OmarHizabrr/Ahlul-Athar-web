@@ -342,7 +342,7 @@ export function StudentQuizViewPage() {
   }
 
   if (!user) {
-    return <Navigate to="/role-selector" replace />;
+    return <Navigate to="/" replace />;
   }
 
   const title = String(

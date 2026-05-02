@@ -21,7 +21,7 @@ export function AuthPageShell({ children, className }: Props) {
     <main className={cn("center-page center-page--auth", className)}>
       <div className="auth-shell">
         <header className="auth-header">
-          <Link to="/role-selector" className="auth-header-brand">
+          <Link to="/" className="auth-header-brand">
             <img src="/logo.png" alt="" className="auth-header-logo" width={44} height={44} decoding="async" />
             <div className="auth-header-text">
               <p className="auth-header-title">{t("web_shell.app_badge", "أهل الأثر")}</p>

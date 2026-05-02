@@ -135,7 +135,7 @@ export function StudentLessonViewPage() {
   }
 
   if (!user) {
-    return <Navigate to="/role-selector" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return (
