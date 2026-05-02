@@ -12,12 +12,9 @@ import { FaBookOpen, FaMosque } from "react-icons/fa6";
 import { GiPalmTree } from "react-icons/gi";
 import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../context/I18nContext";
+import landingHeroImage from "../assets/landing-hero.png";
 
 const L = "web_shell.landing" as const;
-
-/** صورة بطلاء معمارية إسلامية (ترخيص Unsplash) — يمكن استبدالها بملف محلي في `/public`. */
-const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=720&q=82";
 
 function LandingLeaf({ mirror }: { mirror?: boolean }) {
   return (
@@ -141,7 +138,7 @@ export function SplashPage() {
             <div className="landing-hero-arch">
               <div className="landing-hero-arch-inner">
                 <img
-                  src={HERO_IMAGE}
+                  src={landingHeroImage}
                   alt={Tk("hero_img_alt", "معالم إسلامية")}
                   className="landing-hero-photo"
                   width={360}
