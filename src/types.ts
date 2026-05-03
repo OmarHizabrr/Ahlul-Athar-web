@@ -63,6 +63,20 @@ export interface Lesson {
   imageUrl?: string;
 }
 
+/** مرفق درس من مجموعة Firestore `lesson_attachments/{lessonId}/lesson_attachments` (متوافق مع Flutter). */
+export interface LessonAttachment {
+  id: string;
+  lessonId: string;
+  courseId?: string;
+  title: string;
+  description?: string;
+  url: string;
+  /** pdf | video | audio | document | image | link | … */
+  type: string;
+  createdAt?: unknown;
+  createdByName?: string;
+}
+
 /** صف مُهيأ للواجهة: درس + هل مفتوح + سبب بسيط عند المنع. */
 export type LessonWithAccess = {
   lesson: Lesson;

@@ -182,6 +182,10 @@ export type QuizQuestionDef = {
   title: string;
   body: string;
   optionTexts: string[];
+  /** الدرجة القصوى للسؤال (افتراضي 10 كما في Flutter) */
+  maxPoints: number;
+  /** للعرض بعد التصحيح إن وُجد في السؤال */
+  correctAnswer?: string;
 };
 
 async function fetchOptionTextsForQuestion(questionId: string): Promise<string[]> {
@@ -236,9 +240,22 @@ export async function getQuizQuestionsWithOptions(quizFileId: string): Promise<Q
     if (kind === "multiple_choice" && optionTexts.length === 0) {
       kind = "open";
     }
-    out.push({ id, kind, title, body, optionTexts });
+    const mpRaw = (data as { maxPoints?: unknown }).maxPoints;
+    const maxPoints =
+      typeof mpRaw === "number" && Number.isFinite(mpRaw) && mpRaw > 0 ? Math.round(mpRaw) : 10;
+    const caRaw = (data as { correctAnswer?: unknown }).correctAnswer;
+    const correctAnswer =
+      caRaw != null && String(caRaw).trim() !== "" ? String(caRaw).trim() : undefined;
+    out.push({ id, kind, title, body, optionTexts, maxPoints, correctAnswer });
   }
   return out;
+}
+
+/** وجود أسئلة في المسار الفرعي كما في التطبيق (بدون جلب خيارات MCQ). */
+export async function quizHasStructuredQuestions(quizFileId: string): Promise<boolean> {
+  const col = collection(db, "quiz_questions", quizFileId, "quiz_questions");
+  const snap = await getDocs(query(col, limit(1)));
+  return snap.docs.length > 0;
 }
 
 /** لمسار `questions` داخل وثيقة الاختبار (ميراث) — يُسجَّل بمفاتيح q0 أو id إن وُجد. */
@@ -255,6 +272,8 @@ export function webRowsToQuestionDefs(rows: WebQuizRow[]): QuizQuestionDef[] {
       title: r.title,
       body: r.body,
       optionTexts: kind === "multiple_choice" ? optionTexts : [],
+      maxPoints: 10,
+      correctAnswer: undefined,
     };
   });
 }
@@ -323,13 +342,33 @@ export async function submitOrUpdateStudentQuiz(
   }
 }
 
-export type LessonQuizItemStatus = "none" | "pending" | "graded";
+/** حالة تسليم الاختبار كما تُعرض في قائمة درس التطبيق */
+export type LessonQuizItemStatus = "none" | "pending" | "graded" | "approved" | "rejected";
 
 export type LessonQuizItem = {
   quizFileId: string;
   title: string;
   status: LessonQuizItemStatus;
+  /** يوجد `quiz_questions/{id}/...` — تظهر تبويبة النتيجة في صفحة الاختبار */
+  hasStructuredQuestions: boolean;
 };
+
+function answerDocToLessonQuizStatus(ans: Record<string, unknown> | null): LessonQuizItemStatus {
+  if (ans == null) {
+    return "none";
+  }
+  const s = String(ans.status ?? "").toLowerCase();
+  if (s === "graded") {
+    return "graded";
+  }
+  if (s === "approved") {
+    return "approved";
+  }
+  if (s === "rejected") {
+    return "rejected";
+  }
+  return "pending";
+}
 
 /**
  * اختبارات الدرس وحالة إجابة الطالب (للواجهة).
@@ -345,13 +384,16 @@ export async function getLessonQuizzesForStudent(
       const title = String(
         d.title ?? d.name ?? d.quizTitle ?? (d as { label?: string }).label ?? "اختبار",
       );
-      const ans = await getStudentAnswerForQuiz(f.id, studentId);
-      let status: LessonQuizItemStatus = "none";
-      if (ans) {
-        const s = String(ans.status ?? "");
-        status = s === "graded" ? "graded" : "pending";
-      }
-      return { quizFileId: f.id, title, status };
+      const [ans, hasStructuredQuestions] = await Promise.all([
+        getStudentAnswerForQuiz(f.id, studentId),
+        quizHasStructuredQuestions(f.id),
+      ]);
+      return {
+        quizFileId: f.id,
+        title,
+        status: answerDocToLessonQuizStatus(ans),
+        hasStructuredQuestions,
+      };
     }),
   );
 }
@@ -359,17 +401,21 @@ export async function getLessonQuizzesForStudent(
 /** قائمة اختبارات الدرس للمعاينة (مشرف) — بلا تسليم طالب. */
 export async function getLessonQuizzesForAdminPreview(lessonId: string): Promise<LessonQuizItem[]> {
   const files = await listQuizFilesForLesson(lessonId);
-  return files.map((f) => {
-    const d = f.data;
-    const title = String(
-      d.title ?? d.name ?? d.quizTitle ?? (d as { label?: string }).label ?? "اختبار",
-    );
-    return { quizFileId: f.id, title, status: "none" as const };
-  });
+  return await Promise.all(
+    files.map(async (f) => {
+      const d = f.data;
+      const title = String(
+        d.title ?? d.name ?? d.quizTitle ?? (d as { label?: string }).label ?? "اختبار",
+      );
+      const hasStructuredQuestions = await quizHasStructuredQuestions(f.id);
+      return { quizFileId: f.id, title, status: "none" as const, hasStructuredQuestions };
+    }),
+  );
 }
 
 /**
- * اجتاز الطالب جميع اختبارات الدرس (الحالة graded) أو لا يوجد اختبارات.
+ * اجتاز الطالب جميع اختبارات الدرس (مقيّم أو مقبول كما في التطبيق) أو لا يوجد اختبارات.
+ * المرفوض أو بلا إجابة أو بانتظار التصحيح = لم يجتز.
  */
 export async function hasStudentPassedLessonQuiz(
   studentId: string,
@@ -381,7 +427,8 @@ export async function hasStudentPassedLessonQuiz(
   }
   const answers = await Promise.all(files.map((f) => getStudentAnswerForQuiz(f.id, studentId)));
   for (const ans of answers) {
-    if (ans == null || String(ans.status ?? "") !== "graded") {
+    const st = answerDocToLessonQuizStatus(ans);
+    if (st !== "graded" && st !== "approved") {
       return false;
     }
   }

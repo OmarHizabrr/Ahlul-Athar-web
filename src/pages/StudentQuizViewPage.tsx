@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import {
   canStudentOpenLesson,
@@ -15,16 +15,39 @@ import { isStudentEnrolledInCourse } from "../services/myCoursesService";
 import { useIsAdminPreview } from "../context/AdminPreviewContext";
 import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../context/I18nContext";
+import { QuizStudentResultsView } from "../components/QuizStudentResultsView";
 import { VideoIntroBlock } from "../components/VideoIntroBlock";
 import { AlertMessage, AppTabPanel, AppTabs, SectionTitle } from "../components/ui";
+import { formatFirestoreTime } from "../utils/firestoreTime";
 import { extractQuizRows, readStoredAnswers, type WebQuizRow } from "../utils/quizFromFirestore";
 import { DashboardLayout } from "./DashboardLayout";
 
-function getAnswerStatus(ans: Record<string, unknown> | null): "none" | "pending" | "graded" {
+const SQ = "web_pages.student_quiz" as const;
+const QUIZ_TIMER_SS = "ah-quiz-timer-start:";
+
+function formatCountdown(totalSec: number): string {
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+type QuizAnswerStatus = "none" | "pending" | "graded" | "approved" | "rejected";
+
+function getAnswerStatus(ans: Record<string, unknown> | null): QuizAnswerStatus {
   if (ans == null) {
     return "none";
   }
-  return String(ans.status ?? "") === "graded" ? "graded" : "pending";
+  const s = String(ans.status ?? "").toLowerCase();
+  if (s === "graded") {
+    return "graded";
+  }
+  if (s === "approved") {
+    return "approved";
+  }
+  if (s === "rejected") {
+    return "rejected";
+  }
+  return "pending";
 }
 
 function questionDefsToWebRows(defs: QuizQuestionDef[]): WebQuizRow[] {
@@ -46,7 +69,10 @@ function QuizTakerForm({
   submitting,
   readonly,
   submitLabel,
-  tr,
+  answeredPill,
+  trueLabel,
+  falseLabel,
+  answerPlaceholder,
 }: {
   rows: WebQuizRow[];
   values: Record<string, string>;
@@ -55,7 +81,10 @@ function QuizTakerForm({
   submitting: boolean;
   readonly: boolean;
   submitLabel: string;
-  tr: (text: string) => string;
+  answeredPill: string;
+  trueLabel: string;
+  falseLabel: string;
+  answerPlaceholder: string;
 }) {
   if (rows.length === 0) {
     return null;
@@ -63,73 +92,83 @@ function QuizTakerForm({
   return (
     <form className="quiz-taker-form" onSubmit={onSubmit}>
       <ol className="quiz-questions">
-        {rows.map((q, idx) => (
-          <li key={q.key} className="quiz-question">
-            <div className="quiz-qtext">
-              <span className="quiz-qnum">{idx + 1}.</span>
-              {q.title ? <span className="quiz-qtitle">{q.title}</span> : null}
-              {q.body ? (
-                <p className="quiz-qbody">
-                  {q.body}
-                </p>
-              ) : !q.title ? (
-                <p className="quiz-qbody">{q.text}</p>
-              ) : null}
-            </div>
-            {q.kind === "true_false" ? (
-              <div className="quiz-options" role="group" aria-label={q.text}>
-                <label className="quiz-opt-line">
-                  <input
-                    type="radio"
-                    name={q.key}
-                    value="true"
-                    checked={values[q.key] === "true"}
-                    onChange={() => onChange(q.key, "true")}
-                    disabled={readonly}
-                  />
-                  <span>{tr("صح")}</span>
-                </label>
-                <label className="quiz-opt-line">
-                  <input
-                    type="radio"
-                    name={q.key}
-                    value="false"
-                    checked={values[q.key] === "false"}
-                    onChange={() => onChange(q.key, "false")}
-                    disabled={readonly}
-                  />
-                  <span>{tr("خطأ")}</span>
-                </label>
+        {rows.map((q, idx) => {
+          const raw = (values[q.key] ?? "").toString();
+          const answered =
+            q.kind === "true_false"
+              ? raw === "true" || raw === "false"
+              : q.options && q.options.length > 0
+                ? raw.trim().length > 0
+                : raw.trim().length > 0;
+          return (
+            <li key={q.key} className={`quiz-question${answered ? " quiz-question--answered" : ""}`}>
+              <div className="quiz-qhead-row">
+                <div className="quiz-qtext">
+                  <span className="quiz-qnum">{idx + 1}.</span>
+                  {q.title ? <span className="quiz-qtitle">{q.title}</span> : null}
+                  {q.body ? (
+                    <p className="quiz-qbody">{q.body}</p>
+                  ) : !q.title ? (
+                    <p className="quiz-qbody">{q.text}</p>
+                  ) : null}
+                </div>
+                {answered ? <span className="quiz-answered-pill">{answeredPill}</span> : null}
               </div>
-            ) : q.options && q.options.length > 0 ? (
-              <div className="quiz-options" role="group" aria-label={q.text}>
-                {q.options.map((opt) => (
-                  <label key={opt} className="quiz-opt-line">
+              {q.kind === "true_false" ? (
+                <div className="quiz-options" role="group" aria-label={q.text}>
+                  <label className="quiz-opt-line">
                     <input
                       type="radio"
                       name={q.key}
-                      value={opt}
-                      checked={values[q.key] === opt}
-                      onChange={() => onChange(q.key, opt)}
+                      value="true"
+                      checked={values[q.key] === "true"}
+                      onChange={() => onChange(q.key, "true")}
                       disabled={readonly}
                     />
-                    <span>{opt}</span>
+                    <span>{trueLabel}</span>
                   </label>
-                ))}
-              </div>
-            ) : (
-              <textarea
-                className="text-input textarea"
-                rows={3}
-                value={values[q.key] ?? ""}
-                onChange={(e) => onChange(q.key, e.target.value)}
-                readOnly={readonly}
-                required={!readonly}
-                placeholder={tr("إجابتك")}
-              />
-            )}
-          </li>
-        ))}
+                  <label className="quiz-opt-line">
+                    <input
+                      type="radio"
+                      name={q.key}
+                      value="false"
+                      checked={values[q.key] === "false"}
+                      onChange={() => onChange(q.key, "false")}
+                      disabled={readonly}
+                    />
+                    <span>{falseLabel}</span>
+                  </label>
+                </div>
+              ) : q.options && q.options.length > 0 ? (
+                <div className="quiz-options quiz-options--mcq" role="group" aria-label={q.text}>
+                  {q.options.map((opt) => (
+                    <label key={opt} className="quiz-opt-line quiz-opt-line--mcq">
+                      <input
+                        type="radio"
+                        name={q.key}
+                        value={opt}
+                        checked={values[q.key] === opt}
+                        onChange={() => onChange(q.key, opt)}
+                        disabled={readonly}
+                      />
+                      <span>{opt}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <textarea
+                  className="text-input textarea"
+                  rows={3}
+                  value={values[q.key] ?? ""}
+                  onChange={(e) => onChange(q.key, e.target.value)}
+                  readOnly={readonly}
+                  required={!readonly}
+                  placeholder={answerPlaceholder}
+                />
+              )}
+            </li>
+          );
+        })}
       </ol>
       {readonly ? null : (
         <button className="primary-btn" type="submit" disabled={submitting} aria-busy={submitting}>
@@ -142,6 +181,7 @@ function QuizTakerForm({
 
 export function StudentQuizViewPage() {
   const { courseId = "", lessonId = "", quizId = "" } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, ready } = useAuth();
   const isAdminPreview = useIsAdminPreview();
   const [quiz, setQuiz] = useState<Record<string, unknown> | null>(null);
@@ -153,8 +193,10 @@ export function StudentQuizViewPage() {
   const [err, setErr] = useState("");
   const [formErr, setFormErr] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
-  const [quizTab, setQuizTab] = useState<"intro" | "questions">("intro");
-  const { tr } = useI18n();
+  const [quizTab, setQuizTab] = useState<"intro" | "questions" | "results">("intro");
+  const [quizTimeUp, setQuizTimeUp] = useState(false);
+  const [timerTick, setTimerTick] = useState(0);
+  const { t } = useI18n();
 
   const load = useCallback(async () => {
     if (!user || !courseId || !lessonId || !quizId) {
@@ -166,7 +208,7 @@ export function StudentQuizViewPage() {
       if (!isAdminPreview) {
         const en = await isStudentEnrolledInCourse(user.uid, courseId);
         if (!en) {
-          setErr(tr("لست مسجّلاً في هذا المقرر."));
+          setErr(t(`${SQ}.not_enrolled`, "لست مسجّلاً في هذا المقرر."));
           setQuiz(null);
           setAnswer(null);
           setRows([]);
@@ -175,7 +217,7 @@ export function StudentQuizViewPage() {
         }
         const acc = await canStudentOpenLesson(user.uid, courseId, lessonId);
         if (!acc.ok) {
-          setErr(acc.message ?? tr("لا يمكن الوصول إلى هذا الدرس."));
+          setErr(acc.message ?? t(`${SQ}.cannot_open_lesson`, "لا يمكن الوصول إلى هذا الدرس."));
           setQuiz(null);
           setAnswer(null);
           setRows([]);
@@ -185,7 +227,7 @@ export function StudentQuizViewPage() {
       }
       const qd = await getQuizFileById(lessonId, quizId);
       if (qd == null) {
-        setErr(tr("الاختبار غير موجود."));
+        setErr(t(`${SQ}.quiz_not_found`, "الاختبار غير موجود."));
         setQuiz(null);
         setAnswer(null);
         setRows([]);
@@ -210,7 +252,7 @@ export function StudentQuizViewPage() {
         }
       }
     } catch {
-      setErr(tr("تعذر تحميل الاختبار. تحقق من الاتصال وصلاحيات الوصول."));
+      setErr(t(`${SQ}.load_failed`, "تعذر تحميل الاختبار. تحقق من الاتصال وصلاحيات الوصول."));
       setQuiz(null);
       setAnswer(null);
       setRows([]);
@@ -218,7 +260,7 @@ export function StudentQuizViewPage() {
     } finally {
       setLoading(false);
     }
-  }, [user, courseId, lessonId, quizId, isAdminPreview]);
+  }, [user, courseId, lessonId, quizId, isAdminPreview, t]);
 
   useEffect(() => {
     if (ready && user) {
@@ -238,13 +280,187 @@ export function StudentQuizViewPage() {
 
   const status = getAnswerStatus(answer);
   const isGraded = status === "graded";
+  const isFinalized = status === "graded" || status === "approved" || status === "rejected";
   const hasStructuredQuestions = questionDefs.length > 0;
   const schedule = useMemo(
     () => (quiz != null ? evaluateQuizSchedule(quiz) : { allowed: true as const }),
     [quiz],
   );
   const scheduleBlocks = !schedule.allowed && !isAdminPreview;
-  const formLocked = isAdminPreview || isGraded || scheduleBlocks;
+  const formLocked = isAdminPreview || isFinalized || scheduleBlocks;
+
+  const durationMin = useMemo(() => {
+    if (quiz == null) {
+      return null;
+    }
+    const v = (quiz as { duration?: unknown }).duration;
+    if (typeof v === "number" && Number.isFinite(v) && v > 0) {
+      return v;
+    }
+    if (v != null && v !== "" && !Number.isNaN(Number(v))) {
+      const n = Number(v);
+      return n > 0 ? n : null;
+    }
+    return null;
+  }, [quiz]);
+
+  const timerStorageKey =
+    user && !isAdminPreview && quizId ? `${QUIZ_TIMER_SS}${quizId}:${user.uid}` : "";
+
+  useEffect(() => {
+    setQuizTab("intro");
+    setQuizTimeUp(false);
+    setTimerTick(0);
+  }, [quizId]);
+
+  useEffect(() => {
+    if (loading || quiz == null) {
+      return;
+    }
+    const raw = searchParams.get("tab");
+    if (raw === "results" && !hasStructuredQuestions) {
+      setQuizTab("intro");
+      setSearchParams(
+        (p) => {
+          const n = new URLSearchParams(p);
+          n.delete("tab");
+          return n;
+        },
+        { replace: true },
+      );
+      return;
+    }
+    if (raw === "questions") {
+      setQuizTab("questions");
+      return;
+    }
+    if (raw === "results" && hasStructuredQuestions) {
+      setQuizTab("results");
+      return;
+    }
+    if (raw === "intro") {
+      setQuizTab("intro");
+      return;
+    }
+    if (raw != null && raw !== "") {
+      setQuizTab("intro");
+      setSearchParams(
+        (p) => {
+          const n = new URLSearchParams(p);
+          n.delete("tab");
+          return n;
+        },
+        { replace: true },
+      );
+    }
+  }, [loading, quiz, hasStructuredQuestions, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (!isFinalized || !timerStorageKey) {
+      return;
+    }
+    try {
+      sessionStorage.removeItem(timerStorageKey);
+    } catch {
+      /* ignore */
+    }
+  }, [isFinalized, timerStorageKey]);
+
+  useEffect(() => {
+    if (!timerStorageKey || durationMin == null || formLocked || isAdminPreview || quizTab !== "questions") {
+      return;
+    }
+    try {
+      if (!sessionStorage.getItem(timerStorageKey)) {
+        sessionStorage.setItem(timerStorageKey, String(Date.now()));
+        setTimerTick((x) => x + 1);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [timerStorageKey, durationMin, formLocked, isAdminPreview, quizTab]);
+
+  useEffect(() => {
+    if (durationMin == null || formLocked || isAdminPreview || !timerStorageKey) {
+      return;
+    }
+    let started = 0;
+    try {
+      started = Number(sessionStorage.getItem(timerStorageKey) || "0");
+    } catch {
+      return;
+    }
+    if (!Number.isFinite(started) || started <= 0) {
+      return;
+    }
+    const id = window.setInterval(() => setTimerTick((x) => x + 1), 1000);
+    return () => clearInterval(id);
+  }, [durationMin, formLocked, isAdminPreview, timerStorageKey]);
+
+  const timerRemainingSec = useMemo(() => {
+    if (durationMin == null || formLocked || isAdminPreview || !timerStorageKey) {
+      return null;
+    }
+    void timerTick;
+    let start = 0;
+    try {
+      start = Number(sessionStorage.getItem(timerStorageKey) || "0");
+    } catch {
+      return null;
+    }
+    if (!Number.isFinite(start) || start <= 0) {
+      return null;
+    }
+    const limit = Math.round(durationMin * 60);
+    return Math.max(0, limit - Math.floor((Date.now() - start) / 1000));
+  }, [durationMin, formLocked, isAdminPreview, timerStorageKey, timerTick]);
+
+  useEffect(() => {
+    if (
+      timerRemainingSec !== 0 ||
+      durationMin == null ||
+      quizTab !== "questions" ||
+      isFinalized ||
+      scheduleBlocks ||
+      isAdminPreview ||
+      !timerStorageKey
+    ) {
+      return;
+    }
+    setQuizTimeUp(true);
+  }, [
+    timerRemainingSec,
+    durationMin,
+    quizTab,
+    isFinalized,
+    scheduleBlocks,
+    isAdminPreview,
+    timerStorageKey,
+  ]);
+
+  const formLockedEffective = formLocked || (!isAdminPreview && quizTimeUp);
+
+  const handleQuizTabChange = useCallback(
+    (id: "intro" | "questions" | "results") => {
+      if (id === "results" && !hasStructuredQuestions) {
+        return;
+      }
+      setQuizTab(id);
+      setSearchParams(
+        (prev) => {
+          const n = new URLSearchParams(prev);
+          if (id === "intro") {
+            n.delete("tab");
+          } else {
+            n.set("tab", id);
+          }
+          return n;
+        },
+        { replace: true },
+      );
+    },
+    [hasStructuredQuestions, setSearchParams],
+  );
 
   useEffect(() => {
     if (quiz == null) {
@@ -286,20 +502,20 @@ export function StudentQuizViewPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (isAdminPreview || !user || formLocked || !hasStructuredQuestions) {
+    if (isAdminPreview || !user || formLockedEffective || !hasStructuredQuestions) {
       return;
     }
     for (const r of rows) {
       if (r.kind === "true_false") {
         const v = values[r.key] ?? "";
         if (v !== "true" && v !== "false") {
-          setFormErr(tr("أكمل جميع الأسئلة قبل الإرسال."));
+          setFormErr(t(`${SQ}.complete_all_hint`, "أكمل جميع الأسئلة قبل الإرسال."));
           return;
         }
         continue;
       }
       if (!(values[r.key] ?? "").toString().trim()) {
-        setFormErr(tr("أكمل جميع الأسئلة قبل الإرسال."));
+        setFormErr(t(`${SQ}.complete_all_hint`, "أكمل جميع الأسئلة قبل الإرسال."));
         return;
       }
     }
@@ -316,18 +532,26 @@ export function StudentQuizViewPage() {
         values,
         docId,
       );
+      if (timerStorageKey) {
+        try {
+          sessionStorage.removeItem(timerStorageKey);
+        } catch {
+          /* ignore */
+        }
+      }
+      setQuizTimeUp(false);
       await load();
       window.dispatchEvent(new CustomEvent("ah:quiz-updated"));
     } catch {
-      setFormErr(tr("تعذر حفظ الإجابة. تحقق من الاتصال وصلاحيات Firestore."));
+      setFormErr(t(`${SQ}.save_answer_failed`, "تعذر حفظ الإجابة. تحقق من الاتصال وصلاحيات Firestore."));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const lede = isAdminPreview
-    ? "معاينة اختبار الطالب: الإجابات للعرض فقط (لا يُرسل تسليم من وضع المشرف)."
-    : "تُحفظ الإجابات بحالة completed كما في تطبيق الجوال، ثم تُراجع (graded) لاحقاً.";
+  const ledeText = isAdminPreview
+    ? t(`${SQ}.lede_preview`, "معاينة اختبار الطالب: الإجابات للعرض فقط (لا يُرسل تسليم من وضع المشرف).")
+    : t(`${SQ}.lede_student`, "تُحفظ الإجابات بحالة completed كما في تطبيق الجوال، ثم تُراجع (graded) لاحقاً.");
   const layoutRole = isAdminPreview ? "admin" : "student";
   const lessonPageHref = isAdminPreview
     ? `/admin/preview/course/${courseId}/lesson/${lessonId}`
@@ -335,8 +559,8 @@ export function StudentQuizViewPage() {
 
   if (!ready) {
     return (
-      <DashboardLayout role={layoutRole} title={tr("اختبار")} lede={tr(lede)}>
-        <PageLoadHint text={tr("جاري التهيئة...")} />
+      <DashboardLayout role={layoutRole} title={t(`${SQ}.title_fallback`, "اختبار")} lede={ledeText}>
+        <PageLoadHint text={t(`${SQ}.initializing`, "جاري التهيئة...")} />
       </DashboardLayout>
     );
   }
@@ -346,37 +570,38 @@ export function StudentQuizViewPage() {
   }
 
   const title = String(
-    quiz?.title ?? (quiz as { name?: string } | null)?.name ?? (quiz as { quizTitle?: string } | null)?.quizTitle ?? tr("اختبار"),
+    quiz?.title ??
+      (quiz as { name?: string } | null)?.name ??
+      (quiz as { quizTitle?: string } | null)?.quizTitle ??
+      t(`${SQ}.title_fallback`, "اختبار"),
   );
   const desc = String(quiz?.description ?? (quiz as { body?: string } | null)?.body ?? "");
-  const durationMin = (() => {
-    const v = (quiz as { duration?: unknown } | null)?.duration;
-    if (typeof v === "number" && Number.isFinite(v) && v > 0) {
-      return v;
-    }
-    if (v != null && v !== "" && !Number.isNaN(Number(v))) {
-      const n = Number(v);
-      return n > 0 ? n : null;
-    }
-    return null;
-  })();
   const mediaUrl = String(
     (quiz as { videoUrl?: string; mediaUrl?: string } | null)?.videoUrl ?? (quiz as { mediaUrl?: string }).mediaUrl ?? "",
   );
 
   return (
-    <DashboardLayout role={layoutRole} title={isAdminPreview ? `${tr("معاينة")}: ${title}` : title} lede={tr(lede)}>
+    <DashboardLayout
+      role={layoutRole}
+      title={
+        isAdminPreview
+          ? `${t("web_pages.student_lesson.preview_prefix", "معاينة")}: ${title}`
+          : title
+      }
+      lede={ledeText}
+    >
       {isAdminPreview ? (
         <p className="admin-preview-banner" role="status">
-          <strong>{tr("معاينة واجهة الطالب")}</strong> — {tr("الإجابات للمراجعة البصرية فقط.")}{" "}
+          <strong>{t(`${SQ}.preview_banner_strong`, "معاينة واجهة الطالب")}</strong> —{" "}
+          {t(`${SQ}.preview_banner_rest`, "الإجابات للمراجعة البصرية فقط.")}{" "}
           <Link to={`/admin/course/${courseId}/lessons/${lessonId}/quizzes`} className="inline-link">
-            {tr("تحرير الاختبار")}
+            {t(`${SQ}.edit_quiz_link`, "تحرير الاختبار")}
           </Link>
         </p>
       ) : null}
       <p>
         <Link to={lessonPageHref} className="inline-link">
-          {tr("← العودة لصفحة الدرس")}
+          {t(`${SQ}.back_lesson`, "← العودة لصفحة الدرس")}
         </Link>
       </p>
       {loading ? (
@@ -387,36 +612,80 @@ export function StudentQuizViewPage() {
         <div className="quiz-view-card">
           <AppTabs
             groupId={`quiz-${quizId}`}
-            ariaLabel={tr("أقسام الاختبار")}
+            ariaLabel={t(`${SQ}.tabs_aria`, "أقسام الاختبار")}
             value={quizTab}
-            onChange={(id) => setQuizTab(id as "intro" | "questions")}
+            onChange={(id) => handleQuizTabChange(id as "intro" | "questions" | "results")}
             tabs={[
-              { id: "intro" as const, label: tr("المقدمة") },
-              { id: "questions" as const, label: tr("الأسئلة") },
+              { id: "intro" as const, label: t(`${SQ}.tab_intro`, "المقدمة") },
+              { id: "questions" as const, label: t(`${SQ}.tab_questions`, "الأسئلة") },
+              ...(hasStructuredQuestions ? ([{ id: "results" as const, label: t(`${SQ}.tab_results`, "النتيجة") }] as const) : []),
             ]}
           />
 
           <AppTabPanel tabId="intro" groupId={`quiz-${quizId}`} hidden={quizTab !== "intro"} className="lesson-tab-panel">
-            <div className="quiz-status-row" aria-label={tr("حالة الاختبار")}>
+            <div className="quiz-hero" aria-label={t(`${SQ}.quiz_info_aria`, "معلومات الاختبار")}>
+              <div className="quiz-hero-icon" aria-hidden>
+                <span className="quiz-hero-icon-inner">?</span>
+              </div>
+              <div className="quiz-hero-text">
+                <h2 className="quiz-hero-title">{title}</h2>
+                <p className="quiz-hero-meta muted small">
+                  {hasStructuredQuestions ? (
+                    <>
+                      {rows.length} {t(`${SQ}.questions_count_suffix`, "سؤال")} ·{" "}
+                      {durationMin != null ? (
+                        <>
+                          {Math.round(durationMin)} {t(`${SQ}.minute_abbr`, "د")}{" "}
+                          {t(`${SQ}.approx_duration`, "مدة تقريبية")}
+                        </>
+                      ) : (
+                        t(`${SQ}.no_time_limit`, "بدون حد زمني مُعرّف")
+                      )}
+                    </>
+                  ) : (
+                    t(`${SQ}.no_structured_questions`, "بدون أسئلة مُهيأة")
+                  )}
+                  {quiz?.createdAt != null ? (
+                    <>
+                      {" "}
+                      · {t(`${SQ}.created_prefix`, "أُنشئ")} {formatFirestoreTime(quiz.createdAt)}
+                    </>
+                  ) : null}
+                </p>
+              </div>
+            </div>
+            <div className="quiz-status-row" aria-label={t(`${SQ}.quiz_status_aria`, "حالة الاختبار")}>
               <span
                 className={
-                  isGraded
+                  isGraded || status === "approved"
                     ? "meta-pill meta-pill--ok"
-                    : status === "pending"
-                      ? "meta-pill meta-pill--info"
-                      : "meta-pill meta-pill--muted"
+                    : status === "rejected"
+                      ? "meta-pill meta-pill--warn"
+                      : status === "pending"
+                        ? "meta-pill meta-pill--info"
+                        : "meta-pill meta-pill--muted"
                 }
               >
                 {isGraded
-                  ? tr("تم التصحيح")
-                  : status === "pending"
-                    ? tr("بانتظار التصحيح")
-                    : tr("لم يُرسل بعد")}
+                  ? t(`${SQ}.status_graded`, "تم التصحيح")
+                  : status === "approved"
+                    ? t(`${SQ}.status_approved`, "مقبول")
+                    : status === "rejected"
+                      ? t(`${SQ}.status_rejected`, "مرفوض")
+                      : status === "pending"
+                        ? t(`${SQ}.status_pending`, "بانتظار التصحيح")
+                        : t(`${SQ}.status_none`, "لم يُرسل بعد")}
               </span>
               <span className="meta-pill meta-pill--muted">
-                {hasStructuredQuestions ? `${answeredCount}/${rows.length} ${tr("مجاب")}` : tr("بدون أسئلة")}
+                {hasStructuredQuestions
+                  ? `${answeredCount}/${rows.length} ${t(`${SQ}.answered_ratio`, "مجاب")}`
+                  : t(`${SQ}.no_questions_short`, "بدون أسئلة")}
               </span>
-              {durationMin != null ? <span className="meta-pill meta-pill--muted">{tr("المدة")}: {Math.round(durationMin)} {tr("د")}</span> : null}
+              {durationMin != null ? (
+                <span className="meta-pill meta-pill--muted">
+                  {t(`${SQ}.duration_label`, "المدة")}: {Math.round(durationMin)} {t(`${SQ}.minute_abbr`, "د")}
+                </span>
+              ) : null}
             </div>
             {hasStructuredQuestions ? (
               <div className="quiz-progress-wrap" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPct}>
@@ -426,11 +695,28 @@ export function StudentQuizViewPage() {
             {scheduleBlocks && schedule.messageAr ? (
               <AlertMessage kind="error">{schedule.messageAr}</AlertMessage>
             ) : null}
+            {quizTimeUp && !isFinalized && !isAdminPreview && hasStructuredQuestions ? (
+              <AlertMessage kind="error">
+                <strong>{t(`${SQ}.timer_expired_title`, "انتهى وقت الاختبار")}</strong>{" "}
+                {t(`${SQ}.timer_expired_body`, "لم يعد بإمكانك تعديل الإجابات. إن كان ذلك خطأً فاتصل بالإدارة.")}
+              </AlertMessage>
+            ) : null}
             {desc.length > 0 ? <p className="quiz-desc">{desc}</p> : null}
-            {mediaUrl.trim() ? <VideoIntroBlock mediaUrl={mediaUrl} title={tr("مقطع الاختبار")} /> : null}
+            {mediaUrl.trim() ? (
+              <VideoIntroBlock mediaUrl={mediaUrl} title={t(`${SQ}.quiz_media_title`, "مقطع الاختبار")} />
+            ) : null}
             {answer != null && (answer.score != null || answer.grade != null) ? (
               <p className="quiz-score">
-                {tr("الدرجة")}: {String((answer as { score?: unknown }).score ?? (answer as { grade?: unknown }).grade)}
+                {t(`${SQ}.grade_label`, "الدرجة")}:{" "}
+                {String((answer as { score?: unknown }).score ?? (answer as { grade?: unknown }).grade)}
+              </p>
+            ) : null}
+            {durationMin != null && hasStructuredQuestions && !isAdminPreview && !scheduleBlocks ? (
+              <p className="muted small quiz-timer-intro-hint">{t(`${SQ}.timer_starts_on_questions`, "يبدأ العد عند فتح تبويب الأسئلة.")}</p>
+            ) : null}
+            {hasStructuredQuestions ? (
+              <p className="muted small quiz-intro-nav-hint">
+                {t(`${SQ}.intro_tabs_hint`, "استخدم تبويب «الأسئلة» للإجابة، و«النتيجة» لملخص التصحيح وإجاباتك بعد الإرسال.")}
               </p>
             ) : null}
           </AppTabPanel>
@@ -438,9 +724,33 @@ export function StudentQuizViewPage() {
           <AppTabPanel tabId="questions" groupId={`quiz-${quizId}`} hidden={quizTab !== "questions"} className="lesson-tab-panel">
             {hasStructuredQuestions ? (
               <>
-                <SectionTitle as="h3">{tr("الأسئلة")}</SectionTitle>
-                {isGraded ? (
-                  <p className="muted small">{tr("النتيجة مُتاحة — عرض إجاباتك أدناه (قراءة فقط).")}</p>
+                <SectionTitle as="h3">{t(`${SQ}.tab_questions`, "الأسئلة")}</SectionTitle>
+                {durationMin != null && !isAdminPreview && timerRemainingSec != null ? (
+                  <div className="quiz-timer-row" role="timer" aria-live="polite">
+                    <span
+                      className={
+                        timerRemainingSec > 0 && timerRemainingSec <= 120
+                          ? "meta-pill meta-pill--warn"
+                          : "meta-pill meta-pill--muted"
+                      }
+                    >
+                      {t(`${SQ}.timer_remaining`, "الوقت المتبقي")}: {formatCountdown(timerRemainingSec)}
+                    </span>
+                  </div>
+                ) : null}
+                {quizTimeUp && !isFinalized && !isAdminPreview ? (
+                  <AlertMessage kind="error">
+                    <strong>{t(`${SQ}.timer_expired_title`, "انتهى وقت الاختبار")}</strong>{" "}
+                    {t(`${SQ}.timer_expired_body`, "لم يعد بإمكانك تعديل الإجابات. إن كان ذلك خطأً فاتصل بالإدارة.")}
+                  </AlertMessage>
+                ) : null}
+                {isFinalized ? (
+                  <p className="muted small">
+                    {t(
+                      `${SQ}.finalized_questions_hint`,
+                      "تم إغلاق التسليم — عرض إجاباتك أدناه. للدرجات والملاحظات راجع تبويب «النتيجة».",
+                    )}
+                  </p>
                 ) : null}
                 <QuizTakerForm
                   rows={rows}
@@ -448,18 +758,34 @@ export function StudentQuizViewPage() {
                   onChange={onChange}
                   onSubmit={onSubmit}
                   submitting={submitting}
-                  readonly={formLocked}
-                  submitLabel={status === "pending" ? tr("تحديث الإجابات") : tr("إرسال الإجابات")}
-                  tr={tr}
+                  readonly={formLockedEffective}
+                  submitLabel={
+                    status === "pending"
+                      ? t(`${SQ}.update_answers`, "تحديث الإجابات")
+                      : t(`${SQ}.submit_answers`, "إرسال الإجابات")
+                  }
+                  answeredPill={t(`${SQ}.answered_pill`, "تم الإجابة")}
+                  trueLabel={t(`${SQ}.true_label`, "صح")}
+                  falseLabel={t(`${SQ}.false_label`, "خطأ")}
+                  answerPlaceholder={t(`${SQ}.your_answer_ph`, "إجابتك")}
                 />
                 {formErr ? <AlertMessage kind="error">{formErr}</AlertMessage> : null}
               </>
             ) : (
               <p className="muted small quiz-hint">
-                {tr("لا توجد أسئلة مضافة لهذا الاختبار حالياً. يرجى مراجعة الإدارة لإضافة الأسئلة ثم إعادة المحاولة.")}
+                {t(
+                  `${SQ}.no_questions_body`,
+                  "لا توجد أسئلة مضافة لهذا الاختبار حالياً. يرجى مراجعة الإدارة لإضافة الأسئلة ثم إعادة المحاولة.",
+                )}
               </p>
             )}
           </AppTabPanel>
+
+          {hasStructuredQuestions ? (
+            <AppTabPanel tabId="results" groupId={`quiz-${quizId}`} hidden={quizTab !== "results"} className="lesson-tab-panel">
+              <QuizStudentResultsView questions={questionDefs} answer={answer} t={t} />
+            </AppTabPanel>
+          ) : null}
         </div>
       )}
     </DashboardLayout>

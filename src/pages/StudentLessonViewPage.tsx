@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
+import { LessonAttachmentsView } from "../components/LessonAttachmentsView";
 import { LessonContentView } from "../components/LessonContentView";
 import { useIsAdminPreview } from "../context/AdminPreviewContext";
 import { useAuth } from "../context/AuthContext";
@@ -13,8 +14,9 @@ import {
 } from "../services/lessonAccessService";
 import { isStudentEnrolledInCourse } from "../services/myCoursesService";
 import { lessonCommentsService } from "../services/lessonCommentsService";
+import { lessonAttachmentsService } from "../services/lessonAttachmentsService";
 import { lessonsService } from "../services/lessonsService";
-import type { Lesson, LessonComment, PlatformUser } from "../types";
+import type { Lesson, LessonAttachment, LessonComment, PlatformUser } from "../types";
 import { formatFirestoreTime } from "../utils/firestoreTime";
 import { lessonContentTypeLabel } from "../utils/lessonContentTypeLabel";
 import { AlertMessage, AppTabPanel, AppTabs, Avatar, EmptyState, PageToolbar, Panel, SectionTitle } from "../components/ui";
@@ -25,6 +27,7 @@ export function StudentLessonViewPage() {
   const { user, ready } = useAuth();
   const isAdminPreview = useIsAdminPreview();
   const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [lessonAttachments, setLessonAttachments] = useState<LessonAttachment[]>([]);
   const [quizzes, setQuizzes] = useState<LessonQuizItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -44,14 +47,19 @@ export function StudentLessonViewPage() {
       setErr("");
       if (isAdminPreview) {
         try {
-          const L = await lessonsService.getById(courseId, lessonId);
+          const [L, qz, att] = await Promise.all([
+            lessonsService.getById(courseId, lessonId),
+            getLessonQuizzesForAdminPreview(lessonId),
+            lessonAttachmentsService.listByLessonId(lessonId).catch(() => [] as LessonAttachment[]),
+          ]);
           setLesson(L);
-          const qz = await getLessonQuizzesForAdminPreview(lessonId);
           setQuizzes(qz);
+          setLessonAttachments(att);
         } catch {
           setErr(t("web_pages.student_lesson.load_failed", "تعذر تحميل الدرس (صلاحيات أو الدرس غير موجود)."));
           setLesson(null);
           setQuizzes([]);
+          setLessonAttachments([]);
         } finally {
           if (mode === "initial") {
             setLoading(false);
@@ -66,6 +74,7 @@ export function StudentLessonViewPage() {
         setErr(t("web_pages.student_lesson.not_enrolled", "ليس لديك صلاحية لعرض دروس هذا المقرر."));
         setLesson(null);
         setQuizzes([]);
+        setLessonAttachments([]);
         if (mode === "initial") {
           setLoading(false);
         } else {
@@ -78,6 +87,7 @@ export function StudentLessonViewPage() {
         setErr(access.message ?? t("web_pages.student_lesson.cannot_open", "لا يمكن فتح هذا الدرس."));
         setLesson(null);
         setQuizzes([]);
+        setLessonAttachments([]);
         if (mode === "initial") {
           setLoading(false);
         } else {
@@ -86,14 +96,19 @@ export function StudentLessonViewPage() {
         return;
       }
       try {
-        const L = await lessonsService.getById(courseId, lessonId);
+        const [L, qz, att] = await Promise.all([
+          lessonsService.getById(courseId, lessonId),
+          getLessonQuizzesForStudent(user.uid, lessonId),
+          lessonAttachmentsService.listByLessonId(lessonId).catch(() => [] as LessonAttachment[]),
+        ]);
         setLesson(L);
-        const qz = await getLessonQuizzesForStudent(user.uid, lessonId);
         setQuizzes(qz);
+        setLessonAttachments(att);
       } catch {
         setErr(t("web_pages.student_lesson.load_failed", "تعذر تحميل الدرس (صلاحيات أو الدرس غير موجود)."));
         setLesson(null);
         setQuizzes([]);
+        setLessonAttachments([]);
       } finally {
         if (mode === "initial") {
           setLoading(false);
@@ -175,6 +190,7 @@ export function StudentLessonViewPage() {
           courseId={courseId}
           lessonId={lessonId}
           lesson={lesson}
+          lessonAttachments={lessonAttachments}
           quizzes={quizzes}
           onRefresh={() => void runLoad("refresh")}
           refreshing={refreshing}
@@ -188,6 +204,7 @@ function StudentLessonBody({
   courseId,
   lessonId,
   lesson,
+  lessonAttachments,
   quizzes,
   onRefresh,
   refreshing,
@@ -195,6 +212,7 @@ function StudentLessonBody({
   courseId: string;
   lessonId: string;
   lesson: Lesson;
+  lessonAttachments: LessonAttachment[];
   quizzes: LessonQuizItem[];
   onRefresh: () => void;
   refreshing: boolean;
@@ -343,20 +361,46 @@ function StudentLessonBody({
 
       <AppTabPanel tabId="attachments" groupId={`lesson-${lessonId}`} hidden={activeTab !== "attachments"} className="lesson-tab-panel">
         <SectionTitle as="h3">{t("web_pages.student_lesson.attachments_heading", "مرفقات الدرس")}</SectionTitle>
-        {mediaItems.length === 0 ? (
-          <EmptyState message={t("web_pages.student_lesson.attachments_empty", "لا توجد مرفقات مباشرة لهذا الدرس.")} />
+        <p className="muted small lesson-attach-tab-lede">
+          {t(
+            "web_pages.student_lesson.attachments_firestore_hint",
+            "القائمة أدناه من مرفقات الدرس في السحابة (نفس تطبيق الجوال). روابط الفيديو/الPDF/الصوت في حقول الدرس تظهر في تبويب «المشاهدة».",
+          )}
+        </p>
+        {lessonAttachments.length > 0 ? (
+          <LessonAttachmentsView items={lessonAttachments} />
+        ) : mediaItems.length === 0 ? (
+          <EmptyState
+            message={t(
+              "web_pages.student_lesson.attachments_empty_all",
+              "لا توجد مرفقات في قائمة الدرس ولا روابط وسائط في بيانات الدرس.",
+            )}
+          />
         ) : (
-          <ul className="lesson-attachments-list">
-            {mediaItems.map((m) => (
-              <li key={m.key} className="lesson-attachment-item">
-                <span className="meta-pill meta-pill--muted">{m.label}</span>
-                <a className="inline-link" href={String(m.value)} target="_blank" rel="noopener noreferrer">
-                  {t("web_pages.student_lesson.open_attachment", "فتح المرفق")}
-                </a>
-              </li>
-            ))}
-          </ul>
+          <p className="muted small lesson-attach-tab-lede">
+            {t(
+              "web_pages.student_lesson.attachments_only_fields",
+              "لا توجد مرفقات في قائمة السحابة؛ الروابط أدناه من حقول الدرس (يمكن أيضاً مشاهدتها من تبويب «المشاهدة»).",
+            )}
+          </p>
         )}
+        {mediaItems.length > 0 ? (
+          <>
+            <SectionTitle as="h4" className="lesson-attach-secondary-title">
+              {t("web_pages.student_lesson.attachments_lesson_fields", "روابط إضافية من بيانات الدرس")}
+            </SectionTitle>
+            <ul className="lesson-attachments-list">
+              {mediaItems.map((m) => (
+                <li key={m.key} className="lesson-attachment-item">
+                  <span className="meta-pill meta-pill--muted">{m.label}</span>
+                  <a className="inline-link" href={String(m.value)} target="_blank" rel="noopener noreferrer">
+                    {t("web_pages.student_lesson.open_attachment", "فتح المرفق")}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
       </AppTabPanel>
 
       <AppTabPanel tabId="comments" groupId={`lesson-${lessonId}`} hidden={activeTab !== "comments"} className="lesson-tab-panel">
@@ -413,26 +457,50 @@ function StudentLessonBody({
         <SectionTitle as="h3">{t("web_pages.student_lesson.quizzes_heading", "اختبارات الدرس")}</SectionTitle>
         {quizzes.length > 0 ? (
           <ul className="lesson-quiz-list">
-            {quizzes.map((q) => (
-              <li key={q.quizFileId}>
-                <div className="lesson-quiz-row">
-                  <span className="lesson-quiz-title">{q.title}</span>
-                  <span className="lesson-quiz-pill" data-st={q.status === "none" ? "none" : q.status}>
-                    {q.status === "graded"
-                      ? t("web_pages.student_lesson.quiz_graded", "مُتاح / مقيّم")
+            {quizzes.map((q) => {
+              const structured = q.hasStructuredQuestions === true;
+              const hasSubmission = q.status !== "none";
+              const useSplitLinks = structured && hasSubmission;
+              const singleLinkTab =
+                structured &&
+                (q.status === "graded" || q.status === "approved" || q.status === "rejected")
+                  ? "results"
+                  : q.status === "pending"
+                    ? "questions"
+                    : "intro";
+              const primaryTab = useSplitLinks ? "questions" : singleLinkTab;
+              const statusLabel =
+                q.status === "graded"
+                  ? t("web_pages.student_lesson.quiz_graded", "مُتاح / مقيّم")
+                  : q.status === "approved"
+                    ? t("web_pages.student_lesson.quiz_approved", "مقبول")
+                    : q.status === "rejected"
+                      ? t("web_pages.student_lesson.quiz_rejected", "مرفوض")
                       : q.status === "pending"
                         ? t("web_pages.student_lesson.quiz_pending", "مُرسل — بانتظار التصحيح")
-                        : t("web_pages.student_lesson.quiz_none", "لم يُرسل بعد")}
-                  </span>
-                  <Link
-                    className="ghost-btn"
-                    to={`${viewRoot}/course/${courseId}/lesson/${lessonId}/quiz/${q.quizFileId}`}
-                  >
-                    {t("web_pages.student_lesson.open_quiz", "فتح الاختبار")}
-                  </Link>
-                </div>
-              </li>
-            ))}
+                        : t("web_pages.student_lesson.quiz_none", "لم يُرسل بعد");
+              const quizBase = `${viewRoot}/course/${courseId}/lesson/${lessonId}/quiz/${q.quizFileId}`;
+              return (
+                <li key={q.quizFileId}>
+                  <div className="lesson-quiz-row">
+                    <span className="lesson-quiz-title">{q.title}</span>
+                    <span className="lesson-quiz-pill" data-st={q.status === "none" ? "none" : q.status}>
+                      {statusLabel}
+                    </span>
+                    <div className="lesson-quiz-actions">
+                      <Link className="ghost-btn" to={`${quizBase}?tab=${primaryTab}`}>
+                        {t("web_pages.student_lesson.open_quiz", "فتح الاختبار")}
+                      </Link>
+                      {useSplitLinks ? (
+                        <Link className="ghost-btn lesson-quiz-results-btn" to={`${quizBase}?tab=results`}>
+                          {t("web_pages.student_lesson.open_quiz_results", "النتيجة")}
+                        </Link>
+                      ) : null}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <EmptyState message={t("web_pages.student_lesson.quizzes_empty", "لا توجد اختبارات لهذا الدرس بعد.")} />

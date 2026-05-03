@@ -68,6 +68,13 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // مرفقات الدرس — نفس Flutter: lesson_attachments/{lessonId}/lesson_attachments/{id}
+    // (معرّف الدرس فقط في المسار؛ تقييد إضافي يتطلّب تكرار courseId في المستندات)
+    match /lesson_attachments/{lessonId}/lesson_attachments/{attachmentId} {
+      allow read: if isAdmin() || signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
     // تقدم الطالب لكل درس (فتح/قفل) — lessonAccessService + Flutter
     match /student_lesson_progress/{studentId}/student_lesson_progress/{lessonId} {
       allow read: if isAdmin() || isOwnerUid(studentId);
