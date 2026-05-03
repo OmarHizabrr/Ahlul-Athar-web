@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { AlertMessage, ContentList, ContentListItem, EmptyState, PageToolbar, Panel, SectionTitle } from "../components/ui";
 import { useI18n } from "../context/I18nContext";
+import { dashboardBackLinkState } from "../utils/dashboardBackNavigation";
 import { DashboardLayout } from "./DashboardLayout";
 import { directoryService } from "../services/directoryService";
 import { myCoursesService } from "../services/myCoursesService";
@@ -92,6 +93,8 @@ export function AdminStudentViewPage() {
   };
 
   const dash = t("web_shell.dash_em", "—");
+  const backToStudent = studentId ? `/admin/student/${studentId}` : "/admin/students";
+  const backState = dashboardBackLinkState(backToStudent);
 
   if (!studentId) {
     return (
@@ -172,7 +175,7 @@ export function AdminStudentViewPage() {
                       </p>
                     </div>
                     <div className="course-actions">
-                      <Link className="ghost-btn toolbar-btn" to={`/admin/folder/${f.id}`}>
+                      <Link className="ghost-btn toolbar-btn" to={`/admin/folder/${f.id}`} {...backState}>
                         {t(`${V}.open_folder`, "فتح المجلد")}
                       </Link>
                     </div>
@@ -197,10 +200,10 @@ export function AdminStudentViewPage() {
                       <p className="muted small">{c.courseDescription || dash}</p>
                     </div>
                     <div className="course-actions">
-                      <Link className="ghost-btn toolbar-btn" to={`/admin/course/${c.courseId}/lessons`}>
+                      <Link className="ghost-btn toolbar-btn" to={`/admin/course/${c.courseId}/lessons`} {...backState}>
                         {t(`${V}.open_lessons`, "فتح الدروس")}
                       </Link>
-                      <Link className="ghost-btn toolbar-btn" to={`/admin/preview/course/${c.courseId}`}>
+                      <Link className="ghost-btn toolbar-btn" to={`/admin/preview/course/${c.courseId}`} {...backState}>
                         {t(`${V}.preview_student`, "معاينة كطالب")}
                       </Link>
                     </div>
@@ -229,11 +232,11 @@ export function AdminStudentViewPage() {
                     </div>
                     <div className="course-actions">
                       {r.requestType === "folder" ? (
-                        <Link className="ghost-btn toolbar-btn" to={`/admin/folder/${r.targetId}`}>
+                        <Link className="ghost-btn toolbar-btn" to={`/admin/folder/${r.targetId}`} {...backState}>
                           {t(`${V}.open_target`, "فتح الهدف")}
                         </Link>
                       ) : (
-                        <Link className="ghost-btn toolbar-btn" to={`/admin/course/${r.targetId}/lessons`}>
+                        <Link className="ghost-btn toolbar-btn" to={`/admin/course/${r.targetId}/lessons`} {...backState}>
                           {t(`${V}.open_target`, "فتح الهدف")}
                         </Link>
                       )}

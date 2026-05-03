@@ -8,6 +8,7 @@ import { coursesService } from "../services/coursesService";
 import { foldersService } from "../services/foldersService";
 import { myCoursesService } from "../services/myCoursesService";
 import type { Course, EnrollmentRequest, Folder } from "../types";
+import { dashboardBackLinkState } from "../utils/dashboardBackNavigation";
 import { DashboardLayout } from "./DashboardLayout";
 
 type TabId = "courses" | "files";
@@ -303,7 +304,11 @@ export function StudentExplorePage() {
                     ) : null}
                     {req?.status === "pending" ? <span className="meta-pill meta-pill--info">{STUDENT_ACTION_LABELS.pending}</span> : null}
                     {canOpen ? (
-                      <Link to={`/student/course/${course.id}`} className="primary-btn">
+                      <Link
+                        to={`/student/course/${course.id}`}
+                        className="primary-btn"
+                        {...dashboardBackLinkState("/student/explore")}
+                      >
                         {STUDENT_ACTION_LABELS.open}
                       </Link>
                     ) : isPublic ? (

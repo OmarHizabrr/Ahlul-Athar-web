@@ -1588,10 +1588,73 @@ input:focus {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 0.45rem;
   padding: 0.2rem 0.15rem 0.5rem;
   border-bottom: 1px solid var(--theme-border);
   flex-shrink: 0;
   overflow: visible;
+}
+
+.dashboard-topbar--has-back {
+  justify-content: space-between;
+}
+
+.dashboard-topbar--has-back .topbar-trailing {
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.topbar-leading {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.topbar-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.3rem 0.55rem 0.3rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--theme-border-strong);
+  background: var(--theme-surface-soft);
+  color: var(--theme-text);
+  text-decoration: none;
+  font-size: 0.86rem;
+  font-weight: 700;
+  touch-action: manipulation;
+}
+
+.topbar-back-btn:hover {
+  border-color: var(--theme-border-strong);
+  background: color-mix(in srgb, var(--theme-surface) 84%, var(--theme-bg) 16%);
+}
+
+.topbar-back-text {
+  max-width: 8.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .topbar-back-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .topbar-back-btn {
+    padding: 0.3rem;
+    border-radius: var(--ah-radius-sm);
+  }
 }
 
 .topbar-trailing {
@@ -3597,11 +3660,31 @@ button:disabled {
   display: none;
   flex-shrink: 0;
   align-items: center;
+  gap: 0.45rem;
   padding: 0.45rem 0.35rem 0.55rem;
   border-bottom: 1px solid color-mix(in srgb, var(--ah-brand-navy) 22%, var(--theme-border));
   margin: 0 0 0.35rem;
   background: linear-gradient(120deg, var(--theme-primary-b), color-mix(in srgb, var(--theme-primary-a) 55%, var(--theme-primary-b)));
   border-radius: 0 0 var(--ah-radius-sm) var(--ah-radius-sm);
+}
+
+.mobile-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--ah-radius-sm);
+  border: 1px solid color-mix(in srgb, #fff 22%, transparent);
+  background: color-mix(in srgb, #fff 12%, transparent);
+  color: #f8fafc;
+  text-decoration: none;
+  touch-action: manipulation;
+}
+
+.mobile-back-btn:hover {
+  border-color: color-mix(in srgb, var(--ah-brand-gold) 45%, #fff);
+  background: color-mix(in srgb, #fff 18%, transparent);
 }
 
 .mobile-menu-btn {

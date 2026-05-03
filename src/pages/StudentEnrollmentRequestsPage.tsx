@@ -17,6 +17,7 @@ import { coursesService } from "../services/coursesService";
 import { myCoursesService } from "../services/myCoursesService";
 import type { EnrollmentRequest } from "../types";
 import { formatFirestoreTime } from "../utils/firestoreTime";
+import { dashboardBackLinkState } from "../utils/dashboardBackNavigation";
 import { DashboardLayout } from "./DashboardLayout";
 import { AppTabPanel, AppTabs } from "../components/ui";
 
@@ -272,7 +273,11 @@ export function StudentEnrollmentRequestsPage() {
                         ) : null}
                         <div className="course-actions">
                           {r.status === "approved" || inMy ? (
-                            <Link className="primary-btn" to={openHref}>
+                            <Link
+                              className="primary-btn"
+                              to={openHref}
+                              {...dashboardBackLinkState("/student/enrollment-requests")}
+                            >
                               {t("web_pages.student_requests.open", "فتح")}
                             </Link>
                           ) : null}

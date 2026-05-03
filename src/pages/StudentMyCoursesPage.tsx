@@ -13,6 +13,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../context/I18nContext";
 import { cn } from "../utils/cn";
+import { dashboardBackLinkState } from "../utils/dashboardBackNavigation";
 import { DashboardLayout } from "./DashboardLayout";
 import { myCoursesService } from "../services/myCoursesService";
 import type { MyCourseEntry } from "../types";
@@ -193,7 +194,11 @@ export function StudentMyCoursesPage() {
                   ) : null}
                 </div>
                 <div className="course-actions">
-                  <Link to={`/student/course/${c.courseId}`} className="primary-btn">
+                  <Link
+                    to={`/student/course/${c.courseId}`}
+                    className="primary-btn"
+                    {...dashboardBackLinkState("/student/mycourses")}
+                  >
                     {t("web_pages.student_mycourses.open_course_lessons", "فتح المقرر والدروس")}
                   </Link>
                 </div>

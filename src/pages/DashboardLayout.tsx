@@ -18,6 +18,8 @@ import {
   IoSettingsOutline,
 } from "react-icons/io5";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { IoChevronForwardOutline } from "react-icons/io5";
+import { resolveDashboardBackHref } from "../utils/dashboardBackNavigation";
 import { DashboardTopBar } from "../components/DashboardTopBar";
 import { ButtonBusyLabel } from "../components/ButtonBusyLabel";
 import { SidebarDrawerLink } from "../components/SidebarDrawerLink";
@@ -34,9 +36,11 @@ interface DashboardLayoutProps {
   /** سطر توضيحي تحت العنوان (نفس الاستعمال في واجهة التطبيق) */
   lede?: ReactNode;
   children: ReactNode;
+  /** مسار صريح للرجوع، أو `null` لإخفاء زر الرجوع رغم الاكتشاف التلقائي */
+  backTo?: string | null;
 }
 
-export function DashboardLayout({ role, title, lede, children }: DashboardLayoutProps) {
+export function DashboardLayout({ role, title, lede, children, backTo }: DashboardLayoutProps) {
   const { t } = useI18n();
   const { user, ready } = useAuth();
   const navigate = useNavigate();
@@ -107,6 +111,10 @@ export function DashboardLayout({ role, title, lede, children }: DashboardLayout
 
   const displayName = user?.displayName || user?.email || t("web_shell.topbar_user_fallback", "مستخدم");
   const photo = user?.photoURL;
+
+  const backHref =
+    backTo === null ? null : backTo ?? resolveDashboardBackHref(location.pathname, location.state);
+  const backLabel = t("web_shell.dashboard_back_aria", "الرجوع للصفحة السابقة");
 
   return (
     <main className={navOpen ? "dashboard-page dashboard-page--nav-open" : "dashboard-page"}>
@@ -324,8 +332,13 @@ export function DashboardLayout({ role, title, lede, children }: DashboardLayout
           >
             <IoMenuOutline size={28} />
           </button>
+          {backHref ? (
+            <Link to={backHref} className="mobile-back-btn" aria-label={backLabel} title={backLabel}>
+              <IoChevronForwardOutline size={26} aria-hidden />
+            </Link>
+          ) : null}
         </div>
-        <DashboardTopBar role={role} />
+        <DashboardTopBar role={role} backHref={backHref} backLabel={backLabel} />
         <section className="content">
           <div className="content-header">
             <h1>{title}</h1>

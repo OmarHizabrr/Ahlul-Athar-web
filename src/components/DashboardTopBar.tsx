@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { IoChevronDown, IoNotificationsOutline } from "react-icons/io5";
+import { IoChevronDown, IoChevronForwardOutline, IoNotificationsOutline } from "react-icons/io5";
 import { Link, useNavigate } from "react-router-dom";
 import { ButtonBusyLabel } from "./ButtonBusyLabel";
 import { Avatar } from "./ui";
@@ -14,7 +14,15 @@ import type { UserRole } from "../types";
 
 const S = "web_shell" as const;
 
-export function DashboardTopBar({ role }: { role: UserRole }) {
+export function DashboardTopBar({
+  role,
+  backHref,
+  backLabel,
+}: {
+  role: UserRole;
+  backHref?: string | null;
+  backLabel?: string;
+}) {
   const { user, ready } = useAuth();
   const { t } = useI18n();
   const { mode, setMode } = useTheme();
@@ -110,8 +118,19 @@ export function DashboardTopBar({ role }: { role: UserRole }) {
   const name = user.displayName || user.email || t(`${S}.topbar_user_fallback`, "مستخدم");
   const photo = user.photoURL;
 
+  const showBack = Boolean(backHref);
+  const backAria = backLabel ?? t(`${S}.dashboard_back_aria`, "الرجوع للصفحة السابقة");
+
   return (
-    <header className="dashboard-topbar">
+    <header className={showBack ? "dashboard-topbar dashboard-topbar--has-back" : "dashboard-topbar"}>
+      {showBack && backHref ? (
+        <div className="topbar-leading">
+          <Link to={backHref} className="topbar-back-btn" aria-label={backAria} title={backAria}>
+            <IoChevronForwardOutline className="topbar-back-icon" aria-hidden size={22} />
+            <span className="topbar-back-text">{t(`${S}.dashboard_back`, "رجوع")}</span>
+          </Link>
+        </div>
+      ) : null}
       <div className="topbar-trailing">
         <div className="topbar-trailing-scroll">
           <label className="theme-switcher" title={t(`${S}.topbar_theme`, "المظهر")}>

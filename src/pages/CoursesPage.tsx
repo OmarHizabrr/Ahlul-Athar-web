@@ -20,6 +20,7 @@ import {
   SectionTitle,
 } from "../components/ui";
 import { IoEyeOutline } from "react-icons/io5";
+import { dashboardBackLinkState } from "../utils/dashboardBackNavigation";
 import { DashboardLayout } from "./DashboardLayout";
 
 type CourseForm = {
@@ -347,6 +348,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
                       className="icon-tool-btn"
                       title={t("web_pages.courses.preview_title", "معاينة واجهة الطالب (المقرر والدروس)")}
                       aria-label={t("web_pages.courses.preview_aria", "معاينة المقرر كطالب")}
+                      {...dashboardBackLinkState("/admin/courses")}
                     >
                       <IoEyeOutline size={20} />
                       <span className="icon-tool-label">{t("web_pages.courses.preview_label", "معاينة")}</span>
@@ -354,6 +356,7 @@ export function CoursesPage({ role }: { role: UserRole }) {
                     <Link
                       to={`/admin/course/${course.id}/lessons`}
                       className="primary-btn"
+                      {...dashboardBackLinkState("/admin/courses")}
                     >
                       {t("web_pages.courses.lessons", "دروس")}
                     </Link>
@@ -516,7 +519,7 @@ function StudentCourseRowActions({
   if (enrolled) {
     return (
       <>
-        <Link to={openCourse} className="primary-btn">
+        <Link to={openCourse} className="primary-btn" {...dashboardBackLinkState("/student/courses")}>
           {labels.openCourse}
         </Link>
         <span className="meta-pill meta-pill--ok" title={t("web_pages.courses.row_enrolled_title", "ضمن مقرراتك")}>
@@ -534,7 +537,7 @@ function StudentCourseRowActions({
   }
   if (req?.status === "approved") {
     return (
-      <Link to={openCourse} className="primary-btn">
+      <Link to={openCourse} className="primary-btn" {...dashboardBackLinkState("/student/courses")}>
         {labels.openCourse}
       </Link>
     );
@@ -563,7 +566,7 @@ function StudentCourseRowActions({
   if (isPublic) {
     return (
       <>
-        <Link to={openCourse} className="ghost-btn">
+        <Link to={openCourse} className="ghost-btn" {...dashboardBackLinkState("/student/courses")}>
           {t("web_pages.courses.row_course_details", "تفاصيل المقرر")}
         </Link>
         <button
@@ -580,7 +583,7 @@ function StudentCourseRowActions({
   }
   return (
     <>
-      <Link to={openCourse} className="ghost-btn">
+      <Link to={openCourse} className="ghost-btn" {...dashboardBackLinkState("/student/courses")}>
         {t("web_pages.courses.row_course_details", "تفاصيل المقرر")}
       </Link>
       <button

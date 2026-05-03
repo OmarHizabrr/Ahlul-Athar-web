@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../../components/ButtonBusyLabel";
 import {
   Avatar,
@@ -11,6 +12,7 @@ import {
 import { useI18n } from "../../context/I18nContext";
 import type { EnrollmentRequest } from "../../types";
 import { formatFirestoreTime } from "../../utils/firestoreTime";
+import { dashboardBackLinkState } from "../../utils/dashboardBackNavigation";
 import { emptyRequestsMessage, requestStatusLabel } from "./EnrollmentRequestHelpers";
 
 type AdminEnrollmentRequestsPanelProps = {
@@ -36,6 +38,7 @@ export function AdminEnrollmentRequestsPanel({
 }: AdminEnrollmentRequestsPanelProps) {
   const { t } = useI18n();
   const busy = submitting || requestsLoading;
+  const backToRequests = dashboardBackLinkState("/admin/enrollment-requests");
   return (
     <section className="requests-panel">
       <div className="requests-header">
@@ -139,6 +142,26 @@ export function AdminEnrollmentRequestsPanel({
                 </p>
               ) : null}
               <div className="course-actions">
+                <Link
+                  className="ghost-btn toolbar-btn"
+                  to={`/admin/student/${request.studentId}`}
+                  {...backToRequests}
+                >
+                  {t("web_shell.enrollment_open_student", "ملف الطالب")}
+                </Link>
+                <Link
+                  className="ghost-btn toolbar-btn"
+                  to={
+                    request.requestType === "folder"
+                      ? `/admin/folder/${request.targetId}`
+                      : `/admin/course/${request.targetId}/lessons`
+                  }
+                  {...backToRequests}
+                >
+                  {request.requestType === "folder"
+                    ? t("web_shell.enrollment_open_folder", "فتح المجلد")
+                    : t("web_shell.enrollment_open_course", "فتح المقرر")}
+                </Link>
                 {request.status === "pending" ? (
                   <>
                     <button
