@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
-import { AlertMessage, Avatar, ContentList, ContentListItem, EmptyState, PageToolbar, StatTile } from "../components/ui";
+import { AlertMessage, AppModal, Avatar, ContentList, ContentListItem, EmptyState, PageToolbar, StatTile } from "../components/ui";
 import { useI18n } from "../context/I18nContext";
 import { DashboardLayout } from "./DashboardLayout";
 import { directoryService } from "../services/directoryService";
-import type { StudentRecord } from "../types";
+import { myCoursesService } from "../services/myCoursesService";
+import { coursesService } from "../services/coursesService";
+import { foldersService } from "../services/foldersService";
+import type { Course, Folder, MyCourseEntry, StudentRecord } from "../types";
+import { formatFirestoreTime } from "../utils/firestoreTime";
 
 const S = "web_pages.admin_students" as const;
 type TFn = (key: string, fallback?: string) => string;
@@ -33,6 +37,27 @@ export function AdminStudentsPage() {
   const [sortBy, setSortBy] = useState<"name" | "date">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [quickLinkOpen, setQuickLinkOpen] = useState(false);
+  const [quickLinkMode, setQuickLinkMode] = useState<"course" | "folder">("course");
+  const [quickStudent, setQuickStudent] = useState<StudentRecord | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [targetId, setTargetId] = useState("");
+  const [activationLifetime, setActivationLifetime] = useState(true);
+  const [activationDays, setActivationDays] = useState(30);
+  const [quickUnlinkOpen, setQuickUnlinkOpen] = useState(false);
+  const [unlinkStudent, setUnlinkStudent] = useState<StudentRecord | null>(null);
+  const [unlinkCourses, setUnlinkCourses] = useState<MyCourseEntry[]>([]);
+  const [unlinkFolders, setUnlinkFolders] = useState<
+    (Folder & {
+      isActivated?: boolean;
+      isLifetime?: boolean;
+      expiresAt?: string | null;
+      joinedAt?: unknown;
+      linkedByName?: string;
+      linkedAt?: unknown;
+    })[]
+  >([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -91,6 +116,133 @@ export function AdminStudentsPage() {
       await load();
     } catch {
       setMessage(t(`${S}.patch_failed`, "تعذر تحديث حالة الطالب."));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const openQuickLinkModal = async (student: StudentRecord, mode: "course" | "folder") => {
+    setBusyId(student.uid);
+    setMessage(null);
+    try {
+      if (mode === "course") {
+        const allCourses = await coursesService.listCoursesForRole("admin");
+        setCourses(allCourses);
+        setFolders([]);
+      } else {
+        const allFolders = await foldersService.listFoldersForAdmin();
+        setFolders(allFolders);
+        setCourses([]);
+      }
+      setQuickStudent(student);
+      setQuickLinkMode(mode);
+      setTargetId("");
+      setActivationLifetime(true);
+      setActivationDays(30);
+      setQuickLinkOpen(true);
+    } catch {
+      setMessage(
+        mode === "course"
+          ? t(`${S}.load_courses_failed`, "تعذر تحميل الدورات.")
+          : t(`${S}.load_folders_failed`, "تعذر تحميل المجلدات."),
+      );
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const submitQuickLink = async () => {
+    if (!quickStudent || !targetId) return;
+    setBusyId(quickStudent.uid);
+    setMessage(null);
+    try {
+      const expiresAt = activationLifetime ? null : new Date(Date.now() + Math.max(1, activationDays) * 86_400_000);
+      if (quickLinkMode === "course") {
+        const course = courses.find((c) => c.id === targetId);
+        if (!course) return;
+        await coursesService.adminAddStudentToCourse(
+          course,
+          {
+            studentId: quickStudent.uid,
+            studentName: quickStudent.displayName || quickStudent.uid,
+            studentEmail: quickStudent.email,
+            studentPhone: quickStudent.phone,
+            studentPhotoURL: quickStudent.photoURL,
+          },
+          { isLifetime: activationLifetime, days: Math.max(1, activationDays), expiresAt },
+        );
+        setMessage(t(`${S}.link_course_ok`, "تم ربط الطالب بالدورة."));
+      } else {
+        const folder = folders.find((f) => f.id === targetId);
+        if (!folder) return;
+        await foldersService.addMemberToFolder({
+          folder,
+          member: quickStudent,
+          activation: { isLifetime: activationLifetime, days: Math.max(1, activationDays), expiresAt },
+        });
+        setMessage(t(`${S}.link_folder_ok`, "تم ربط الطالب بالمجلد."));
+      }
+      setQuickLinkOpen(false);
+    } catch {
+      setMessage(
+        quickLinkMode === "course"
+          ? t(`${S}.link_course_failed`, "تعذر ربط الطالب بالدورة.")
+          : t(`${S}.link_folder_failed`, "تعذر ربط الطالب بالمجلد."),
+      );
+    } finally {
+      setBusyId(quickStudent.uid);
+      setBusyId(null);
+    }
+  };
+
+  const openQuickUnlinkModal = async (student: StudentRecord) => {
+    setBusyId(student.uid);
+    setMessage(null);
+    try {
+      const [mineCourses, mineFolders] = await Promise.all([
+        myCoursesService.listForStudent(student.uid),
+        foldersService.listMyFoldersForStudent(student.uid),
+      ]);
+      setUnlinkStudent(student);
+      setUnlinkCourses(mineCourses);
+      setUnlinkFolders(mineFolders);
+      setQuickUnlinkOpen(true);
+    } catch {
+      setMessage(t(`${S}.unlink_load_failed`, "تعذر تحميل ارتباطات الطالب الحالية."));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const unlinkFromCourse = async (courseId: string, courseTitle: string) => {
+    if (!unlinkStudent) return;
+    const ok = window.confirm(`${t(`${S}.unlink_course_confirm`, "إزالة من الدورة")}: ${courseTitle}؟`);
+    if (!ok) return;
+    setBusyId(unlinkStudent.uid);
+    setMessage(null);
+    try {
+      await coursesService.adminRemoveStudentFromCourse(courseId, unlinkStudent.uid);
+      setUnlinkCourses((prev) => prev.filter((c) => c.courseId !== courseId));
+      setMessage(t(`${S}.unlink_course_ok`, "تمت إزالة الطالب من الدورة."));
+    } catch {
+      setMessage(t(`${S}.unlink_course_failed`, "تعذر إزالة الطالب من الدورة."));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const unlinkFromFolder = async (folderId: string, folderName: string) => {
+    if (!unlinkStudent) return;
+    const ok = window.confirm(`${t(`${S}.unlink_folder_confirm`, "إزالة من المجلد")}: ${folderName}؟`);
+    if (!ok) return;
+    setBusyId(unlinkStudent.uid);
+    setMessage(null);
+    try {
+      await foldersService.removeMemberFromFolder(folderId, unlinkStudent.uid);
+      setUnlinkFolders((prev) => prev.filter((f) => f.id !== folderId));
+      setMessage(t(`${S}.unlink_folder_ok`, "تمت إزالة الطالب من المجلد."));
+    } catch {
+      setMessage(t(`${S}.unlink_folder_failed`, "تعذر إزالة الطالب من المجلد."));
     } finally {
       setBusyId(null);
     }
@@ -187,6 +339,30 @@ export function AdminStudentsPage() {
                       {s.isActivated === false ? t(`${S}.btn_activate`, "تفعيل") : t(`${S}.btn_deactivate`, "تعطيل")}
                     </ButtonBusyLabel>
                   </button>
+                  <button
+                    type="button"
+                    className="ghost-btn toolbar-btn"
+                    disabled={busyId === s.uid || loading}
+                    onClick={() => void openQuickLinkModal(s, "course")}
+                  >
+                    <ButtonBusyLabel busy={busyId === s.uid}>{t(`${S}.link_course_btn`, "إلحاق بدورة")}</ButtonBusyLabel>
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-btn toolbar-btn"
+                    disabled={busyId === s.uid || loading}
+                    onClick={() => void openQuickLinkModal(s, "folder")}
+                  >
+                    <ButtonBusyLabel busy={busyId === s.uid}>{t(`${S}.link_folder_btn`, "إلحاق بمجلد")}</ButtonBusyLabel>
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-btn toolbar-btn"
+                    disabled={busyId === s.uid || loading}
+                    onClick={() => void openQuickUnlinkModal(s)}
+                  >
+                    <ButtonBusyLabel busy={busyId === s.uid}>{t(`${S}.unlink_btn`, "فك الارتباط")}</ButtonBusyLabel>
+                  </button>
                   <Link className="ghost-btn toolbar-btn" to={`/admin/student/${s.uid}`}>
                     {t(`${S}.open_profile`, "فتح الملف")}
                   </Link>
@@ -196,6 +372,136 @@ export function AdminStudentsPage() {
           })}
         </ContentList>
       )}
+      <AppModal
+        open={quickLinkOpen}
+        title={
+          quickLinkMode === "course"
+            ? t(`${S}.link_course_modal_title`, "إلحاق الطالب بدورة")
+            : t(`${S}.link_folder_modal_title`, "إلحاق الطالب بمجلد")
+        }
+        onClose={() => {
+          if (!busyId) setQuickLinkOpen(false);
+        }}
+      >
+        <div className="course-form-modal__form">
+          <p className="muted small">
+            {t(`${S}.selected_student`, "الطالب")}: <strong>{quickStudent?.displayName || quickStudent?.uid || dash}</strong>
+          </p>
+          <label>
+            <span>{quickLinkMode === "course" ? t(`${S}.select_course`, "اختر دورة") : t(`${S}.select_folder`, "اختر مجلد")}</span>
+            <select className="text-input" value={targetId} onChange={(e) => setTargetId(e.target.value)} disabled={Boolean(busyId)}>
+              <option value="">{t(`${S}.select_target_ph`, "— اختر —")}</option>
+              {quickLinkMode === "course"
+                ? courses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.title}
+                    </option>
+                  ))
+                : folders.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+            </select>
+          </label>
+          <label className="muted small">
+            <input type="checkbox" checked={activationLifetime} onChange={(e) => setActivationLifetime(e.target.checked)} />{" "}
+            {t(`${S}.activation_lifetime`, "تفعيل مدى الحياة")}
+          </label>
+          {!activationLifetime ? (
+            <label>
+              <span>{t(`${S}.activation_days`, "عدد الأيام")}</span>
+              <input
+                className="text-input"
+                type="number"
+                min={1}
+                value={activationDays}
+                onChange={(e) => setActivationDays(Number(e.target.value || 30))}
+              />
+            </label>
+          ) : null}
+          <div className="course-actions">
+            <button type="button" className="ghost-btn" onClick={() => setQuickLinkOpen(false)} disabled={Boolean(busyId)}>
+              {t(`${S}.cancel`, "إلغاء")}
+            </button>
+            <button type="button" className="primary-btn" onClick={() => void submitQuickLink()} disabled={Boolean(busyId) || !targetId}>
+              <ButtonBusyLabel busy={Boolean(busyId)}>{t(`${S}.confirm_link`, "تأكيد الربط")}</ButtonBusyLabel>
+            </button>
+          </div>
+        </div>
+      </AppModal>
+      <AppModal
+        open={quickUnlinkOpen}
+        title={t(`${S}.unlink_modal_title`, "فك ارتباطات الطالب")}
+        onClose={() => {
+          if (!busyId) setQuickUnlinkOpen(false);
+        }}
+      >
+        <div className="course-form-modal__form">
+          <p className="muted small">
+            {t(`${S}.selected_student`, "الطالب")}: <strong>{unlinkStudent?.displayName || unlinkStudent?.uid || dash}</strong>
+          </p>
+          <h4>{t(`${S}.unlink_courses_title`, "الدورات المرتبط بها")}</h4>
+          {unlinkCourses.length === 0 ? (
+            <p className="muted small">{t(`${S}.unlink_courses_empty`, "لا توجد دورات مرتبطة.")}</p>
+          ) : (
+            <ContentList>
+              {unlinkCourses.map((c) => (
+                <ContentListItem key={c.courseId} className="user-row">
+                  <div>
+                    <h4 className="post-title">{c.courseTitle || c.courseId}</h4>
+                    <p className="muted small">
+                      {c.courseDescription || dash}
+                      {c.enrolledAt != null
+                        ? ` · ${t(`${S}.linked_at`, "تاريخ الربط")}: ${formatFirestoreTime(c.enrolledAt)}`
+                        : ""}
+                      {c.linkedByName ? ` · ${t(`${S}.linked_by`, "بواسطة")}: ${c.linkedByName}` : ""}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="ghost-btn"
+                    onClick={() => void unlinkFromCourse(c.courseId, c.courseTitle || c.courseId)}
+                    disabled={Boolean(busyId)}
+                  >
+                    <ButtonBusyLabel busy={Boolean(busyId)}>{t(`${S}.unlink_course_btn`, "إزالة من الدورة")}</ButtonBusyLabel>
+                  </button>
+                </ContentListItem>
+              ))}
+            </ContentList>
+          )}
+
+          <h4>{t(`${S}.unlink_folders_title`, "المجلدات المرتبط بها")}</h4>
+          {unlinkFolders.length === 0 ? (
+            <p className="muted small">{t(`${S}.unlink_folders_empty`, "لا توجد مجلدات مرتبطة.")}</p>
+          ) : (
+            <ContentList>
+              {unlinkFolders.map((f) => (
+                <ContentListItem key={f.id} className="user-row">
+                  <div>
+                    <h4 className="post-title">{f.name || f.id}</h4>
+                    <p className="muted small">
+                      {f.description || dash}
+                      {f.joinedAt != null
+                        ? ` · ${t(`${S}.linked_at`, "تاريخ الربط")}: ${formatFirestoreTime(f.joinedAt)}`
+                        : ""}
+                      {f.linkedByName ? ` · ${t(`${S}.linked_by`, "بواسطة")}: ${f.linkedByName}` : ""}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="ghost-btn"
+                    onClick={() => void unlinkFromFolder(f.id, f.name || f.id)}
+                    disabled={Boolean(busyId)}
+                  >
+                    <ButtonBusyLabel busy={Boolean(busyId)}>{t(`${S}.unlink_folder_btn`, "إزالة من المجلد")}</ButtonBusyLabel>
+                  </button>
+                </ContentListItem>
+              ))}
+            </ContentList>
+          )}
+        </div>
+      </AppModal>
     </DashboardLayout>
   );
 }

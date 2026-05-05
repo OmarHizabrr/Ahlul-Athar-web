@@ -31,6 +31,10 @@ export interface MyCourseEntry {
   courseDescription: string;
   courseImageURL?: string;
   enrolledAt: unknown;
+  /** اسم/معرف من قام بآخر ربط (إن توفر في الوثيقة). */
+  linkedByName?: string;
+  /** وقت آخر ربط/تحديث ربط. */
+  linkedAt?: unknown;
   isActivated: boolean;
   isLifetime?: boolean;
   /** يدمج بيانات من `courses/{id}` عند الجلب. */
@@ -174,6 +178,8 @@ export interface StudentRecord {
   isSuspended?: boolean;
   isActivated?: boolean;
   createdAt?: unknown;
+  linkedByName?: string;
+  linkedAt?: unknown;
 }
 
 export interface Folder {

@@ -4,8 +4,9 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../context/I18nContext";
 import { coursesService } from "../services/coursesService";
+import { directoryService } from "../services/directoryService";
 import { lessonsService } from "../services/lessonsService";
-import type { Course, Lesson } from "../types";
+import type { Course, Lesson, StudentRecord } from "../types";
 import { IoEyeOutline, IoListCircleOutline, IoPencil, IoTrashOutline } from "react-icons/io5";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import {
@@ -77,6 +78,12 @@ export function AdminCourseLessonsPage() {
   const [duration, setDuration] = useState("");
   const [difficulty, setDifficulty] = useState("");
   const [lessonModalOpen, setLessonModalOpen] = useState(false);
+  const [courseStudents, setCourseStudents] = useState<StudentRecord[]>([]);
+  const [studentModalOpen, setStudentModalOpen] = useState(false);
+  const [allStudents, setAllStudents] = useState<StudentRecord[]>([]);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [activationLifetime, setActivationLifetime] = useState(true);
+  const [activationDays, setActivationDays] = useState(30);
   const { tr } = useI18n();
 
   const resetForm = () => {
@@ -134,10 +141,14 @@ export function AdminCourseLessonsPage() {
     }
     setLoading(true);
     try {
-      const c = await coursesService.getCourseById(courseId);
+      const [c, L, members] = await Promise.all([
+        coursesService.getCourseById(courseId),
+        lessonsService.listByCourseId(courseId),
+        coursesService.listCourseStudents(courseId),
+      ]);
       setCourse(c);
-      const L = await lessonsService.listByCourseId(courseId);
       setLessons(L);
+      setCourseStudents(members);
     } catch {
       setMessage(tr("تعذر التحميل."));
       setIsError(true);
@@ -145,6 +156,72 @@ export function AdminCourseLessonsPage() {
       setLoading(false);
     }
   }, [courseId]);
+
+  const openStudentModal = async () => {
+    setSubmitting(true);
+    setMessage("");
+    try {
+      const students = await directoryService.listStudents(1000);
+      setAllStudents(students);
+      setStudentSearch("");
+      setActivationLifetime(true);
+      setActivationDays(30);
+      setStudentModalOpen(true);
+    } catch {
+      setMessage(tr("تعذر تحميل قائمة الطلاب."));
+      setIsError(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const addStudentToCourse = async (s: StudentRecord) => {
+    if (!course) return;
+    setSubmitting(true);
+    setMessage("");
+    try {
+      const expiresAt = activationLifetime ? null : new Date(Date.now() + Math.max(1, activationDays) * 86_400_000);
+      await coursesService.adminAddStudentToCourse(
+        course,
+        {
+          studentId: s.uid,
+          studentName: s.displayName || s.uid,
+          studentEmail: s.email,
+          studentPhone: s.phone,
+          studentPhotoURL: s.photoURL,
+        },
+        { isLifetime: activationLifetime, days: Math.max(1, activationDays), expiresAt },
+      );
+      setStudentModalOpen(false);
+      setMessage(tr("تمت إضافة الطالب إلى الدورة."));
+      setIsError(false);
+      await load();
+    } catch {
+      setMessage(tr("تعذر إضافة الطالب إلى الدورة."));
+      setIsError(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const removeStudentFromCourse = async (student: StudentRecord) => {
+    if (!window.confirm(`${tr("إزالة الطالب من الدورة")}: ${student.displayName || student.uid}؟`)) {
+      return;
+    }
+    setSubmitting(true);
+    setMessage("");
+    try {
+      await coursesService.adminRemoveStudentFromCourse(courseId, student.uid);
+      setMessage(tr("تمت إزالة الطالب من الدورة."));
+      setIsError(false);
+      await load();
+    } catch {
+      setMessage(tr("تعذر إزالة الطالب من الدورة."));
+      setIsError(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (ready) {
@@ -250,6 +327,20 @@ export function AdminCourseLessonsPage() {
     return <Navigate to="/" replace />;
   }
 
+  const visibleStudentsToAdd = allStudents
+    .filter((s) => !courseStudents.some((m) => m.uid === s.uid))
+    .filter((s) => {
+      const q = studentSearch.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        (s.displayName ?? "").toLowerCase().includes(q) ||
+        (s.email ?? "").toLowerCase().includes(q) ||
+        (s.phone ?? "").toLowerCase().includes(q) ||
+        s.uid.toLowerCase().includes(q)
+      );
+    })
+    .slice(0, 50);
+
   return (
     <DashboardLayout role="admin" title={course ? `${tr("دروس")}: ${course.title}` : tr("دروس المقرر")} lede={tr(lessonsLede)}>
       <p className="admin-lessons-back-row">
@@ -286,6 +377,7 @@ export function AdminCourseLessonsPage() {
               title={tr("دروس بوسائط")}
               highlight={lessons.filter((l) => l.videoUrl || l.pdfUrl || l.audioUrl).length}
             />
+            <StatTile title={tr("طلاب الدورة")} highlight={courseStudents.length} />
             <StatTile
               title={tr("متوسط المدة")}
               highlight={
@@ -301,6 +393,9 @@ export function AdminCourseLessonsPage() {
           <PageToolbar>
             <button type="button" className="primary-btn toolbar-btn" onClick={onOpenCreateModal}>
               {tr("إضافة درس")}
+            </button>
+            <button type="button" className="ghost-btn toolbar-btn" onClick={() => void openStudentModal()} disabled={submitting}>
+              <ButtonBusyLabel busy={submitting}>{tr("إدارة طلاب الدورة")}</ButtonBusyLabel>
             </button>
           </PageToolbar>
 
@@ -372,6 +467,41 @@ export function AdminCourseLessonsPage() {
                     </button>
                   </div>
                     </div>
+                  </div>
+                </ContentListItem>
+              ))}
+            </ContentList>
+          )}
+
+          <SectionTitle as="h3" className="form-section-title--spaced">
+            {tr("طلاب الدورة")}
+          </SectionTitle>
+          {courseStudents.length === 0 ? (
+            <EmptyState message={tr("لا يوجد طلاب مضافون لهذه الدورة.")} />
+          ) : (
+            <ContentList>
+              {courseStudents.map((s) => (
+                <ContentListItem key={s.uid} className="user-row">
+                  <div>
+                    <h4 className="post-title">{s.displayName || s.uid}</h4>
+                    <p className="muted small">
+                      {s.email || tr("—")} {s.phone ? `· ${s.phone}` : ""}
+                      {s.createdAt != null ? ` · ${tr("انضم")}: ${formatFirestoreTime(s.createdAt)}` : ""}
+                      {s.linkedByName ? ` · ${tr("بواسطة")}: ${s.linkedByName}` : ""}
+                    </p>
+                  </div>
+                  <div className="course-actions">
+                    <Link className="ghost-btn toolbar-btn" to={`/admin/student/${s.uid}`}>
+                      {tr("ملف الطالب")}
+                    </Link>
+                    <button
+                      type="button"
+                      className="ghost-btn toolbar-btn"
+                      onClick={() => void removeStudentFromCourse(s)}
+                      disabled={submitting}
+                    >
+                      {tr("إزالة من الدورة")}
+                    </button>
                   </div>
                 </ContentListItem>
               ))}
@@ -511,6 +641,76 @@ export function AdminCourseLessonsPage() {
                 </button>
               </div>
             </FormPanel>
+          </AppModal>
+
+          <AppModal
+            open={studentModalOpen}
+            title={tr("إضافة طالب إلى الدورة")}
+            onClose={() => {
+              if (!submitting) {
+                setStudentModalOpen(false);
+              }
+            }}
+            contentClassName="course-form-modal"
+          >
+            <div className="course-form-modal__form">
+              <label>
+                <span>{tr("بحث عن طالب")}</span>
+                <input
+                  className="text-input"
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  placeholder={tr("اكتب الاسم/البريد/الجوال/المعرّف")}
+                />
+              </label>
+              <label className="switch-line">
+                <input type="checkbox" checked={activationLifetime} onChange={(e) => setActivationLifetime(e.target.checked)} />
+                <span>{tr("تفعيل مدى الحياة")}</span>
+              </label>
+              {!activationLifetime ? (
+                <label>
+                  <span>{tr("أيام التفعيل")}</span>
+                  <input
+                    className="text-input"
+                    type="number"
+                    min={1}
+                    value={activationDays}
+                    onChange={(e) => setActivationDays(Number(e.target.value || 30))}
+                  />
+                </label>
+              ) : null}
+              {visibleStudentsToAdd.length === 0 ? (
+                <EmptyState message={tr("لا توجد نتائج لإضافتها.")} />
+              ) : (
+                <ContentList>
+                  {visibleStudentsToAdd.map((s) => (
+                    <ContentListItem key={s.uid} className="user-row">
+                      <div>
+                        <h4 className="post-title">{s.displayName || s.uid}</h4>
+                        <p className="muted small">
+                          {s.email || tr("—")} {s.phone ? `· ${s.phone}` : ""}
+                          {s.createdAt != null ? ` · ${tr("انضم")}: ${formatFirestoreTime(s.createdAt)}` : ""}
+                          {s.linkedByName ? ` · ${tr("بواسطة")}: ${s.linkedByName}` : ""}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="primary-btn toolbar-btn"
+                        onClick={() => void addStudentToCourse(s)}
+                        disabled={submitting}
+                      >
+                        <ButtonBusyLabel busy={submitting}>{tr("إضافة")}</ButtonBusyLabel>
+                      </button>
+                    </ContentListItem>
+                  ))}
+                </ContentList>
+              )}
+              <div className="course-actions">
+                <button type="button" className="ghost-btn" onClick={() => setStudentModalOpen(false)} disabled={submitting}>
+                  {tr("إغلاق")}
+                </button>
+              </div>
+            </div>
           </AppModal>
         </>
       )}

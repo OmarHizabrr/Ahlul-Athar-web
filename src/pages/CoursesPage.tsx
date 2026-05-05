@@ -4,8 +4,9 @@ import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../context/I18nContext";
 import { coursesService } from "../services/coursesService";
+import { directoryService } from "../services/directoryService";
 import { myCoursesService } from "../services/myCoursesService";
-import type { Course, EnrollmentRequest, UserRole } from "../types";
+import type { Course, EnrollmentRequest, StudentRecord, UserRole } from "../types";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import {
   AlertMessage,
@@ -65,6 +66,13 @@ export function CoursesPage({ role }: { role: UserRole }) {
   const [latestReqByCourse, setLatestReqByCourse] = useState<Map<string, EnrollmentRequest>>(
     () => new Map(),
   );
+  const [membersModalOpen, setMembersModalOpen] = useState(false);
+  const [membersCourse, setMembersCourse] = useState<Course | null>(null);
+  const [courseMembers, setCourseMembers] = useState<StudentRecord[]>([]);
+  const [allStudents, setAllStudents] = useState<StudentRecord[]>([]);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [activationLifetime, setActivationLifetime] = useState(true);
+  const [activationDays, setActivationDays] = useState(30);
 
   const loadStudentCourseContext = useCallback(async () => {
     if (!user || role !== "student") {
@@ -237,6 +245,82 @@ export function CoursesPage({ role }: { role: UserRole }) {
     }
   };
 
+  const openMembersModal = async (course: Course) => {
+    setSubmitting(true);
+    setMessage("");
+    try {
+      const [members, students] = await Promise.all([
+        coursesService.listCourseStudents(course.id),
+        directoryService.listStudents(1000),
+      ]);
+      setMembersCourse(course);
+      setCourseMembers(members);
+      setAllStudents(students);
+      setMemberSearch("");
+      setActivationLifetime(true);
+      setActivationDays(30);
+      setMembersModalOpen(true);
+    } catch {
+      setMessage(t("web_pages.courses.members_load_failed", "تعذر تحميل طلاب الدورة."));
+      setIsError(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const addCourseMember = async (student: StudentRecord) => {
+    if (!membersCourse) return;
+    setSubmitting(true);
+    setMessage("");
+    try {
+      const expiresAt = activationLifetime ? null : new Date(Date.now() + Math.max(1, activationDays) * 86_400_000);
+      await coursesService.adminAddStudentToCourse(
+        membersCourse,
+        {
+          studentId: student.uid,
+          studentName: student.displayName || student.uid,
+          studentEmail: student.email,
+          studentPhone: student.phone,
+          studentPhotoURL: student.photoURL,
+        },
+        { isLifetime: activationLifetime, days: Math.max(1, activationDays), expiresAt },
+      );
+      const members = await coursesService.listCourseStudents(membersCourse.id);
+      setCourseMembers(members);
+      setMessage(t("web_pages.courses.member_add_ok", "تمت إضافة الطالب للدورة."));
+      setIsError(false);
+      await loadCourses();
+    } catch {
+      setMessage(t("web_pages.courses.member_add_failed", "تعذر إضافة الطالب للدورة."));
+      setIsError(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const removeCourseMember = async (student: StudentRecord) => {
+    if (!membersCourse) return;
+    const ok = window.confirm(
+      `${t("web_pages.courses.member_remove_confirm_prefix", "إزالة الطالب")}: ${student.displayName || student.uid}؟`,
+    );
+    if (!ok) return;
+    setSubmitting(true);
+    setMessage("");
+    try {
+      await coursesService.adminRemoveStudentFromCourse(membersCourse.id, student.uid);
+      const members = await coursesService.listCourseStudents(membersCourse.id);
+      setCourseMembers(members);
+      setMessage(t("web_pages.courses.member_remove_ok", "تمت إزالة الطالب من الدورة."));
+      setIsError(false);
+      await loadCourses();
+    } catch {
+      setMessage(t("web_pages.courses.member_remove_failed", "تعذر إزالة الطالب من الدورة."));
+      setIsError(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const pageLede =
     role === "admin"
       ? t(
@@ -361,6 +445,14 @@ export function CoursesPage({ role }: { role: UserRole }) {
                       {t("web_pages.courses.lessons", "دروس")}
                     </Link>
                     <button
+                      type="button"
+                      className="ghost-btn"
+                      onClick={() => void openMembersModal(course)}
+                      disabled={submitting}
+                    >
+                      {t("web_pages.courses.members_btn", "الطلاب")}
+                    </button>
+                    <button
                       className="ghost-btn"
                       onClick={() => onEdit(course)}
                       disabled={submitting}
@@ -484,6 +576,100 @@ export function CoursesPage({ role }: { role: UserRole }) {
               </button>
             </div>
           </FormPanel>
+        </AppModal>
+      ) : null}
+
+      {role === "admin" ? (
+        <AppModal
+          open={membersModalOpen}
+          title={membersCourse ? `${t("web_pages.courses.members_modal_title", "طلاب الدورة")}: ${membersCourse.title}` : t("web_pages.courses.members_modal_title", "طلاب الدورة")}
+          onClose={() => {
+            if (!submitting) setMembersModalOpen(false);
+          }}
+          contentClassName="course-form-modal"
+        >
+          <div className="course-form-modal__form">
+            <label>
+              <span>{t("web_pages.courses.members_search", "بحث عن طالب")}</span>
+              <input
+                className="text-input"
+                value={memberSearch}
+                onChange={(e) => setMemberSearch(e.target.value)}
+                placeholder={t("web_pages.courses.members_search_ph", "اكتب الاسم/البريد/الجوال/المعرّف")}
+              />
+            </label>
+            <label className="switch-line course-form-modal__switch">
+              <input
+                type="checkbox"
+                checked={activationLifetime}
+                onChange={(e) => setActivationLifetime(e.target.checked)}
+              />
+              <span>{t("web_pages.courses.activation_lifetime", "تفعيل مدى الحياة")}</span>
+            </label>
+            {!activationLifetime ? (
+              <label>
+                <span>{t("web_pages.courses.activation_days", "أيام التفعيل")}</span>
+                <input
+                  className="text-input"
+                  type="number"
+                  min={1}
+                  value={activationDays}
+                  onChange={(e) => setActivationDays(Number(e.target.value || 30))}
+                />
+              </label>
+            ) : null}
+
+            <SectionTitle as="h4">{t("web_pages.courses.current_members", "الطلاب الحاليون")}</SectionTitle>
+            {courseMembers.length === 0 ? (
+              <EmptyState message={t("web_pages.courses.current_members_empty", "لا يوجد طلاب في هذه الدورة.")} />
+            ) : (
+              <ContentList>
+                {courseMembers.map((m) => (
+                  <ContentListItem key={m.uid} className="user-row">
+                    <div>
+                      <h4 className="post-title">{m.displayName || m.uid}</h4>
+                      <p className="muted small">
+                        {m.email || t("web_shell.dash_em", "—")} {m.phone ? `· ${m.phone}` : ""}
+                      </p>
+                    </div>
+                    <button type="button" className="ghost-btn" onClick={() => void removeCourseMember(m)} disabled={submitting}>
+                      {t("web_pages.courses.member_remove_btn", "إزالة")}
+                    </button>
+                  </ContentListItem>
+                ))}
+              </ContentList>
+            )}
+
+            <SectionTitle as="h4">{t("web_pages.courses.addable_students", "إضافة طالب")}</SectionTitle>
+            <ContentList>
+              {allStudents
+                .filter((s) => !courseMembers.some((m) => m.uid === s.uid))
+                .filter((s) => {
+                  const q = memberSearch.trim().toLowerCase();
+                  if (!q) return true;
+                  return (
+                    (s.displayName ?? "").toLowerCase().includes(q) ||
+                    (s.email ?? "").toLowerCase().includes(q) ||
+                    (s.phone ?? "").toLowerCase().includes(q) ||
+                    s.uid.toLowerCase().includes(q)
+                  );
+                })
+                .slice(0, 40)
+                .map((s) => (
+                  <ContentListItem key={s.uid} className="user-row">
+                    <div>
+                      <h4 className="post-title">{s.displayName || s.uid}</h4>
+                      <p className="muted small">
+                        {s.email || t("web_shell.dash_em", "—")} {s.phone ? `· ${s.phone}` : ""}
+                      </p>
+                    </div>
+                    <button type="button" className="primary-btn" onClick={() => void addCourseMember(s)} disabled={submitting}>
+                      <ButtonBusyLabel busy={submitting}>{t("web_pages.courses.member_add_btn", "إضافة")}</ButtonBusyLabel>
+                    </button>
+                  </ContentListItem>
+                ))}
+            </ContentList>
+          </div>
         </AppModal>
       ) : null}
     </DashboardLayout>

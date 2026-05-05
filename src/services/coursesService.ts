@@ -1,23 +1,23 @@
 import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  increment,
-  orderBy,
-  query,
-  serverTimestamp,
-  setDoc,
-  Timestamp,
-  updateDoc,
-  where,
-  type DocumentData,
-  type QueryDocumentSnapshot,
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    increment,
+    orderBy,
+    query,
+    serverTimestamp,
+    setDoc,
+    Timestamp,
+    updateDoc,
+    where,
+    type DocumentData,
+    type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { auth, db } from "../firebase";
-import type { Course, EnrollmentRequest, Folder, PlatformUser } from "../types";
+import type { Course, EnrollmentRequest, Folder, PlatformUser, StudentRecord } from "../types";
 
 const coursesCollection = collection(db, "courses");
 const enrollmentRequestsCollection = collection(db, "enrollment_requests");
@@ -119,6 +119,31 @@ function enrollmentStudentPhotoFromData(data: DocumentData): string | undefined 
     if (s) return s;
   }
   return undefined;
+}
+
+function mapCourseStudentDoc(id: string, data: Record<string, unknown>): StudentRecord {
+  return {
+    uid: id,
+    displayName: String(data.studentName ?? data.displayName ?? data.name ?? id),
+    email: data.studentEmail != null ? String(data.studentEmail) : data.email != null ? String(data.email) : undefined,
+    phone:
+      data.studentPhone != null ? String(data.studentPhone) : data.phone != null ? String(data.phone) : undefined,
+    photoURL:
+      data.studentPhotoURL != null
+        ? String(data.studentPhotoURL)
+        : data.photoURL != null
+          ? String(data.photoURL)
+          : undefined,
+    isActivated: data.isActivated != null ? Boolean(data.isActivated) : undefined,
+    createdAt: data.enrolledAt ?? data.createdAt,
+    linkedByName:
+      data.updatedByName != null
+        ? String(data.updatedByName)
+        : data.processedByName != null
+          ? String(data.processedByName)
+          : undefined,
+    linkedAt: data.updatedAt ?? data.activatedAt ?? data.enrolledAt ?? data.createdAt,
+  };
 }
 
 function mapEnrollmentRequest(docSnap: QueryDocumentSnapshot<DocumentData>): EnrollmentRequest {
@@ -264,6 +289,12 @@ export const coursesService = {
     if (!alreadyEnrolled) {
       await updateDoc(courseRef, { studentCount: increment(1), updatedAt: serverTimestamp() }).catch(() => undefined);
     }
+  },
+
+  async listCourseStudents(courseId: string): Promise<StudentRecord[]> {
+    const col = collection(db, "numbers", courseId, "numbers");
+    const snap = await getDocs(col);
+    return snap.docs.map((d) => mapCourseStudentDoc(d.id, d.data() as Record<string, unknown>));
   },
 
   async requestFolderEnrollment(user: PlatformUser, folder: Folder, reason = "طلب انضمام لمجلد") {
@@ -481,6 +512,92 @@ export const coursesService = {
       adminNotes: reason,
       updatedAt: serverTimestamp(),
     });
+  },
+
+  /** إضافة طالب لدورة مباشرة من الإدارة (بدون طلب انضمام). */
+  async adminAddStudentToCourse(
+    course: Course,
+    student: {
+      studentId: string;
+      studentName: string;
+      studentEmail?: string;
+      studentPhone?: string;
+      studentPhotoURL?: string;
+    },
+    activation: ActivationOptions,
+  ): Promise<{ alreadyEnrolled: boolean }> {
+    const actor = auth.currentUser;
+    const courseId = course.id;
+    const studentId = student.studentId;
+    const courseRef = doc(db, "courses", courseId);
+    const numbersRef = doc(db, "numbers", courseId, "numbers", studentId);
+    const myCourseRef = doc(db, "Mycourses", studentId, "Mycourses", courseId);
+    const existing = await getDoc(numbersRef);
+    const alreadyEnrolled = existing.exists();
+    const activationCode = generateActivationCode(studentId);
+    const isLifetime = activation.isLifetime;
+    const expiresAtStr = isLifetime || !activation.expiresAt ? null : activation.expiresAt.toISOString();
+    const days = isLifetime ? 30 : activation.days;
+
+    await Promise.all([
+      setDoc(
+        numbersRef,
+        {
+          studentId,
+          studentName: student.studentName,
+          studentEmail: student.studentEmail ?? "",
+          studentPhone: student.studentPhone ?? null,
+          studentPhotoURL: student.studentPhotoURL ?? null,
+          enrolledAt: serverTimestamp(),
+          isActivated: true,
+          isLifetime,
+          expiresAt: expiresAtStr,
+          activationDays: days,
+          activatedAt: serverTimestamp(),
+          activationCode,
+          updatedBy: actor?.uid ?? "",
+          updatedByName: actor?.displayName ?? "",
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      ),
+      setDoc(
+        myCourseRef,
+        {
+          courseId,
+          courseTitle: course.title,
+          courseDescription: course.description ?? "",
+          courseImageURL: course.imageUrl ?? null,
+          enrolledAt: serverTimestamp(),
+          isActivated: true,
+          isLifetime,
+          expiresAt: expiresAtStr,
+          activationDays: days,
+          activatedAt: serverTimestamp(),
+          activationCode,
+          updatedBy: actor?.uid ?? "",
+          updatedByName: actor?.displayName ?? "",
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      ),
+    ]);
+    if (!alreadyEnrolled) {
+      await updateDoc(courseRef, { studentCount: increment(1), updatedAt: serverTimestamp() }).catch(() => undefined);
+    }
+    return { alreadyEnrolled };
+  },
+
+  /** إزالة طالب من دورة مباشرة من الإدارة. */
+  async adminRemoveStudentFromCourse(courseId: string, studentId: string): Promise<void> {
+    const numbersRef = doc(db, "numbers", courseId, "numbers", studentId);
+    const myCourseRef = doc(db, "Mycourses", studentId, "Mycourses", courseId);
+    const courseRef = doc(db, "courses", courseId);
+    const existed = await getDoc(numbersRef);
+    await Promise.all([deleteDoc(numbersRef), deleteDoc(myCourseRef).catch(() => undefined)]);
+    if (existed.exists()) {
+      await updateDoc(courseRef, { studentCount: increment(-1), updatedAt: serverTimestamp() }).catch(() => undefined);
+    }
   },
 
   /**

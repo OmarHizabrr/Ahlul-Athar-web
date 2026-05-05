@@ -3,14 +3,14 @@ import { Link, useParams } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import { AlertMessage, ContentList, ContentListItem, EmptyState, PageToolbar, Panel, SectionTitle } from "../components/ui";
 import { useI18n } from "../context/I18nContext";
-import { dashboardBackLinkState } from "../utils/dashboardBackNavigation";
-import { DashboardLayout } from "./DashboardLayout";
-import { directoryService } from "../services/directoryService";
-import { myCoursesService } from "../services/myCoursesService";
-import { foldersService } from "../services/foldersService";
 import { coursesService } from "../services/coursesService";
+import { directoryService } from "../services/directoryService";
+import { foldersService } from "../services/foldersService";
+import { myCoursesService } from "../services/myCoursesService";
 import type { EnrollmentRequest, Folder, MyCourseEntry, StudentRecord } from "../types";
+import { dashboardBackLinkState } from "../utils/dashboardBackNavigation";
 import { requestStatusLabel } from "./course/EnrollmentRequestHelpers";
+import { DashboardLayout } from "./DashboardLayout";
 
 const V = "web_pages.admin_student_view" as const;
 

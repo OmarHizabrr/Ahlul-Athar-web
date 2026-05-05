@@ -15,7 +15,7 @@ import {
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { db, storage } from "../firebase";
+import { auth, db, storage } from "../firebase";
 import type { Folder, FolderFile, PlatformUser, StudentRecord } from "../types";
 
 function mapFolder(d: QueryDocumentSnapshot<DocumentData>): Folder {
@@ -102,6 +102,13 @@ function mapFolderMember(d: QueryDocumentSnapshot<DocumentData>): StudentRecord 
     isSuspended: data.isSuspended != null ? Boolean(data.isSuspended) : undefined,
     isActivated: data.isActivated != null ? Boolean(data.isActivated) : undefined,
     createdAt: data.createdAt,
+    linkedByName:
+      data.updatedByName != null
+        ? String(data.updatedByName)
+        : data.createdByName != null
+          ? String(data.createdByName)
+          : undefined,
+    linkedAt: data.updatedAt ?? data.activatedAt ?? data.joinedAt ?? data.createdAt,
   };
 }
 
@@ -150,7 +157,18 @@ export const foldersService = {
     return docs.map(mapFolder);
   },
 
-  async listMyFoldersForStudent(studentId: string): Promise<(Folder & { isActivated?: boolean; isLifetime?: boolean; expiresAt?: string | null })[]> {
+  async listMyFoldersForStudent(
+    studentId: string,
+  ): Promise<
+    (Folder & {
+      isActivated?: boolean;
+      isLifetime?: boolean;
+      expiresAt?: string | null;
+      joinedAt?: unknown;
+      linkedByName?: string;
+      linkedAt?: unknown;
+    })[]
+  > {
     const col = collection(db, "MyFolders", studentId, "MyFolders");
     const snap = await getDocs(col);
     const rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }));
@@ -174,6 +192,16 @@ export const foldersService = {
           isActivated: (r as { isActivated?: unknown }).isActivated != null ? Boolean((r as { isActivated?: unknown }).isActivated) : undefined,
           isLifetime: (r as { isLifetime?: unknown }).isLifetime != null ? Boolean((r as { isLifetime?: unknown }).isLifetime) : undefined,
           expiresAt: (r as { expiresAt?: unknown }).expiresAt != null ? String((r as { expiresAt?: unknown }).expiresAt) : null,
+          joinedAt: (r as { joinedAt?: unknown }).joinedAt ?? (r as { createdAt?: unknown }).createdAt,
+          linkedByName:
+            (r as { updatedByName?: unknown }).updatedByName != null
+              ? String((r as { updatedByName?: unknown }).updatedByName)
+              : undefined,
+          linkedAt:
+            (r as { updatedAt?: unknown }).updatedAt ??
+            (r as { activatedAt?: unknown }).activatedAt ??
+            (r as { joinedAt?: unknown }).joinedAt ??
+            (r as { createdAt?: unknown }).createdAt,
         };
       })
       .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", "ar"));
@@ -235,6 +263,7 @@ export const foldersService = {
     member: StudentRecord;
     activation: { isLifetime: boolean; days: number; expiresAt: Date | null };
   }) {
+    const actor = auth.currentUser;
     const folderId = opts.folder.id;
     const memberId = opts.member.uid;
 
@@ -262,6 +291,8 @@ export const foldersService = {
           phone: opts.member.phone ?? null,
           photoURL: opts.member.photoURL ?? null,
           ...baseActivation,
+          updatedBy: actor?.uid ?? "",
+          updatedByName: actor?.displayName ?? "",
           updatedAt: serverTimestamp(),
           createdAt: serverTimestamp(),
         },
@@ -276,6 +307,8 @@ export const foldersService = {
           coverImageUrl: opts.folder.coverImageUrl ?? null,
           joinedAt: serverTimestamp(),
           ...baseActivation,
+          updatedBy: actor?.uid ?? "",
+          updatedByName: actor?.displayName ?? "",
           updatedAt: serverTimestamp(),
           createdAt: serverTimestamp(),
         },

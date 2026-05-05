@@ -14,6 +14,13 @@ function mapMycourseDoc(
     courseDescription: String((myData.courseDescription ?? myData.description ?? catalog?.description) ?? ""),
     courseImageURL: myData.courseImageURL != null ? String(myData.courseImageURL) : undefined,
     enrolledAt: myData.enrolledAt,
+    linkedByName:
+      myData.updatedByName != null
+        ? String(myData.updatedByName)
+        : myData.createdByName != null
+          ? String(myData.createdByName)
+          : undefined,
+    linkedAt: myData.updatedAt ?? myData.activatedAt ?? myData.enrolledAt,
     isActivated: Boolean(myData.isActivated ?? true),
     isLifetime: myData.isLifetime != null ? Boolean(myData.isLifetime) : undefined,
     isActiveOnCatalog: catalog?.isActive,
