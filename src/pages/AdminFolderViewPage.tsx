@@ -72,7 +72,7 @@ function FilePreview({ file }: { file: FolderFile }) {
 export function AdminFolderViewPage() {
   const { folderId } = useParams();
   const { user, ready } = useAuth();
-  const { tr } = useI18n();
+  const { tr, t } = useI18n();
   const [folder, setFolder] = useState<Folder | null>(null);
   const [files, setFiles] = useState<FolderFile[]>([]);
   const [members, setMembers] = useState<StudentRecord[]>([]);
@@ -94,6 +94,8 @@ export function AdminFolderViewPage() {
   const [allStudents, setAllStudents] = useState<StudentRecord[]>([]);
   const [activationLifetime, setActivationLifetime] = useState(true);
   const [activationDays, setActivationDays] = useState(30);
+  const [memberAddActivationOpen, setMemberAddActivationOpen] = useState(false);
+  const [memberPendingAdd, setMemberPendingAdd] = useState<StudentRecord | null>(null);
 
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -271,26 +273,26 @@ export function AdminFolderViewPage() {
     const q = memberSearch.trim().toLowerCase();
     const existing = new Set(members.map((m) => m.uid));
     const base = allStudents.filter((s) => !existing.has(s.uid));
-    if (!q) return base.slice(0, 200);
-    return base
-      .filter((s) => {
-        return (
-          (s.displayName ?? "").toLowerCase().includes(q) ||
-          (s.email ?? "").toLowerCase().includes(q) ||
-          (s.phone ?? "").toLowerCase().includes(q) ||
-          s.uid.toLowerCase().includes(q)
-        );
-      })
-      .slice(0, 200);
+    if (!q) return base;
+    return base.filter((s) => {
+      return (
+        (s.displayName ?? "").toLowerCase().includes(q) ||
+        (s.email ?? "").toLowerCase().includes(q) ||
+        (s.phone ?? "").toLowerCase().includes(q) ||
+        s.uid.toLowerCase().includes(q)
+      );
+    });
   }, [allStudents, memberSearch, members]);
 
   const openMemberModal = async () => {
     setMemberModalOpen(true);
     setMemberSearch("");
+    setMemberAddActivationOpen(false);
+    setMemberPendingAdd(null);
     setActivationLifetime(true);
     setActivationDays(30);
     try {
-      const data = await directoryService.listStudents(1000);
+      const data = await directoryService.listAllStudents();
       setAllStudents(data);
     } catch {
       setAllStudents([]);
@@ -353,8 +355,16 @@ export function AdminFolderViewPage() {
     }
   };
 
-  const addMember = async (m: StudentRecord) => {
-    if (!folder || !folderId || !user) {
+  const openMemberActivationPick = (m: StudentRecord) => {
+    setMemberPendingAdd(m);
+    setActivationLifetime(true);
+    setActivationDays(30);
+    setMemberAddActivationOpen(true);
+  };
+
+  const confirmAddMemberFromPicker = async () => {
+    const m = memberPendingAdd;
+    if (!folder || !folderId || !user || !m) {
       return;
     }
     setBusy(true);
@@ -366,6 +376,8 @@ export function AdminFolderViewPage() {
         member: m,
         activation: { isLifetime: activationLifetime, days: Math.max(1, activationDays), expiresAt },
       });
+      setMemberAddActivationOpen(false);
+      setMemberPendingAdd(null);
       setMemberModalOpen(false);
       await load(folderId);
     } catch {
@@ -745,73 +757,169 @@ export function AdminFolderViewPage() {
         </>
       )}
 
-      <AppModal open={memberModalOpen} title={tr("إضافة عضو للمجلد")} onClose={() => (busy ? null : setMemberModalOpen(false))}>
-        <div className="course-form-modal__form">
-          <label className="muted small" htmlFor="memberSearch">
-            {tr("بحث عن طالب لإضافته")}
-          </label>
-          <input
-            id="memberSearch"
-            className="text-input"
-            value={memberSearch}
-            onChange={(e) => setMemberSearch(e.target.value)}
-            placeholder={tr("اكتب الاسم/البريد/الجوال/المعرّف")}
-          />
-
-          <div className="form-row-2">
-            <label className="muted small">
-              <input type="checkbox" checked={activationLifetime} onChange={(e) => setActivationLifetime(e.target.checked)} /> {tr("تفعيل مدى الحياة")}
+      <AppModal
+        open={memberModalOpen}
+        title={tr("إضافة عضو للمجلد")}
+        onClose={() => {
+          if (busy) return;
+          setMemberModalOpen(false);
+          setMemberAddActivationOpen(false);
+          setMemberPendingAdd(null);
+        }}
+        contentClassName="course-form-modal folder-members-modal-wrap"
+      >
+        <div className="course-form-modal__form folder-members-modal">
+          <div className="folder-members-modal__search">
+            <label className="folder-members-modal__search-label" htmlFor="memberSearch">
+              {t("web_pages.admin_folders.members_search", tr("بحث عن طالب لإضافته"))}
             </label>
-            {!activationLifetime ? (
-              <input
-                className="text-input"
-                type="number"
-                min={1}
-                value={activationDays}
-                onChange={(e) => setActivationDays(Number(e.target.value || 30))}
-                aria-label={tr("أيام التفعيل")}
-              />
-            ) : (
-              <span className="muted small">{tr("—")}</span>
-            )}
+            <input
+              id="memberSearch"
+              className="text-input folder-members-modal__search-input"
+              value={memberSearch}
+              onChange={(e) => setMemberSearch(e.target.value)}
+              placeholder={t("web_pages.admin_folders.members_search_ph", tr("اكتب الاسم/البريد/الجوال/المعرّف"))}
+              autoComplete="off"
+            />
+            <p className="muted small folder-members-modal__hint">
+              {t("web_pages.admin_folders.add_member_flow_hint", tr("اختر طالباً ثم حدّد مدة التفعيل في النافذة التالية كما في التطبيق."))}
+            </p>
+            <p className="muted small folder-members-modal__count" style={{ marginTop: "0.35rem" }}>
+              {t("web_pages.admin_folders.add_pool_total", tr("إجمالي الطلاب"))}: {allStudents.length} ·{" "}
+              {t("web_pages.admin_folders.add_pool_available", tr("متاح للإضافة"))}: {visibleStudentsToAdd.length}
+            </p>
           </div>
 
           {visibleStudentsToAdd.length === 0 ? (
-            <EmptyState message={tr("لا توجد نتائج لإضافتها.")} />
+            <EmptyState
+              message={t("web_pages.admin_folders.add_members_empty", tr("لا توجد نتائج لإضافتها."))}
+            />
           ) : (
-            <ContentList>
-              {visibleStudentsToAdd.slice(0, 30).map((s) => (
-                <ContentListItem key={s.uid} className="user-row">
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", minWidth: 0 }}>
-                    <Avatar
-                      photoURL={s.photoURL}
-                      displayName={s.displayName}
-                      email={s.email}
-                      alt={s.displayName || tr("طالب")}
-                      imageClassName="user-avatar topbar-avatar"
-                      fallbackClassName="user-avatar-fallback topbar-avatar"
-                      size={40}
-                    />
-                    <div style={{ minWidth: 0 }}>
-                      <h4 className="post-title">{s.displayName || s.uid}</h4>
-                      <p className="muted small">
-                        {s.email || tr("—")} {s.phone ? `· ${s.phone}` : ""}
-                      </p>
+            <div className="folder-members-modal__scroll folder-members-modal__scroll--add">
+              <ContentList>
+                {visibleStudentsToAdd.map((s) => (
+                  <ContentListItem key={s.uid} className="user-row folder-members-modal__row">
+                    <div className="folder-members-modal__user">
+                      <Avatar
+                        photoURL={s.photoURL}
+                        displayName={s.displayName}
+                        email={s.email}
+                        alt={s.displayName || tr("طالب")}
+                        imageClassName="user-avatar topbar-avatar"
+                        fallbackClassName="user-avatar-fallback topbar-avatar"
+                        size={40}
+                      />
+                      <div className="folder-members-modal__user-text">
+                        <h4 className="post-title">{s.displayName || s.uid}</h4>
+                        <p className="muted small">
+                          {s.email || tr("—")} {s.phone ? `· ${s.phone}` : ""}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <button type="button" className="primary-btn toolbar-btn" onClick={() => void addMember(s)} disabled={busy}>
-                    <ButtonBusyLabel busy={busy}>{tr("إضافة")}</ButtonBusyLabel>
-                  </button>
-                </ContentListItem>
-              ))}
-            </ContentList>
+                    <button
+                      type="button"
+                      className="primary-btn toolbar-btn"
+                      onClick={() => openMemberActivationPick(s)}
+                      disabled={busy}
+                    >
+                      {t("web_pages.admin_folders.member_pick_btn", tr("اختيار"))}
+                    </button>
+                  </ContentListItem>
+                ))}
+              </ContentList>
+            </div>
           )}
 
           <div className="course-actions">
-            <button type="button" className="ghost-btn" onClick={() => setMemberModalOpen(false)} disabled={busy}>
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={() => {
+                setMemberModalOpen(false);
+                setMemberAddActivationOpen(false);
+                setMemberPendingAdd(null);
+              }}
+              disabled={busy}
+            >
               {tr("إغلاق")}
             </button>
           </div>
+        </div>
+      </AppModal>
+
+      <AppModal
+        open={memberAddActivationOpen}
+        title={t("web_pages.admin_folders.activation_modal_title", tr("مدة التفعيل"))}
+        onClose={() => {
+          if (busy) return;
+          setMemberAddActivationOpen(false);
+          setMemberPendingAdd(null);
+        }}
+        contentClassName="course-form-modal"
+      >
+        <div className="course-form-modal__form folder-activation-modal">
+          {memberPendingAdd ? (
+            <>
+              <div className="folder-activation-modal__preview">
+                <Avatar
+                  photoURL={memberPendingAdd.photoURL}
+                  displayName={memberPendingAdd.displayName}
+                  email={memberPendingAdd.email}
+                  alt={memberPendingAdd.displayName || memberPendingAdd.uid}
+                  imageClassName="user-avatar topbar-avatar"
+                  fallbackClassName="user-avatar-fallback topbar-avatar"
+                  size={48}
+                />
+                <div>
+                  <p className="post-title" style={{ margin: 0 }}>
+                    {memberPendingAdd.displayName || memberPendingAdd.uid}
+                  </p>
+                  <p className="muted small" style={{ margin: "0.25rem 0 0" }}>
+                    {memberPendingAdd.email || tr("—")}
+                    {memberPendingAdd.phone ? ` · ${memberPendingAdd.phone}` : ""}
+                  </p>
+                </div>
+              </div>
+              <p className="muted small folder-activation-modal__lede">
+                {t("web_pages.admin_folders.activation_modal_lede", tr("حدد صلاحية وصول العضو للمجلد ثم أكّد الإضافة."))}
+              </p>
+              <label className="switch-line folder-activation-modal__switch">
+                <input type="checkbox" checked={activationLifetime} onChange={(e) => setActivationLifetime(e.target.checked)} />
+                <span>{t("web_pages.admin_folders.activation_lifetime", tr("تفعيل مدى الحياة"))}</span>
+              </label>
+              {!activationLifetime ? (
+                <label className="folder-activation-modal__days">
+                  <span>{t("web_pages.admin_folders.activation_days", tr("أيام التفعيل"))}</span>
+                  <input
+                    className="text-input"
+                    type="number"
+                    min={1}
+                    value={activationDays}
+                    onChange={(e) => setActivationDays(Number(e.target.value || 30))}
+                    aria-label={t("web_pages.admin_folders.activation_days", tr("أيام التفعيل"))}
+                  />
+                </label>
+              ) : null}
+              <div className="course-actions folder-activation-modal__actions">
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={() => {
+                    if (!busy) {
+                      setMemberAddActivationOpen(false);
+                      setMemberPendingAdd(null);
+                    }
+                  }}
+                  disabled={busy}
+                >
+                  {t("web_pages.admin_folders.activation_modal_back", tr("رجوع"))}
+                </button>
+                <button type="button" className="primary-btn" onClick={() => void confirmAddMemberFromPicker()} disabled={busy}>
+                  <ButtonBusyLabel busy={busy}>{t("web_pages.admin_folders.member_confirm_add", tr("تأكيد الإضافة"))}</ButtonBusyLabel>
+                </button>
+              </div>
+            </>
+          ) : null}
         </div>
       </AppModal>
 

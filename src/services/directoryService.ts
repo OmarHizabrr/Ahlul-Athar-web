@@ -8,6 +8,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  startAfter,
   updateDoc,
   type DocumentData,
   type QueryDocumentSnapshot,
@@ -71,6 +72,34 @@ export const directoryService = {
       return snap.docs.map(mapStudentDoc);
     } catch {
       const snap = await getDocs(query(collection(db, "users"), limit(max)));
+      return snap.docs
+        .filter((d) => String(d.data().role ?? "student") === "student")
+        .map(mapStudentDoc);
+    }
+  },
+
+  /**
+   * يجلب كل الطلاب من `students` عبر صفحات (لا يقتصر على 1000).
+   * عند الفشل (فهرس/مجموعة) يُرجع طلاب `users` بدفعة واحدة حتى حد أمان.
+   */
+  async listAllStudents(pageSize = 500): Promise<StudentRecord[]> {
+    const out: StudentRecord[] = [];
+    try {
+      let last: QueryDocumentSnapshot<DocumentData> | undefined;
+      for (;;) {
+        const q = last
+          ? query(collection(db, "students"), orderBy("createdAt", "desc"), startAfter(last), limit(pageSize))
+          : query(collection(db, "students"), orderBy("createdAt", "desc"), limit(pageSize));
+        const snap = await getDocs(q);
+        if (snap.empty) break;
+        out.push(...snap.docs.map(mapStudentDoc));
+        if (snap.docs.length < pageSize) break;
+        last = snap.docs[snap.docs.length - 1];
+      }
+      return out;
+    } catch {
+      const cap = 8000;
+      const snap = await getDocs(query(collection(db, "users"), limit(cap)));
       return snap.docs
         .filter((d) => String(d.data().role ?? "student") === "student")
         .map(mapStudentDoc);

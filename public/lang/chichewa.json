@@ -3746,7 +3746,16 @@
             "member_remove_confirm_prefix": "Chotsani membala",
             "member_remove_ok": "Membala wachotsedwa mu folda.",
             "member_remove_failed": "Sitingathe kuchotsa membala mu folda.",
-            "joined_at": "Analowa"
+            "joined_at": "Analowa",
+            "add_member_flow_hint": "Fufuzani wophunzira aliyense, dinani «Sankhani», kenaka sankhani nthawi yoyatsa ndi kutsimikiza — monga mu app.",
+            "add_pool_total": "Ophunzira onse",
+            "add_pool_available": "Otheka kuwonjeza",
+            "add_members_empty": "Palibe wophunzira wofanana, kapena aliyense ali membala kale.",
+            "member_pick_btn": "Sankhani",
+            "activation_modal_title": "Nthawi yoyatsa",
+            "activation_modal_lede": "Sankhani kutalika kwa mwayi wopeza folda, kenaka tsimikizirani kuwonjeza.",
+            "activation_modal_back": "Bwererani",
+            "member_confirm_add": "Tsimikizirani kuwonjeza"
         },
         "student_course_actions": {
             "direct_enroll": "Lembetsani mwachindunji",

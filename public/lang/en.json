@@ -4303,7 +4303,16 @@
             "member_remove_confirm_prefix": "Remove member",
             "member_remove_ok": "Member removed from folder.",
             "member_remove_failed": "Could not remove member from folder.",
-            "joined_at": "Joined"
+            "joined_at": "Joined",
+            "add_member_flow_hint": "Search for any student, tap “Choose”, then set activation duration and confirm — same as the app.",
+            "add_pool_total": "Total students",
+            "add_pool_available": "Available to add",
+            "add_members_empty": "No matching students, or everyone is already a member.",
+            "member_pick_btn": "Choose",
+            "activation_modal_title": "Activation period",
+            "activation_modal_lede": "Choose how long this member can access the folder, then confirm.",
+            "activation_modal_back": "Back",
+            "member_confirm_add": "Confirm add"
         },
         "student_course_actions": {
             "direct_enroll": "Enroll directly",

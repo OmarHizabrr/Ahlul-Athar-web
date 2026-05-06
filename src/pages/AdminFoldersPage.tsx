@@ -1,7 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
-import { AlertMessage, AppModal, ContentList, ContentListItem, CoverImage, EmptyState, PageToolbar, StatTile, cn } from "../components/ui";
+import {
+  AlertMessage,
+  AppModal,
+  Avatar,
+  ContentList,
+  ContentListItem,
+  CoverImage,
+  EmptyState,
+  PageToolbar,
+  StatTile,
+  cn,
+} from "../components/ui";
 import { useI18n } from "../context/I18nContext";
 import { directoryService } from "../services/directoryService";
 import { foldersService } from "../services/foldersService";
@@ -23,6 +34,8 @@ export function AdminFoldersPage() {
   const [memberSearch, setMemberSearch] = useState("");
   const [activationLifetime, setActivationLifetime] = useState(true);
   const [activationDays, setActivationDays] = useState(30);
+  const [addActivationOpen, setAddActivationOpen] = useState(false);
+  const [studentPendingAdd, setStudentPendingAdd] = useState<StudentRecord | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -54,7 +67,7 @@ export function AdminFoldersPage() {
     try {
       const [currentMembers, students] = await Promise.all([
         foldersService.listFolderMembers(folder.id),
-        directoryService.listStudents(1000),
+        directoryService.listAllStudents(),
       ]);
       setMembersFolder(folder);
       setMembers(currentMembers);
@@ -70,8 +83,31 @@ export function AdminFoldersPage() {
     }
   };
 
-  const addMember = async (student: StudentRecord) => {
-    if (!membersFolder) return;
+  const studentsToAddFiltered = useMemo(() => {
+    const q = memberSearch.trim().toLowerCase();
+    const existing = new Set(members.map((m) => m.uid));
+    const base = allStudents.filter((s) => !existing.has(s.uid));
+    if (!q) return base;
+    return base.filter((s) => {
+      return (
+        (s.displayName ?? "").toLowerCase().includes(q) ||
+        (s.email ?? "").toLowerCase().includes(q) ||
+        (s.phone ?? "").toLowerCase().includes(q) ||
+        s.uid.toLowerCase().includes(q)
+      );
+    });
+  }, [allStudents, members, memberSearch]);
+
+  const openAddActivation = (student: StudentRecord) => {
+    setStudentPendingAdd(student);
+    setActivationLifetime(true);
+    setActivationDays(30);
+    setAddActivationOpen(true);
+  };
+
+  const confirmAddMember = async () => {
+    const student = studentPendingAdd;
+    if (!membersFolder || !student) return;
     setBusy(true);
     setMessage(null);
     try {
@@ -87,6 +123,8 @@ export function AdminFoldersPage() {
       ]);
       setMembers(currentMembers);
       setRows(refreshedFolders);
+      setAddActivationOpen(false);
+      setStudentPendingAdd(null);
       setMessage(t("web_pages.admin_folders.member_add_ok", "تمت إضافة الطالب للمجلد."));
     } catch {
       setMessage(t("web_pages.admin_folders.member_add_failed", "تعذر إضافة الطالب للمجلد."));
@@ -207,95 +245,205 @@ export function AdminFoldersPage() {
             : t("web_pages.admin_folders.members_modal_title", "أعضاء المجلد")
         }
         onClose={() => {
-          if (!busy) setMembersModalOpen(false);
+          if (!busy) {
+            setMembersModalOpen(false);
+            setAddActivationOpen(false);
+            setStudentPendingAdd(null);
+          }
         }}
-        contentClassName="course-form-modal"
+        contentClassName="course-form-modal folder-members-modal-wrap"
       >
-        <div className="course-form-modal__form">
-          <label>
-            <span>{t("web_pages.admin_folders.members_search", "بحث عن طالب")}</span>
+        <div className="course-form-modal__form folder-members-modal">
+          <div className="folder-members-modal__search">
+            <label className="folder-members-modal__search-label" htmlFor="folder-members-search">
+              {t("web_pages.admin_folders.members_search", "بحث عن طالب")}
+            </label>
             <input
-              className="text-input"
+              id="folder-members-search"
+              className="text-input folder-members-modal__search-input"
               value={memberSearch}
               onChange={(e) => setMemberSearch(e.target.value)}
               placeholder={t("web_pages.admin_folders.members_search_ph", "اكتب الاسم/البريد/الجوال/المعرّف")}
+              autoComplete="off"
             />
-          </label>
-          <label className="switch-line course-form-modal__switch">
-            <input
-              type="checkbox"
-              checked={activationLifetime}
-              onChange={(e) => setActivationLifetime(e.target.checked)}
-            />
-            <span>{t("web_pages.admin_folders.activation_lifetime", "تفعيل مدى الحياة")}</span>
-          </label>
-          {!activationLifetime ? (
-            <label>
-              <span>{t("web_pages.admin_folders.activation_days", "أيام التفعيل")}</span>
-              <input
-                className="text-input"
-                type="number"
-                min={1}
-                value={activationDays}
-                onChange={(e) => setActivationDays(Number(e.target.value || 30))}
+            <p className="muted small folder-members-modal__hint">
+              {t(
+                "web_pages.admin_folders.add_member_flow_hint",
+                "اختر طالباً ثم حدّد مدة التفعيل في النافذة التالية كما في التطبيق.",
+              )}
+            </p>
+          </div>
+
+          <section className="folder-members-modal__section">
+            <h4 className="folder-members-modal__section-title">
+              {t("web_pages.admin_folders.current_members", "الأعضاء الحاليون")}
+            </h4>
+            {members.length === 0 ? (
+              <EmptyState message={t("web_pages.admin_folders.current_members_empty", "لا يوجد أعضاء في هذا المجلد.")} />
+            ) : (
+              <div className="folder-members-modal__scroll">
+                <ContentList>
+                  {members.map((m) => (
+                    <ContentListItem key={m.uid} className="user-row folder-members-modal__row">
+                      <div className="folder-members-modal__user">
+                        <Avatar
+                          photoURL={m.photoURL}
+                          displayName={m.displayName}
+                          email={m.email}
+                          alt={m.displayName || m.uid}
+                          imageClassName="user-avatar topbar-avatar"
+                          fallbackClassName="user-avatar-fallback topbar-avatar"
+                          size={40}
+                        />
+                        <div className="folder-members-modal__user-text">
+                          <h4 className="post-title">{m.displayName || m.uid}</h4>
+                          <p className="muted small">
+                            {m.email || t("web_shell.dash_em", "—")} {m.phone ? `· ${m.phone}` : ""}
+                            {m.createdAt != null
+                              ? ` · ${t("web_pages.admin_folders.joined_at", "انضم")}: ${formatFirestoreTime(m.createdAt)}`
+                              : ""}
+                            {m.linkedByName
+                              ? ` · ${t("web_pages.admin_students.linked_by", "بواسطة")}: ${m.linkedByName}`
+                              : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <button type="button" className="ghost-btn" onClick={() => void removeMember(m)} disabled={busy}>
+                        <ButtonBusyLabel busy={busy}>{t("web_pages.admin_folders.member_remove_btn", "إزالة")}</ButtonBusyLabel>
+                      </button>
+                    </ContentListItem>
+                  ))}
+                </ContentList>
+              </div>
+            )}
+          </section>
+
+          <section className="folder-members-modal__section">
+            <div className="folder-members-modal__section-head">
+              <h4 className="folder-members-modal__section-title">{t("web_pages.admin_folders.add_members", "إضافة عضو")}</h4>
+              <span className="folder-members-modal__count muted small">
+                {t("web_pages.admin_folders.add_pool_total", "إجمالي الطلاب")}: {allStudents.length} ·{" "}
+                {t("web_pages.admin_folders.add_pool_available", "متاح للإضافة")}: {studentsToAddFiltered.length}
+              </span>
+            </div>
+            {studentsToAddFiltered.length === 0 ? (
+              <EmptyState
+                message={t("web_pages.admin_folders.add_members_empty", "لا يوجد طلاب مطابقون أو الجميع أعضاء بالفعل.")}
               />
-            </label>
+            ) : (
+              <div className="folder-members-modal__scroll folder-members-modal__scroll--add">
+                <ContentList>
+                  {studentsToAddFiltered.map((s) => (
+                    <ContentListItem key={s.uid} className="user-row folder-members-modal__row">
+                      <div className="folder-members-modal__user">
+                        <Avatar
+                          photoURL={s.photoURL}
+                          displayName={s.displayName}
+                          email={s.email}
+                          alt={s.displayName || s.uid}
+                          imageClassName="user-avatar topbar-avatar"
+                          fallbackClassName="user-avatar-fallback topbar-avatar"
+                          size={40}
+                        />
+                        <div className="folder-members-modal__user-text">
+                          <h4 className="post-title">{s.displayName || s.uid}</h4>
+                          <p className="muted small">
+                            {s.email || t("web_shell.dash_em", "—")} {s.phone ? `· ${s.phone}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <button type="button" className="primary-btn" onClick={() => openAddActivation(s)} disabled={busy}>
+                        {t("web_pages.admin_folders.member_pick_btn", "اختيار")}
+                      </button>
+                    </ContentListItem>
+                  ))}
+                </ContentList>
+              </div>
+            )}
+          </section>
+        </div>
+      </AppModal>
+
+      <AppModal
+        open={addActivationOpen}
+        title={t("web_pages.admin_folders.activation_modal_title", "مدة التفعيل")}
+        onClose={() => {
+          if (!busy) {
+            setAddActivationOpen(false);
+            setStudentPendingAdd(null);
+          }
+        }}
+        contentClassName="course-form-modal"
+      >
+        <div className="course-form-modal__form folder-activation-modal">
+          {studentPendingAdd ? (
+            <>
+              <div className="folder-activation-modal__preview">
+                <Avatar
+                  photoURL={studentPendingAdd.photoURL}
+                  displayName={studentPendingAdd.displayName}
+                  email={studentPendingAdd.email}
+                  alt={studentPendingAdd.displayName || studentPendingAdd.uid}
+                  imageClassName="user-avatar topbar-avatar"
+                  fallbackClassName="user-avatar-fallback topbar-avatar"
+                  size={48}
+                />
+                <div>
+                  <p className="post-title" style={{ margin: 0 }}>
+                    {studentPendingAdd.displayName || studentPendingAdd.uid}
+                  </p>
+                  <p className="muted small" style={{ margin: "0.25rem 0 0" }}>
+                    {studentPendingAdd.email || t("web_shell.dash_em", "—")}
+                    {studentPendingAdd.phone ? ` · ${studentPendingAdd.phone}` : ""}
+                  </p>
+                </div>
+              </div>
+              <p className="muted small folder-activation-modal__lede">
+                {t(
+                  "web_pages.admin_folders.activation_modal_lede",
+                  "حدد صلاحية وصول العضو للمجلد ثم أكّد الإضافة.",
+                )}
+              </p>
+              <label className="switch-line folder-activation-modal__switch">
+                <input
+                  type="checkbox"
+                  checked={activationLifetime}
+                  onChange={(e) => setActivationLifetime(e.target.checked)}
+                />
+                <span>{t("web_pages.admin_folders.activation_lifetime", "تفعيل مدى الحياة")}</span>
+              </label>
+              {!activationLifetime ? (
+                <label className="folder-activation-modal__days">
+                  <span>{t("web_pages.admin_folders.activation_days", "أيام التفعيل")}</span>
+                  <input
+                    className="text-input"
+                    type="number"
+                    min={1}
+                    value={activationDays}
+                    onChange={(e) => setActivationDays(Number(e.target.value || 30))}
+                  />
+                </label>
+              ) : null}
+              <div className="course-actions folder-activation-modal__actions">
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={() => {
+                    if (!busy) {
+                      setAddActivationOpen(false);
+                      setStudentPendingAdd(null);
+                    }
+                  }}
+                  disabled={busy}
+                >
+                  {t("web_pages.admin_folders.activation_modal_back", "رجوع")}
+                </button>
+                <button type="button" className="primary-btn" onClick={() => void confirmAddMember()} disabled={busy}>
+                  <ButtonBusyLabel busy={busy}>{t("web_pages.admin_folders.member_confirm_add", "تأكيد الإضافة")}</ButtonBusyLabel>
+                </button>
+              </div>
+            </>
           ) : null}
-
-          <h4>{t("web_pages.admin_folders.current_members", "الأعضاء الحاليون")}</h4>
-          {members.length === 0 ? (
-            <EmptyState message={t("web_pages.admin_folders.current_members_empty", "لا يوجد أعضاء في هذا المجلد.")} />
-          ) : (
-            <ContentList>
-              {members.map((m) => (
-                <ContentListItem key={m.uid} className="user-row">
-                  <div>
-                    <h4 className="post-title">{m.displayName || m.uid}</h4>
-                    <p className="muted small">
-                      {m.email || t("web_shell.dash_em", "—")} {m.phone ? `· ${m.phone}` : ""}
-                      {m.createdAt != null
-                        ? ` · ${t("web_pages.admin_folders.joined_at", "انضم")}: ${formatFirestoreTime(m.createdAt)}`
-                        : ""}
-                      {m.linkedByName ? ` · ${t("web_pages.admin_students.linked_by", "بواسطة")}: ${m.linkedByName}` : ""}
-                    </p>
-                  </div>
-                  <button type="button" className="ghost-btn" onClick={() => void removeMember(m)} disabled={busy}>
-                    <ButtonBusyLabel busy={busy}>{t("web_pages.admin_folders.member_remove_btn", "إزالة")}</ButtonBusyLabel>
-                  </button>
-                </ContentListItem>
-              ))}
-            </ContentList>
-          )}
-
-          <h4>{t("web_pages.admin_folders.add_members", "إضافة عضو")}</h4>
-          <ContentList>
-            {allStudents
-              .filter((s) => !members.some((m) => m.uid === s.uid))
-              .filter((s) => {
-                const q = memberSearch.trim().toLowerCase();
-                if (!q) return true;
-                return (
-                  (s.displayName ?? "").toLowerCase().includes(q) ||
-                  (s.email ?? "").toLowerCase().includes(q) ||
-                  (s.phone ?? "").toLowerCase().includes(q) ||
-                  s.uid.toLowerCase().includes(q)
-                );
-              })
-              .slice(0, 40)
-              .map((s) => (
-                <ContentListItem key={s.uid} className="user-row">
-                  <div>
-                    <h4 className="post-title">{s.displayName || s.uid}</h4>
-                    <p className="muted small">
-                      {s.email || t("web_shell.dash_em", "—")} {s.phone ? `· ${s.phone}` : ""}
-                    </p>
-                  </div>
-                  <button type="button" className="primary-btn" onClick={() => void addMember(s)} disabled={busy}>
-                    <ButtonBusyLabel busy={busy}>{t("web_pages.admin_folders.member_add_btn", "إضافة")}</ButtonBusyLabel>
-                  </button>
-                </ContentListItem>
-              ))}
-          </ContentList>
         </div>
       </AppModal>
     </DashboardLayout>

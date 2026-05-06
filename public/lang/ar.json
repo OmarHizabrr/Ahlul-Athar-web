@@ -4302,7 +4302,16 @@
             "member_remove_confirm_prefix": "إزالة العضو",
             "member_remove_ok": "تمت إزالة العضو من المجلد.",
             "member_remove_failed": "تعذر إزالة العضو من المجلد.",
-            "joined_at": "انضم"
+            "joined_at": "انضم",
+            "add_member_flow_hint": "ابحث عن أي طالب، ثم اضغط «اختيار» لتحديد مدة التفعيل والتأكيد كما في التطبيق.",
+            "add_pool_total": "إجمالي الطلاب",
+            "add_pool_available": "متاح للإضافة",
+            "add_members_empty": "لا يوجد طلاب مطابقون للبحث أو جميع الطلاب أعضاء بالفعل.",
+            "member_pick_btn": "اختيار",
+            "activation_modal_title": "مدة التفعيل",
+            "activation_modal_lede": "حدد صلاحية وصول العضو للمجلد ثم أكّد الإضافة.",
+            "activation_modal_back": "رجوع",
+            "member_confirm_add": "تأكيد الإضافة"
         },
         "student_course_actions": {
             "direct_enroll": "تسجيل مباشر",
