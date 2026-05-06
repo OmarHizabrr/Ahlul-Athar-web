@@ -4312,7 +4312,18 @@
             "activation_modal_title": "Activation period",
             "activation_modal_lede": "Choose how long this member can access the folder, then confirm.",
             "activation_modal_back": "Back",
-            "member_confirm_add": "Confirm add"
+            "member_confirm_add": "Confirm add",
+            "member_edit_period_btn": "Edit period",
+            "edit_activation_modal_title": "Edit activation period",
+            "edit_activation_modal_lede": "Switch between lifetime and a day-based window (from now). Expiry is saved on the member record like the app.",
+            "member_confirm_update_period": "Save period",
+            "member_update_period_ok": "Member access period updated.",
+            "member_update_period_failed": "Could not update the member period.",
+            "member_access_lifetime": "Access: lifetime",
+            "member_access_until": "Access ends",
+            "member_access_days": "Access period",
+            "member_access_days_unit": "days",
+            "member_access_unknown": "Access: not set"
         },
         "student_course_actions": {
             "direct_enroll": "Enroll directly",

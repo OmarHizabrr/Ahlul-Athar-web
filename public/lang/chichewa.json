@@ -3755,7 +3755,18 @@
             "activation_modal_title": "Nthawi yoyatsa",
             "activation_modal_lede": "Sankhani kutalika kwa mwayi wopeza folda, kenaka tsimikizirani kuwonjeza.",
             "activation_modal_back": "Bwererani",
-            "member_confirm_add": "Tsimikizirani kuwonjeza"
+            "member_confirm_add": "Tsimikizirani kuwonjeza",
+            "member_edit_period_btn": "Sinthani nthawi",
+            "edit_activation_modal_title": "Sinthani nthawi yoyatsa",
+            "edit_activation_modal_lede": "Sankhani moyo wonse kapena masiku kuchokera pano; masiku atha asungidwa monga mu app.",
+            "member_confirm_update_period": "Sungani nthawi",
+            "member_update_period_ok": "Nthawi yopeza yasinthidwa.",
+            "member_update_period_failed": "Sitingathe kusintha nthawi yopeza.",
+            "member_access_lifetime": "Kupeza: moyo wonse",
+            "member_access_until": "Kupeza kumatha",
+            "member_access_days": "Nthawi yopeza",
+            "member_access_days_unit": "masiku",
+            "member_access_unknown": "Kupeza: palibe"
         },
         "student_course_actions": {
             "direct_enroll": "Lembetsani mwachindunji",

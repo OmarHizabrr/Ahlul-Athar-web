@@ -90,8 +90,17 @@ function mapFolderFile(d: QueryDocumentSnapshot<DocumentData>): FolderFile {
   };
 }
 
+function mapExpiresAtField(raw: unknown): string | null | undefined {
+  if (raw == null) return raw === null ? null : undefined;
+  if (typeof raw === "object" && raw !== null && "toDate" in raw && typeof (raw as { toDate: () => Date }).toDate === "function") {
+    return (raw as { toDate: () => Date }).toDate().toISOString();
+  }
+  return String(raw);
+}
+
 function mapFolderMember(d: QueryDocumentSnapshot<DocumentData>): StudentRecord {
   const data = d.data();
+  const expiresAt = mapExpiresAtField(data.expiresAt);
   return {
     uid: d.id,
     displayName: String(data.createdByName ?? data.displayName ?? data.name ?? d.id),
@@ -102,6 +111,9 @@ function mapFolderMember(d: QueryDocumentSnapshot<DocumentData>): StudentRecord 
     isSuspended: data.isSuspended != null ? Boolean(data.isSuspended) : undefined,
     isActivated: data.isActivated != null ? Boolean(data.isActivated) : undefined,
     createdAt: data.createdAt,
+    isLifetime: data.isLifetime != null ? Boolean(data.isLifetime) : undefined,
+    expiresAt,
+    activationDays: typeof data.activationDays === "number" ? data.activationDays : undefined,
     linkedByName:
       data.updatedByName != null
         ? String(data.updatedByName)
@@ -326,6 +338,33 @@ export const foldersService = {
       deleteDoc(folderMemberRef),
       deleteDoc(myFolderRef).catch(() => undefined),
       updateDoc(folderRef, { memberCount: increment(-1), updatedAt: serverTimestamp() }).catch(() => undefined),
+    ]);
+  },
+
+  /** تحديث مدة/نوع التفعيل لعضو موجود (memberFolder + MyFolders) دون تغيير العدّاد. */
+  async updateFolderMemberActivation(opts: {
+    folder: Folder;
+    memberId: string;
+    activation: { isLifetime: boolean; days: number; expiresAt: Date | null };
+  }) {
+    const actor = auth.currentUser;
+    const folderId = opts.folder.id;
+    const memberId = opts.memberId;
+    const expiresIso = opts.activation.expiresAt ? opts.activation.expiresAt.toISOString() : null;
+    const baseActivation = {
+      isActivated: true,
+      isLifetime: opts.activation.isLifetime,
+      activationDays: opts.activation.days,
+      expiresAt: expiresIso,
+      updatedBy: actor?.uid ?? "",
+      updatedByName: actor?.displayName ?? "",
+      updatedAt: serverTimestamp(),
+    };
+    const folderMemberRef = doc(db, "memberFolder", folderId, "memberFolder", memberId);
+    const myFolderRef = doc(db, "MyFolders", memberId, "MyFolders", folderId);
+    await Promise.all([
+      setDoc(folderMemberRef, baseActivation, { merge: true }),
+      setDoc(myFolderRef, baseActivation, { merge: true }),
     ]);
   },
 

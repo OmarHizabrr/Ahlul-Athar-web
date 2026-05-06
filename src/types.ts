@@ -180,6 +180,11 @@ export interface StudentRecord {
   createdAt?: unknown;
   linkedByName?: string;
   linkedAt?: unknown;
+  /** تفعيل مجلد: مدى الحياة مقابل فترة محددة (مفاتيح Firestore كما في التطبيق). */
+  isLifetime?: boolean;
+  /** تاريخ انتهاء الصلاحية (ISO) عند التفعيل المحدد بالأيام. */
+  expiresAt?: string | null;
+  activationDays?: number;
 }
 
 export interface Folder {

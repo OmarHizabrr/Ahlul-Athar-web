@@ -3568,6 +3568,20 @@ button:disabled {
   gap: 0.75rem;
 }
 
+.folder-members-modal__row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.folder-members-modal__access {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+}
+
 .folder-members-modal__user {
   display: flex;
   align-items: center;

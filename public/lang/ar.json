@@ -4311,7 +4311,18 @@
             "activation_modal_title": "مدة التفعيل",
             "activation_modal_lede": "حدد صلاحية وصول العضو للمجلد ثم أكّد الإضافة.",
             "activation_modal_back": "رجوع",
-            "member_confirm_add": "تأكيد الإضافة"
+            "member_confirm_add": "تأكيد الإضافة",
+            "member_edit_period_btn": "تعديل المدة",
+            "edit_activation_modal_title": "تعديل مدة التفعيل",
+            "edit_activation_modal_lede": "عدّل مدى الحياة أو عدد أيام الوصول من الآن؛ سيتُحدَّث تاريخ الانتهاء ويُحفظ في سجل العضو كما في التطبيق.",
+            "member_confirm_update_period": "حفظ المدة",
+            "member_update_period_ok": "تم تحديث مدة وصول العضو.",
+            "member_update_period_failed": "تعذر تحديث مدة العضو.",
+            "member_access_lifetime": "وصول: مدى الحياة",
+            "member_access_until": "ينتهي الوصول",
+            "member_access_days": "مدة الوصول",
+            "member_access_days_unit": "يومًا",
+            "member_access_unknown": "وصول: غير محدد"
         },
         "student_course_actions": {
             "direct_enroll": "تسجيل مباشر",

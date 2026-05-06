@@ -25,6 +25,7 @@ import { directoryService } from "../services/directoryService";
 import { coursesService } from "../services/coursesService";
 import type { EnrollmentRequest, Folder, FolderFile, StudentRecord } from "../types";
 import { triggerBrowserDownloadFromUrl } from "../utils/downloadFile";
+import { folderMemberAccessSummary, inferActivationDaysForForm, inferMemberLifetime } from "../utils/folderMemberAccess";
 import { formatFirestoreTime } from "../utils/firestoreTime";
 import { DashboardLayout } from "./DashboardLayout";
 
@@ -96,6 +97,8 @@ export function AdminFolderViewPage() {
   const [activationDays, setActivationDays] = useState(30);
   const [memberAddActivationOpen, setMemberAddActivationOpen] = useState(false);
   const [memberPendingAdd, setMemberPendingAdd] = useState<StudentRecord | null>(null);
+  const [memberEditActivationOpen, setMemberEditActivationOpen] = useState(false);
+  const [memberPendingEdit, setMemberPendingEdit] = useState<StudentRecord | null>(null);
 
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -289,6 +292,8 @@ export function AdminFolderViewPage() {
     setMemberSearch("");
     setMemberAddActivationOpen(false);
     setMemberPendingAdd(null);
+    setMemberEditActivationOpen(false);
+    setMemberPendingEdit(null);
     setActivationLifetime(true);
     setActivationDays(30);
     try {
@@ -356,10 +361,43 @@ export function AdminFolderViewPage() {
   };
 
   const openMemberActivationPick = (m: StudentRecord) => {
+    setMemberEditActivationOpen(false);
+    setMemberPendingEdit(null);
     setMemberPendingAdd(m);
     setActivationLifetime(true);
     setActivationDays(30);
     setMemberAddActivationOpen(true);
+  };
+
+  const openMemberEditPeriod = (m: StudentRecord) => {
+    setMemberAddActivationOpen(false);
+    setMemberPendingAdd(null);
+    setMemberPendingEdit(m);
+    setActivationLifetime(inferMemberLifetime(m));
+    setActivationDays(inferActivationDaysForForm(m));
+    setMemberEditActivationOpen(true);
+  };
+
+  const confirmUpdateMemberPeriod = async () => {
+    const m = memberPendingEdit;
+    if (!folder || !folderId || !m) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const expiresAt = activationLifetime ? null : new Date(Date.now() + Math.max(1, activationDays) * 86_400_000);
+      await foldersService.updateFolderMemberActivation({
+        folder,
+        memberId: m.uid,
+        activation: { isLifetime: activationLifetime, days: Math.max(1, activationDays), expiresAt },
+      });
+      setMemberEditActivationOpen(false);
+      setMemberPendingEdit(null);
+      await load(folderId);
+    } catch {
+      setMessage(t("web_pages.admin_folders.member_update_period_failed", tr("تعذر تحديث مدة العضو.")));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const confirmAddMemberFromPicker = async () => {
@@ -682,6 +720,7 @@ export function AdminFolderViewPage() {
                         <p className="muted small">
                           {m.email || tr("—")} {m.phone ? `· ${m.phone}` : ""}
                         </p>
+                        <p className="muted small folder-members-modal__access">{folderMemberAccessSummary(m, t)}</p>
                       </div>
                     </div>
                     <div className="course-actions">
@@ -692,6 +731,9 @@ export function AdminFolderViewPage() {
                       ) : (
                         <span className="meta-pill meta-pill--ok">{tr("مفعّل")}</span>
                       )}
+                      <button type="button" className="ghost-btn toolbar-btn" onClick={() => openMemberEditPeriod(m)} disabled={busy}>
+                        {t("web_pages.admin_folders.member_edit_period_btn", tr("تعديل المدة"))}
+                      </button>
                       <button type="button" className="ghost-btn toolbar-btn" onClick={() => void removeMember(m.uid)} disabled={busy}>
                         {tr("إزالة")}
                       </button>
@@ -765,6 +807,8 @@ export function AdminFolderViewPage() {
           setMemberModalOpen(false);
           setMemberAddActivationOpen(false);
           setMemberPendingAdd(null);
+          setMemberEditActivationOpen(false);
+          setMemberPendingEdit(null);
         }}
         contentClassName="course-form-modal folder-members-modal-wrap"
       >
@@ -916,6 +960,87 @@ export function AdminFolderViewPage() {
                 </button>
                 <button type="button" className="primary-btn" onClick={() => void confirmAddMemberFromPicker()} disabled={busy}>
                   <ButtonBusyLabel busy={busy}>{t("web_pages.admin_folders.member_confirm_add", tr("تأكيد الإضافة"))}</ButtonBusyLabel>
+                </button>
+              </div>
+            </>
+          ) : null}
+        </div>
+      </AppModal>
+
+      <AppModal
+        open={memberEditActivationOpen}
+        title={t("web_pages.admin_folders.edit_activation_modal_title", tr("تعديل مدة التفعيل"))}
+        onClose={() => {
+          if (busy) return;
+          setMemberEditActivationOpen(false);
+          setMemberPendingEdit(null);
+        }}
+        contentClassName="course-form-modal"
+      >
+        <div className="course-form-modal__form folder-activation-modal">
+          {memberPendingEdit ? (
+            <>
+              <div className="folder-activation-modal__preview">
+                <Avatar
+                  photoURL={memberPendingEdit.photoURL}
+                  displayName={memberPendingEdit.displayName}
+                  email={memberPendingEdit.email}
+                  alt={memberPendingEdit.displayName || memberPendingEdit.uid}
+                  imageClassName="user-avatar topbar-avatar"
+                  fallbackClassName="user-avatar-fallback topbar-avatar"
+                  size={48}
+                />
+                <div>
+                  <p className="post-title" style={{ margin: 0 }}>
+                    {memberPendingEdit.displayName || memberPendingEdit.uid}
+                  </p>
+                  <p className="muted small" style={{ margin: "0.25rem 0 0" }}>
+                    {memberPendingEdit.email || tr("—")}
+                    {memberPendingEdit.phone ? ` · ${memberPendingEdit.phone}` : ""}
+                  </p>
+                </div>
+              </div>
+              <p className="muted small folder-activation-modal__lede">
+                {t(
+                  "web_pages.admin_folders.edit_activation_modal_lede",
+                  tr("عدّل مدى الحياة أو عدد أيام الوصول من الآن؛ سيتم حفظها في سجل العضو كما في التطبيق."),
+                )}
+              </p>
+              <label className="switch-line folder-activation-modal__switch">
+                <input type="checkbox" checked={activationLifetime} onChange={(e) => setActivationLifetime(e.target.checked)} />
+                <span>{t("web_pages.admin_folders.activation_lifetime", tr("تفعيل مدى الحياة"))}</span>
+              </label>
+              {!activationLifetime ? (
+                <label className="folder-activation-modal__days">
+                  <span>{t("web_pages.admin_folders.activation_days", tr("أيام التفعيل"))}</span>
+                  <input
+                    className="text-input"
+                    type="number"
+                    min={1}
+                    value={activationDays}
+                    onChange={(e) => setActivationDays(Number(e.target.value || 30))}
+                    aria-label={t("web_pages.admin_folders.activation_days", tr("أيام التفعيل"))}
+                  />
+                </label>
+              ) : null}
+              <div className="course-actions folder-activation-modal__actions">
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={() => {
+                    if (!busy) {
+                      setMemberEditActivationOpen(false);
+                      setMemberPendingEdit(null);
+                    }
+                  }}
+                  disabled={busy}
+                >
+                  {t("web_pages.admin_folders.activation_modal_back", tr("رجوع"))}
+                </button>
+                <button type="button" className="primary-btn" onClick={() => void confirmUpdateMemberPeriod()} disabled={busy}>
+                  <ButtonBusyLabel busy={busy}>
+                    {t("web_pages.admin_folders.member_confirm_update_period", tr("حفظ المدة"))}
+                  </ButtonBusyLabel>
                 </button>
               </div>
             </>
