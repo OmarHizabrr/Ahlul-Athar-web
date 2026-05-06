@@ -402,9 +402,15 @@ export function CoursesPage({ role }: { role: UserRole }) {
           {filtered.map((course) => {
             const hasCover = Boolean(course.imageUrl?.trim());
             return (
-            <ContentListItem key={course.id} className={cn(hasCover && "mycourse-card--cover")}>
-              {hasCover ? <CoverImage variant="catalog" src={course.imageUrl} alt={course.title} /> : null}
-              <div className={hasCover ? "mycourse-card-body" : undefined}>
+            <ContentListItem key={course.id} className={cn("mycourse-card--cover", !hasCover && "mycourse-card--cover-fallback")}>
+              {hasCover ? (
+                <CoverImage variant="catalog" src={course.imageUrl} alt={course.title} />
+              ) : (
+                <div className="mycourse-cover-placeholder" aria-hidden>
+                  {(course.title || "?").trim().slice(0, 1)}
+                </div>
+              )}
+              <div className="mycourse-card-body">
               <h3>{course.title}</h3>
               <p className="muted">{course.description}</p>
               <div className="course-meta">

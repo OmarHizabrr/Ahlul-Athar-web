@@ -768,31 +768,68 @@ export function AdminFolderViewPage() {
               <EmptyState message={tr("لا توجد طلبات لهذا المجلد.")} />
             ) : (
               <ContentList>
-                {visibleRequests.map((r) => (
-                  <ContentListItem key={r.id} className="user-row">
-                    <div>
-                      <h3 className="post-title">{r.studentName || r.studentId}</h3>
-                      <p className="muted small">{r.studentEmail || tr("—")} {r.studentPhone ? `· ${r.studentPhone}` : ""}</p>
-                      <p className="muted small">{tr("الحالة")}: {r.status}</p>
-                    </div>
-                    <div className="course-actions">
-                      {r.status === "pending" ? (
-                        <>
-                          <button type="button" className="primary-btn toolbar-btn" onClick={() => openApproveRequest(r)} disabled={busy}>
-                            {tr("قبول")}
-                          </button>
-                          <button type="button" className="ghost-btn toolbar-btn" onClick={() => void rejectRequest(r)} disabled={busy}>
-                            {tr("رفض")}
-                          </button>
-                        </>
+                {visibleRequests.map((r) => {
+                  const hasTargetImg = Boolean(r.targetImageURL?.trim());
+                  const studentAlt = r.studentName?.trim() || r.studentEmail?.trim() || tr("طالب");
+                  return (
+                  <ContentListItem key={r.id} className={cn("user-row", "enrollment-req-item--row")}>
+                    <div className="enrollment-req-media">
+                      <Avatar
+                        photoURL={r.studentPhotoURL}
+                        displayName={r.studentName}
+                        email={r.studentEmail}
+                        alt={studentAlt}
+                        imageClassName="enrollment-req-student-photo"
+                        fallbackClassName="enrollment-req-student-fallback"
+                        size={52}
+                      />
+                      {hasTargetImg ? (
+                        <CoverImage
+                          variant="thumb"
+                          src={r.targetImageURL}
+                          alt={r.targetName}
+                          className="enrollment-req-thumb enrollment-req-thumb--target"
+                        />
+                      ) : folder?.coverImageUrl?.trim() ? (
+                        <CoverImage
+                          variant="thumb"
+                          src={folder.coverImageUrl}
+                          alt={folder.name}
+                          className="enrollment-req-thumb enrollment-req-thumb--target"
+                        />
                       ) : (
-                        <span className={r.status === "approved" ? "meta-pill meta-pill--ok" : r.status === "rejected" ? "meta-pill meta-pill--warn" : "meta-pill meta-pill--muted"}>
-                          {r.status}
-                        </span>
+                        <div className="activation-modal-preview__cover-ph enrollment-req-thumb--target" aria-hidden>
+                          {(r.targetName || folder?.name || "?").trim().slice(0, 1)}
+                        </div>
                       )}
                     </div>
+                    <div className="enrollment-req-item__body">
+                      <h3 className="post-title">{r.targetName || folder?.name || tr("المجلد")}</h3>
+                      <p className="muted small">
+                        {tr("الطالب")}: {r.studentName || r.studentId} · {r.studentEmail || tr("—")}
+                        {r.studentPhone ? ` · ${r.studentPhone}` : ""}
+                      </p>
+                      <p className="muted small">{tr("الحالة")}: {r.status}</p>
+                      <div className="course-actions">
+                        {r.status === "pending" ? (
+                          <>
+                            <button type="button" className="primary-btn toolbar-btn" onClick={() => openApproveRequest(r)} disabled={busy}>
+                              {tr("قبول")}
+                            </button>
+                            <button type="button" className="ghost-btn toolbar-btn" onClick={() => void rejectRequest(r)} disabled={busy}>
+                              {tr("رفض")}
+                            </button>
+                          </>
+                        ) : (
+                          <span className={r.status === "approved" ? "meta-pill meta-pill--ok" : r.status === "rejected" ? "meta-pill meta-pill--warn" : "meta-pill meta-pill--muted"}>
+                            {r.status}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </ContentListItem>
-                ))}
+                  );
+                })}
               </ContentList>
             )}
           </AppTabPanel>

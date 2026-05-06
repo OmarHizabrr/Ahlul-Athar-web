@@ -3,10 +3,10 @@ import { Link, Navigate } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import {
   AlertMessage,
+  Avatar,
   ContentList,
   ContentListItem,
   CoverImage,
-  cn,
   EmptyState,
   PageToolbar,
   StatTile,
@@ -215,19 +215,32 @@ export function StudentEnrollmentRequestsPage() {
                   const hasThumb = Boolean(r.targetImageURL?.trim());
                   const isFolder = r.requestType === "folder";
                   const openHref = isFolder ? `/student/folder/${r.targetId}` : `/student/course/${r.targetId}`;
+                  const targetInitial = (r.targetName || (isFolder ? "م" : "د")).trim().slice(0, 1);
                   return (
-                    <ContentListItem
-                      key={r.id}
-                      className={cn("enrollment-req-item", hasThumb && "enrollment-req-item--row")}
-                    >
-                      {hasThumb ? (
-                        <CoverImage
-                          variant="thumb"
-                          src={r.targetImageURL}
-                          alt={r.targetName}
-                          className="enrollment-req-thumb"
+                    <ContentListItem key={r.id} className="enrollment-req-item enrollment-req-item--row">
+                      <div className="enrollment-req-media">
+                        <Avatar
+                          photoURL={user.photoURL ?? undefined}
+                          displayName={user.displayName}
+                          email={user.email ?? undefined}
+                          alt={user.displayName || user.email || t("web_pages.login.role_student", "طالب")}
+                          imageClassName="enrollment-req-student-photo"
+                          fallbackClassName="enrollment-req-student-fallback"
+                          size={48}
                         />
-                      ) : null}
+                        {hasThumb ? (
+                          <CoverImage
+                            variant="thumb"
+                            src={r.targetImageURL}
+                            alt={r.targetName}
+                            className="enrollment-req-thumb enrollment-req-thumb--target"
+                          />
+                        ) : (
+                          <div className="activation-modal-preview__cover-ph enrollment-req-thumb--target" aria-hidden>
+                            {targetInitial}
+                          </div>
+                        )}
+                      </div>
                       <div className="enrollment-req-item__body">
                         <h3 className="post-title">
                           {r.targetName ||
