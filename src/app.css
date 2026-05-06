@@ -3632,6 +3632,218 @@ button:disabled {
   justify-content: flex-end;
 }
 
+.activation-modal-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--theme-fg, #111) 10%, transparent);
+  background: color-mix(in srgb, var(--theme-fg, #111) 3%, transparent);
+}
+
+.activation-modal-preview__student {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.activation-modal-preview__text {
+  min-width: 0;
+}
+
+.activation-modal-preview__text strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.activation-modal-preview__target {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 88px;
+  text-align: center;
+}
+
+.activation-modal-preview__cover {
+  width: 72px;
+}
+
+.activation-modal-preview__cover .cover-image-thumb-img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.activation-modal-preview__cover-ph {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--theme-fg, #111) 55%, transparent);
+  background: color-mix(in srgb, var(--theme-fg, #111) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--theme-fg, #111) 12%, transparent);
+}
+
+.activation-modal-preview__target-title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.3;
+  max-width: 120px;
+}
+
+.modal-student-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--theme-fg, #111) 10%, transparent);
+  background: color-mix(in srgb, var(--theme-fg, #111) 3%, transparent);
+}
+
+.admin-student-profile-head {
+  margin-bottom: 1.1rem;
+}
+
+.modal-entity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 0.55rem;
+  max-height: min(52vh, 320px);
+  overflow-y: auto;
+  padding: 0.15rem;
+  margin-bottom: 0.75rem;
+}
+
+.modal-entity-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.35rem;
+  margin: 0;
+  border-radius: 12px;
+  border: 2px solid color-mix(in srgb, var(--theme-fg, #111) 12%, transparent);
+  background: color-mix(in srgb, var(--theme-bg-elevated, #fff) 88%, transparent);
+  cursor: pointer;
+  text-align: center;
+  font: inherit;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.modal-entity-pick:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.modal-entity-pick--selected {
+  border-color: color-mix(in srgb, var(--theme-link, #2563eb) 75%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-link, #2563eb) 22%, transparent);
+}
+
+.modal-entity-pick__cover {
+  width: 100%;
+  max-width: 104px;
+}
+
+.modal-entity-pick__cover .cover-image-thumb-img {
+  width: 100%;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.modal-entity-pick__placeholder {
+  width: 100%;
+  max-width: 104px;
+  height: 72px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--theme-fg, #111) 50%, transparent);
+  background: color-mix(in srgb, var(--theme-fg, #111) 7%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--theme-fg, #111) 18%, transparent);
+}
+
+.modal-entity-pick__placeholder--inline {
+  width: 52px;
+  min-width: 52px;
+  height: 52px;
+  max-width: 52px;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.modal-entity-pick__title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.modal-unlink-row__main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.members-modal-course-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 1rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--theme-fg, #111) 10%, transparent);
+  background: color-mix(in srgb, var(--theme-fg, #111) 3%, transparent);
+}
+
+.members-modal-course-banner__img .cover-image-thumb-img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.admin-course-lessons-banner {
+  margin-top: 0.25rem;
+}
+
+.course-form-image-preview {
+  margin: 0.35rem 0 0.5rem;
+}
+
+.course-form-image-preview__img .cover-image-thumb-img {
+  max-width: 120px;
+  max-height: 120px;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
 .app-modal-card .course-actions .primary-btn,
 .app-modal-card .course-actions .ghost-btn,
 .course-form-modal .primary-btn,

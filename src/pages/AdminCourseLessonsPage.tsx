@@ -12,6 +12,7 @@ import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import {
   AlertMessage,
   AppModal,
+  Avatar,
   ContentList,
   ContentListItem,
   CoverImage,
@@ -390,6 +391,21 @@ export function AdminCourseLessonsPage() {
               }
             />
           </div>
+          <div className="members-modal-course-banner admin-course-lessons-banner">
+            {course.imageUrl?.trim() ? (
+              <CoverImage variant="thumb" src={course.imageUrl} alt={course.title} className="members-modal-course-banner__img" />
+            ) : (
+              <div className="modal-entity-pick__placeholder modal-entity-pick__placeholder--inline" aria-hidden>
+                {(course.title || "?").trim().slice(0, 1)}
+              </div>
+            )}
+            <div>
+              <p className="post-title" style={{ margin: 0 }}>
+                {course.title}
+              </p>
+              {course.description ? <p className="muted small">{course.description}</p> : null}
+            </div>
+          </div>
           <PageToolbar>
             <button type="button" className="primary-btn toolbar-btn" onClick={onOpenCreateModal}>
               {tr("إضافة درس")}
@@ -481,14 +497,25 @@ export function AdminCourseLessonsPage() {
           ) : (
             <ContentList>
               {courseStudents.map((s) => (
-                <ContentListItem key={s.uid} className="user-row">
-                  <div>
-                    <h4 className="post-title">{s.displayName || s.uid}</h4>
-                    <p className="muted small">
-                      {s.email || tr("—")} {s.phone ? `· ${s.phone}` : ""}
-                      {s.createdAt != null ? ` · ${tr("انضم")}: ${formatFirestoreTime(s.createdAt)}` : ""}
-                      {s.linkedByName ? ` · ${tr("بواسطة")}: ${s.linkedByName}` : ""}
-                    </p>
+                <ContentListItem key={s.uid} className="user-row folder-members-modal__row">
+                  <div className="folder-members-modal__user">
+                    <Avatar
+                      photoURL={s.photoURL}
+                      displayName={s.displayName}
+                      email={s.email}
+                      alt={s.displayName || s.uid}
+                      imageClassName="user-avatar topbar-avatar"
+                      fallbackClassName="user-avatar-fallback topbar-avatar"
+                      size={40}
+                    />
+                    <div className="folder-members-modal__user-text">
+                      <h4 className="post-title">{s.displayName || s.uid}</h4>
+                      <p className="muted small">
+                        {s.email || tr("—")} {s.phone ? `· ${s.phone}` : ""}
+                        {s.createdAt != null ? ` · ${tr("انضم")}: ${formatFirestoreTime(s.createdAt)}` : ""}
+                        {s.linkedByName ? ` · ${tr("بواسطة")}: ${s.linkedByName}` : ""}
+                      </p>
+                    </div>
                   </div>
                   <div className="course-actions">
                     <Link className="ghost-btn toolbar-btn" to={`/admin/student/${s.uid}`}>
@@ -684,14 +711,25 @@ export function AdminCourseLessonsPage() {
               ) : (
                 <ContentList>
                   {visibleStudentsToAdd.map((s) => (
-                    <ContentListItem key={s.uid} className="user-row">
-                      <div>
-                        <h4 className="post-title">{s.displayName || s.uid}</h4>
-                        <p className="muted small">
-                          {s.email || tr("—")} {s.phone ? `· ${s.phone}` : ""}
-                          {s.createdAt != null ? ` · ${tr("انضم")}: ${formatFirestoreTime(s.createdAt)}` : ""}
-                          {s.linkedByName ? ` · ${tr("بواسطة")}: ${s.linkedByName}` : ""}
-                        </p>
+                    <ContentListItem key={s.uid} className="user-row folder-members-modal__row">
+                      <div className="folder-members-modal__user">
+                        <Avatar
+                          photoURL={s.photoURL}
+                          displayName={s.displayName}
+                          email={s.email}
+                          alt={s.displayName || s.uid}
+                          imageClassName="user-avatar topbar-avatar"
+                          fallbackClassName="user-avatar-fallback topbar-avatar"
+                          size={40}
+                        />
+                        <div className="folder-members-modal__user-text">
+                          <h4 className="post-title">{s.displayName || s.uid}</h4>
+                          <p className="muted small">
+                            {s.email || tr("—")} {s.phone ? `· ${s.phone}` : ""}
+                            {s.createdAt != null ? ` · ${tr("انضم")}: ${formatFirestoreTime(s.createdAt)}` : ""}
+                            {s.linkedByName ? ` · ${tr("بواسطة")}: ${s.linkedByName}` : ""}
+                          </p>
+                        </div>
                       </div>
                       <button
                         type="button"

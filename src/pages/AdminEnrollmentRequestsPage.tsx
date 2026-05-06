@@ -200,6 +200,11 @@ export function AdminEnrollmentRequestsPage() {
             setActivationOpen(false);
             setActivationTarget(null);
           }}
+          previewStudentName={activationTarget.studentName}
+          previewStudentPhotoURL={activationTarget.studentPhotoURL}
+          previewStudentEmail={activationTarget.studentEmail}
+          previewTargetTitle={activationTarget.targetName}
+          previewTargetImageURL={activationTarget.targetImageURL}
         />
       ) : null}
     </DashboardLayout>

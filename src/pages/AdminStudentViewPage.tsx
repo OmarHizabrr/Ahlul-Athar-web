@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
-import { AlertMessage, ContentList, ContentListItem, EmptyState, PageToolbar, Panel, SectionTitle } from "../components/ui";
+import {
+  AlertMessage,
+  Avatar,
+  ContentList,
+  ContentListItem,
+  CoverImage,
+  EmptyState,
+  PageToolbar,
+  Panel,
+  SectionTitle,
+} from "../components/ui";
 import { useI18n } from "../context/I18nContext";
 import { coursesService } from "../services/coursesService";
 import { directoryService } from "../services/directoryService";
@@ -129,14 +139,30 @@ export function AdminStudentViewPage() {
         <>
           <Panel className="card-elevated">
             <SectionTitle as="h3">{t(`${V}.panel_profile`, "بيانات الطالب")}</SectionTitle>
+            <div className="modal-student-preview admin-student-profile-head">
+              <Avatar
+                photoURL={student.photoURL}
+                displayName={student.displayName}
+                email={student.email}
+                alt={student.displayName || student.uid}
+                imageClassName="user-avatar topbar-avatar"
+                fallbackClassName="user-avatar-fallback topbar-avatar"
+                size={56}
+              />
+              <div>
+                <p className="post-title" style={{ margin: 0 }}>
+                  {student.displayName || student.uid}
+                </p>
+                <p className="muted small" style={{ margin: "0.25rem 0 0" }}>
+                  {t(`${V}.email`, "البريد")}: {student.email || dash} · {t(`${V}.uid`, "المعرّف")}: {student.uid}
+                </p>
+              </div>
+            </div>
             <div className="form">
               <label htmlFor="student-display-name">{t(`${V}.label_name`, "الاسم")}</label>
               <input id="student-display-name" className="text-input" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
               <label htmlFor="student-phone">{t(`${V}.label_phone`, "الجوال")}</label>
               <input id="student-phone" className="text-input" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              <p className="muted small">
-                {t(`${V}.email`, "البريد")}: {student.email || dash} · {t(`${V}.uid`, "المعرّف")}: {student.uid}
-              </p>
               <label className="muted small">
                 <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> {t(`${V}.flag_active`, "نشط")}
               </label>
@@ -163,8 +189,16 @@ export function AdminStudentViewPage() {
             ) : (
               <ContentList>
                 {myFolders.map((f) => (
-                  <ContentListItem key={f.id} className="file-row">
-                    <div>
+                  <ContentListItem key={f.id} className="file-row modal-unlink-row">
+                    <div className="modal-unlink-row__main">
+                      {f.coverImageUrl?.trim() ? (
+                        <CoverImage variant="thumb" src={f.coverImageUrl} alt={f.name} className="enrollment-req-thumb" />
+                      ) : (
+                        <div className="modal-entity-pick__placeholder modal-entity-pick__placeholder--inline" aria-hidden>
+                          {(f.name || "?").trim().slice(0, 1)}
+                        </div>
+                      )}
+                      <div>
                       <h3 className="post-title">{f.name}</h3>
                       <p className="muted small">
                         {f.folderType === "private"
@@ -173,6 +207,7 @@ export function AdminStudentViewPage() {
                         ·{" "}
                         {f.isActivated === false ? t(`${V}.folder_off`, "غير مُفعّل") : t(`${V}.folder_on`, "مُفعّل")}
                       </p>
+                      </div>
                     </div>
                     <div className="course-actions">
                       <Link className="ghost-btn toolbar-btn" to={`/admin/folder/${f.id}`} {...backState}>
@@ -194,10 +229,24 @@ export function AdminStudentViewPage() {
             ) : (
               <ContentList>
                 {myCourses.map((c) => (
-                  <ContentListItem key={c.courseId} className="file-row">
-                    <div>
-                      <h3 className="post-title">{c.courseTitle || c.courseId}</h3>
-                      <p className="muted small">{c.courseDescription || dash}</p>
+                  <ContentListItem key={c.courseId} className="file-row modal-unlink-row">
+                    <div className="modal-unlink-row__main">
+                      {c.courseImageURL?.trim() ? (
+                        <CoverImage
+                          variant="thumb"
+                          src={c.courseImageURL}
+                          alt={c.courseTitle || c.courseId}
+                          className="enrollment-req-thumb"
+                        />
+                      ) : (
+                        <div className="modal-entity-pick__placeholder modal-entity-pick__placeholder--inline" aria-hidden>
+                          {(c.courseTitle || c.courseId || "?").trim().slice(0, 1)}
+                        </div>
+                      )}
+                      <div>
+                        <h3 className="post-title">{c.courseTitle || c.courseId}</h3>
+                        <p className="muted small">{c.courseDescription || dash}</p>
+                      </div>
                     </div>
                     <div className="course-actions">
                       <Link className="ghost-btn toolbar-btn" to={`/admin/course/${c.courseId}/lessons`} {...backState}>

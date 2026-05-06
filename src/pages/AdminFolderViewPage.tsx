@@ -1082,9 +1082,40 @@ export function AdminFolderViewPage() {
 
       <AppModal open={activationReqOpen} title={tr("قبول طلب الانضمام")} onClose={() => (busy ? null : setActivationReqOpen(false))}>
         <div className="course-form-modal__form">
-          <p className="muted small">
-            {tr("الطالب")}: <strong>{activationReqTarget?.studentName || tr("—")}</strong>
-          </p>
+          {activationReqTarget ? (
+            <div className="activation-modal-preview">
+              <div className="activation-modal-preview__student">
+                <Avatar
+                  photoURL={activationReqTarget.studentPhotoURL}
+                  displayName={activationReqTarget.studentName}
+                  email={activationReqTarget.studentEmail}
+                  alt={activationReqTarget.studentName || tr("طالب")}
+                  imageClassName="user-avatar topbar-avatar"
+                  fallbackClassName="user-avatar-fallback topbar-avatar"
+                  size={44}
+                />
+                <div className="activation-modal-preview__text">
+                  <strong>{activationReqTarget.studentName || tr("—")}</strong>
+                  {activationReqTarget.studentEmail ? <p className="muted small">{activationReqTarget.studentEmail}</p> : null}
+                </div>
+              </div>
+              <div className="activation-modal-preview__target">
+                {activationReqTarget.targetImageURL?.trim() ? (
+                  <CoverImage
+                    variant="thumb"
+                    src={activationReqTarget.targetImageURL}
+                    alt={activationReqTarget.targetName}
+                    className="activation-modal-preview__cover"
+                  />
+                ) : (
+                  <div className="activation-modal-preview__cover-ph" aria-hidden>
+                    {(activationReqTarget.targetName || "?").trim().slice(0, 1)}
+                  </div>
+                )}
+                <p className="activation-modal-preview__target-title">{activationReqTarget.targetName}</p>
+              </div>
+            </div>
+          ) : null}
           <div className="form-row-2">
             <label className="muted small">
               <input type="checkbox" checked={activationLifetime} onChange={(e) => setActivationLifetime(e.target.checked)} /> {tr("تفعيل مدى الحياة")}

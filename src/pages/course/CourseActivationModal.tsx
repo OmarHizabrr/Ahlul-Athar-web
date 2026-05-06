@@ -1,5 +1,5 @@
 import { ButtonBusyLabel } from "../../components/ButtonBusyLabel";
-import { AppModal } from "../../components/ui";
+import { AppModal, Avatar, CoverImage } from "../../components/ui";
 import { useI18n } from "../../context/I18nContext";
 
 type CourseActivationModalProps = {
@@ -10,6 +10,12 @@ type CourseActivationModalProps = {
   onDaysChange: (v: number) => void;
   onConfirm: () => void;
   onClose: () => void;
+  /** معاينة بصرية (طالب + هدف الدورة/المجلد) كما في التطبيق */
+  previewStudentName?: string;
+  previewStudentPhotoURL?: string | null;
+  previewStudentEmail?: string;
+  previewTargetTitle?: string;
+  previewTargetImageURL?: string | null;
 };
 
 export function CourseActivationModal({
@@ -20,8 +26,18 @@ export function CourseActivationModal({
   onDaysChange,
   onConfirm,
   onClose,
+  previewStudentName,
+  previewStudentPhotoURL,
+  previewStudentEmail,
+  previewTargetTitle,
+  previewTargetImageURL,
 }: CourseActivationModalProps) {
   const { t } = useI18n();
+  const showPreview =
+    Boolean(previewStudentName?.trim()) ||
+    Boolean(previewTargetTitle?.trim()) ||
+    Boolean(previewStudentPhotoURL?.trim()) ||
+    Boolean(previewTargetImageURL?.trim());
   return (
     <AppModal
       open
@@ -34,6 +50,40 @@ export function CourseActivationModal({
       contentClassName="course-form-modal"
     >
       <div>
+        {showPreview ? (
+          <div className="activation-modal-preview">
+            <div className="activation-modal-preview__student">
+              <Avatar
+                photoURL={previewStudentPhotoURL ?? undefined}
+                displayName={previewStudentName}
+                email={previewStudentEmail}
+                alt={previewStudentName || t("web_shell.unknown_person", "غير معروف")}
+                imageClassName="user-avatar topbar-avatar"
+                fallbackClassName="user-avatar-fallback topbar-avatar"
+                size={44}
+              />
+              <div className="activation-modal-preview__text">
+                <strong>{previewStudentName || t("web_shell.unknown_person", "غير معروف")}</strong>
+                {previewStudentEmail ? <p className="muted small">{previewStudentEmail}</p> : null}
+              </div>
+            </div>
+            <div className="activation-modal-preview__target">
+              {previewTargetImageURL?.trim() ? (
+                <CoverImage
+                  variant="thumb"
+                  src={previewTargetImageURL}
+                  alt={previewTargetTitle ?? ""}
+                  className="activation-modal-preview__cover"
+                />
+              ) : (
+                <div className="activation-modal-preview__cover-ph" aria-hidden>
+                  {(previewTargetTitle ?? "?").trim().slice(0, 1)}
+                </div>
+              )}
+              {previewTargetTitle ? <p className="activation-modal-preview__target-title">{previewTargetTitle}</p> : null}
+            </div>
+          </div>
+        ) : null}
         <p className="muted small-print">
           {t(
             "web_shell.activation_modal_hint",

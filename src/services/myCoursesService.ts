@@ -12,7 +12,14 @@ function mapMycourseDoc(
     courseId,
     courseTitle: String(myData.courseTitle ?? catalog?.title ?? ""),
     courseDescription: String((myData.courseDescription ?? myData.description ?? catalog?.description) ?? ""),
-    courseImageURL: myData.courseImageURL != null ? String(myData.courseImageURL) : undefined,
+    courseImageURL:
+      myData.courseImageURL != null
+        ? String(myData.courseImageURL)
+        : myData.courseImageUrl != null
+          ? String(myData.courseImageUrl)
+          : catalog?.imageUrl != null
+            ? String(catalog.imageUrl)
+            : undefined,
     enrolledAt: myData.enrolledAt,
     linkedByName:
       myData.updatedByName != null

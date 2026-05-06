@@ -1,7 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
-import { AlertMessage, AppModal, Avatar, ContentList, ContentListItem, EmptyState, PageToolbar, StatTile } from "../components/ui";
+import {
+  AlertMessage,
+  AppModal,
+  Avatar,
+  ContentList,
+  ContentListItem,
+  CoverImage,
+  EmptyState,
+  PageToolbar,
+  StatTile,
+  cn,
+} from "../components/ui";
 import { useI18n } from "../context/I18nContext";
 import { DashboardLayout } from "./DashboardLayout";
 import { directoryService } from "../services/directoryService";
@@ -384,26 +395,85 @@ export function AdminStudentsPage() {
         }}
       >
         <div className="course-form-modal__form">
+          {quickStudent ? (
+            <div className="modal-student-preview">
+              <Avatar
+                photoURL={quickStudent.photoURL}
+                displayName={quickStudent.displayName}
+                email={quickStudent.email}
+                alt={quickStudent.displayName || quickStudent.uid}
+                imageClassName="user-avatar topbar-avatar"
+                fallbackClassName="user-avatar-fallback topbar-avatar"
+                size={48}
+              />
+              <div>
+                <p className="post-title" style={{ margin: 0 }}>
+                  {quickStudent.displayName || quickStudent.uid}
+                </p>
+                <p className="muted small" style={{ margin: "0.2rem 0 0" }}>
+                  {quickStudent.email || dash} {quickStudent.phone ? `· ${quickStudent.phone}` : ""}
+                </p>
+              </div>
+            </div>
+          ) : null}
           <p className="muted small">
-            {t(`${S}.selected_student`, "الطالب")}: <strong>{quickStudent?.displayName || quickStudent?.uid || dash}</strong>
+            {quickLinkMode === "course" ? t(`${S}.select_course`, "اختر دورة") : t(`${S}.select_folder`, "اختر مجلد")}
           </p>
-          <label>
-            <span>{quickLinkMode === "course" ? t(`${S}.select_course`, "اختر دورة") : t(`${S}.select_folder`, "اختر مجلد")}</span>
-            <select className="text-input" value={targetId} onChange={(e) => setTargetId(e.target.value)} disabled={Boolean(busyId)}>
-              <option value="">{t(`${S}.select_target_ph`, "— اختر —")}</option>
-              {quickLinkMode === "course"
-                ? courses.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.title}
-                    </option>
-                  ))
-                : folders.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name}
-                    </option>
-                  ))}
-            </select>
-          </label>
+          <div
+            className="modal-entity-grid"
+            role="listbox"
+            aria-label={quickLinkMode === "course" ? t(`${S}.select_course`, "اختر دورة") : t(`${S}.select_folder`, "اختر مجلد")}
+          >
+            {quickLinkMode === "course"
+              ? courses.map((c) => {
+                  const selected = targetId === c.id;
+                  const img = c.imageUrl?.trim();
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      role="option"
+                      aria-selected={selected}
+                      className={cn("modal-entity-pick", selected && "modal-entity-pick--selected")}
+                      onClick={() => setTargetId(c.id)}
+                      disabled={Boolean(busyId)}
+                    >
+                      {img ? (
+                        <CoverImage variant="thumb" src={img} alt="" className="modal-entity-pick__cover" />
+                      ) : (
+                        <div className="modal-entity-pick__placeholder" aria-hidden>
+                          {(c.title || "?").trim().slice(0, 1)}
+                        </div>
+                      )}
+                      <span className="modal-entity-pick__title">{c.title}</span>
+                    </button>
+                  );
+                })
+              : folders.map((f) => {
+                  const selected = targetId === f.id;
+                  const img = f.coverImageUrl?.trim();
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      role="option"
+                      aria-selected={selected}
+                      className={cn("modal-entity-pick", selected && "modal-entity-pick--selected")}
+                      onClick={() => setTargetId(f.id)}
+                      disabled={Boolean(busyId)}
+                    >
+                      {img ? (
+                        <CoverImage variant="thumb" src={img} alt="" className="modal-entity-pick__cover" />
+                      ) : (
+                        <div className="modal-entity-pick__placeholder" aria-hidden>
+                          {(f.name || "?").trim().slice(0, 1)}
+                        </div>
+                      )}
+                      <span className="modal-entity-pick__title">{f.name}</span>
+                    </button>
+                  );
+                })}
+          </div>
           <label className="muted small">
             <input type="checkbox" checked={activationLifetime} onChange={(e) => setActivationLifetime(e.target.checked)} />{" "}
             {t(`${S}.activation_lifetime`, "تفعيل مدى الحياة")}
@@ -438,17 +508,48 @@ export function AdminStudentsPage() {
         }}
       >
         <div className="course-form-modal__form">
-          <p className="muted small">
-            {t(`${S}.selected_student`, "الطالب")}: <strong>{unlinkStudent?.displayName || unlinkStudent?.uid || dash}</strong>
-          </p>
+          {unlinkStudent ? (
+            <div className="modal-student-preview">
+              <Avatar
+                photoURL={unlinkStudent.photoURL}
+                displayName={unlinkStudent.displayName}
+                email={unlinkStudent.email}
+                alt={unlinkStudent.displayName || unlinkStudent.uid}
+                imageClassName="user-avatar topbar-avatar"
+                fallbackClassName="user-avatar-fallback topbar-avatar"
+                size={48}
+              />
+              <div>
+                <p className="post-title" style={{ margin: 0 }}>
+                  {unlinkStudent.displayName || unlinkStudent.uid}
+                </p>
+                <p className="muted small" style={{ margin: "0.2rem 0 0" }}>
+                  {unlinkStudent.email || dash} {unlinkStudent.phone ? `· ${unlinkStudent.phone}` : ""}
+                </p>
+              </div>
+            </div>
+          ) : null}
           <h4>{t(`${S}.unlink_courses_title`, "الدورات المرتبط بها")}</h4>
           {unlinkCourses.length === 0 ? (
             <p className="muted small">{t(`${S}.unlink_courses_empty`, "لا توجد دورات مرتبطة.")}</p>
           ) : (
             <ContentList>
               {unlinkCourses.map((c) => (
-                <ContentListItem key={c.courseId} className="user-row">
-                  <div>
+                <ContentListItem key={c.courseId} className="user-row modal-unlink-row">
+                  <div className="modal-unlink-row__main">
+                    {c.courseImageURL?.trim() ? (
+                      <CoverImage
+                        variant="thumb"
+                        src={c.courseImageURL}
+                        alt={c.courseTitle || c.courseId}
+                        className="enrollment-req-thumb"
+                      />
+                    ) : (
+                      <div className="modal-entity-pick__placeholder modal-entity-pick__placeholder--inline" aria-hidden>
+                        {(c.courseTitle || c.courseId || "?").trim().slice(0, 1)}
+                      </div>
+                    )}
+                    <div>
                     <h4 className="post-title">{c.courseTitle || c.courseId}</h4>
                     <p className="muted small">
                       {c.courseDescription || dash}
@@ -457,6 +558,7 @@ export function AdminStudentsPage() {
                         : ""}
                       {c.linkedByName ? ` · ${t(`${S}.linked_by`, "بواسطة")}: ${c.linkedByName}` : ""}
                     </p>
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -477,8 +579,16 @@ export function AdminStudentsPage() {
           ) : (
             <ContentList>
               {unlinkFolders.map((f) => (
-                <ContentListItem key={f.id} className="user-row">
-                  <div>
+                <ContentListItem key={f.id} className="user-row modal-unlink-row">
+                  <div className="modal-unlink-row__main">
+                    {f.coverImageUrl?.trim() ? (
+                      <CoverImage variant="thumb" src={f.coverImageUrl} alt={f.name || f.id} className="enrollment-req-thumb" />
+                    ) : (
+                      <div className="modal-entity-pick__placeholder modal-entity-pick__placeholder--inline" aria-hidden>
+                        {(f.name || f.id || "?").trim().slice(0, 1)}
+                      </div>
+                    )}
+                    <div>
                     <h4 className="post-title">{f.name || f.id}</h4>
                     <p className="muted small">
                       {f.description || dash}
@@ -487,6 +597,7 @@ export function AdminStudentsPage() {
                         : ""}
                       {f.linkedByName ? ` · ${t(`${S}.linked_by`, "بواسطة")}: ${f.linkedByName}` : ""}
                     </p>
+                    </div>
                   </div>
                   <button
                     type="button"

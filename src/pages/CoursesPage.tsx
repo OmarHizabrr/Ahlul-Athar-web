@@ -11,6 +11,7 @@ import { ButtonBusyLabel, PageLoadHint } from "../components/ButtonBusyLabel";
 import {
   AlertMessage,
   AppModal,
+  Avatar,
   ContentList,
   ContentListItem,
   CoverImage,
@@ -542,6 +543,11 @@ export function CoursesPage({ role }: { role: UserRole }) {
                 placeholder={t("web_pages.courses.field_image_ph", "https://...")}
               />
             </label>
+            {form.imageUrl.trim() ? (
+              <div className="course-form-image-preview">
+                <CoverImage variant="thumb" src={form.imageUrl.trim()} alt="" className="course-form-image-preview__img" />
+              </div>
+            ) : null}
             <div className="form-row-2">
               <label>
               <span>{t("web_pages.courses.field_course_type", "نوع الدورة")}</span>
@@ -589,6 +595,28 @@ export function CoursesPage({ role }: { role: UserRole }) {
           contentClassName="course-form-modal"
         >
           <div className="course-form-modal__form">
+            {membersCourse ? (
+              <div className="members-modal-course-banner">
+                {membersCourse.imageUrl?.trim() ? (
+                  <CoverImage
+                    variant="thumb"
+                    src={membersCourse.imageUrl}
+                    alt={membersCourse.title}
+                    className="members-modal-course-banner__img"
+                  />
+                ) : (
+                  <div className="modal-entity-pick__placeholder modal-entity-pick__placeholder--inline" aria-hidden>
+                    {(membersCourse.title || "?").trim().slice(0, 1)}
+                  </div>
+                )}
+                <div>
+                  <p className="post-title" style={{ margin: 0 }}>
+                    {membersCourse.title}
+                  </p>
+                  {membersCourse.description ? <p className="muted small">{membersCourse.description}</p> : null}
+                </div>
+              </div>
+            ) : null}
             <label>
               <span>{t("web_pages.courses.members_search", "بحث عن طالب")}</span>
               <input
@@ -625,12 +653,23 @@ export function CoursesPage({ role }: { role: UserRole }) {
             ) : (
               <ContentList>
                 {courseMembers.map((m) => (
-                  <ContentListItem key={m.uid} className="user-row">
-                    <div>
-                      <h4 className="post-title">{m.displayName || m.uid}</h4>
-                      <p className="muted small">
-                        {m.email || t("web_shell.dash_em", "—")} {m.phone ? `· ${m.phone}` : ""}
-                      </p>
+                  <ContentListItem key={m.uid} className="user-row folder-members-modal__row">
+                    <div className="folder-members-modal__user">
+                      <Avatar
+                        photoURL={m.photoURL}
+                        displayName={m.displayName}
+                        email={m.email}
+                        alt={m.displayName || m.uid}
+                        imageClassName="user-avatar topbar-avatar"
+                        fallbackClassName="user-avatar-fallback topbar-avatar"
+                        size={40}
+                      />
+                      <div className="folder-members-modal__user-text">
+                        <h4 className="post-title">{m.displayName || m.uid}</h4>
+                        <p className="muted small">
+                          {m.email || t("web_shell.dash_em", "—")} {m.phone ? `· ${m.phone}` : ""}
+                        </p>
+                      </div>
                     </div>
                     <button type="button" className="ghost-btn" onClick={() => void removeCourseMember(m)} disabled={submitting}>
                       {t("web_pages.courses.member_remove_btn", "إزالة")}
@@ -654,14 +693,24 @@ export function CoursesPage({ role }: { role: UserRole }) {
                     s.uid.toLowerCase().includes(q)
                   );
                 })
-                .slice(0, 40)
                 .map((s) => (
-                  <ContentListItem key={s.uid} className="user-row">
-                    <div>
-                      <h4 className="post-title">{s.displayName || s.uid}</h4>
-                      <p className="muted small">
-                        {s.email || t("web_shell.dash_em", "—")} {s.phone ? `· ${s.phone}` : ""}
-                      </p>
+                  <ContentListItem key={s.uid} className="user-row folder-members-modal__row">
+                    <div className="folder-members-modal__user">
+                      <Avatar
+                        photoURL={s.photoURL}
+                        displayName={s.displayName}
+                        email={s.email}
+                        alt={s.displayName || s.uid}
+                        imageClassName="user-avatar topbar-avatar"
+                        fallbackClassName="user-avatar-fallback topbar-avatar"
+                        size={40}
+                      />
+                      <div className="folder-members-modal__user-text">
+                        <h4 className="post-title">{s.displayName || s.uid}</h4>
+                        <p className="muted small">
+                          {s.email || t("web_shell.dash_em", "—")} {s.phone ? `· ${s.phone}` : ""}
+                        </p>
+                      </div>
                     </div>
                     <button type="button" className="primary-btn" onClick={() => void addCourseMember(s)} disabled={submitting}>
                       <ButtonBusyLabel busy={submitting}>{t("web_pages.courses.member_add_btn", "إضافة")}</ButtonBusyLabel>
