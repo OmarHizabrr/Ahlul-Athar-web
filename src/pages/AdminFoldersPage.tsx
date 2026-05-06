@@ -268,6 +268,9 @@ export function AdminFoldersPage() {
                     >
                       {t("web_pages.admin_folders.members_btn", "الأعضاء")}
                     </button>
+                    <Link className="ghost-btn" to={`/admin/folder/${f.id}/members`}>
+                      {t("web_pages.admin_folders.members_manage_full", "إدارة كاملة")}
+                    </Link>
                   </div>
                 </div>
               </ContentListItem>

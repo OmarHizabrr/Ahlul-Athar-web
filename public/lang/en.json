@@ -4287,6 +4287,7 @@
             "type_public": "Public",
             "open_details": "Open details",
             "members_btn": "Members",
+            "members_manage_full": "Full management",
             "members_modal_title": "Folder members",
             "members_load_failed": "Could not load folder members.",
             "members_search": "Search student",

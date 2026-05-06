@@ -4286,6 +4286,7 @@
             "type_public": "عام",
             "open_details": "فتح التفاصيل",
             "members_btn": "الأعضاء",
+            "members_manage_full": "إدارة كاملة",
             "members_modal_title": "أعضاء المجلد",
             "members_load_failed": "تعذر تحميل أعضاء المجلد.",
             "members_search": "بحث عن طالب",

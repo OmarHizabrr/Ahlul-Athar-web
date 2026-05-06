@@ -510,6 +510,11 @@ export function AdminFolderViewPage() {
           <ButtonBusyLabel busy={loading || busy}>{tr("تحديث")}</ButtonBusyLabel>
         </button>
         {tab === "members" ? (
+          <Link to={`/admin/folder/${folderId}/members`} className="ghost-btn toolbar-btn">
+            {t("web_pages.admin_folders.members_manage_full", tr("إدارة كاملة"))}
+          </Link>
+        ) : null}
+        {tab === "members" ? (
           <button type="button" className="primary-btn toolbar-btn" onClick={() => void openMemberModal()} disabled={busy || loading}>
             {tr("إضافة عضو")}
           </button>

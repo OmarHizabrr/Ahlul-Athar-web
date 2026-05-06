@@ -24,6 +24,9 @@ const AdminFoldersPage = lazy(() => import("./pages/AdminFoldersPage").then((m) 
 const AdminFolderViewPage = lazy(() =>
   import("./pages/AdminFolderViewPage").then((m) => ({ default: m.AdminFolderViewPage })),
 );
+const AdminFolderMembersPage = lazy(() =>
+  import("./pages/AdminFolderMembersPage").then((m) => ({ default: m.AdminFolderMembersPage })),
+);
 const PostsPage = lazy(() => import("./pages/dashboard/PostsPage").then((m) => ({ default: m.PostsPage })));
 const NotificationsPage = lazy(() =>
   import("./pages/dashboard/NotificationsPage").then((m) => ({ default: m.NotificationsPage })),
@@ -180,6 +183,14 @@ function App() {
             element={
               <ProtectedRoute role="admin">
                 <AdminFolderViewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/folder/:folderId/members"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminFolderMembersPage />
               </ProtectedRoute>
             }
           />
