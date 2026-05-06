@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useI18n } from "../../context/I18nContext";
 import { DashboardLayout } from "../DashboardLayout";
 import { coursesService } from "../../services/coursesService";
+import { directoryService } from "../../services/directoryService";
 import { foldersService } from "../../services/foldersService";
 import { myCoursesService } from "../../services/myCoursesService";
 import { notificationsService } from "../../services/notificationsService";
@@ -77,7 +78,17 @@ export function HomePage({ role }: { role: UserRole }) {
       });
       const courses = coursesResult;
       setCourseCount(courses.length);
-      setTotalStudents(courses.reduce((sum, c) => sum + (Number.isFinite(c.studentCount) ? c.studentCount : 0), 0));
+      // ملاحظة: مجموع studentCount عبر الدورات يحسب نفس الطالب عدة مرات.
+      // يجب أن يطابق صفحة "Students": العدد الحقيقي لطلاب الدليل.
+      if (role === "admin") {
+        const students = await directoryService.listAllStudents().catch(() => {
+          hasPartialFailure = true;
+          return [];
+        });
+        setTotalStudents(students.length);
+      } else {
+        setTotalStudents(courses.reduce((sum, c) => sum + (Number.isFinite(c.studentCount) ? c.studentCount : 0), 0));
+      }
       setTotalLessons(courses.reduce((sum, c) => sum + (Number.isFinite(c.lessonCount) ? c.lessonCount : 0), 0));
       if (role === "admin") {
         const pending = await coursesService.listCourseEnrollmentRequests("pending").catch(() => {
