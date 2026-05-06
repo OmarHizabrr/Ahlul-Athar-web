@@ -623,6 +623,13 @@ export function CoursesPage({ role }: { role: UserRole }) {
                 </div>
               </div>
             ) : null}
+            {membersCourse ? (
+              <div className="course-actions" style={{ marginBottom: "0.75rem" }}>
+                <Link className="ghost-btn toolbar-btn" to={`/admin/course/${membersCourse.id}/members`} {...dashboardBackLinkState("/admin/courses")}>
+                  {t("web_pages.courses.members_manage_full", "إدارة كاملة")}
+                </Link>
+              </div>
+            ) : null}
             <label>
               <span>{t("web_pages.courses.members_search", "بحث عن طالب")}</span>
               <input
@@ -677,9 +684,16 @@ export function CoursesPage({ role }: { role: UserRole }) {
                         </p>
                       </div>
                     </div>
-                    <button type="button" className="ghost-btn" onClick={() => void removeCourseMember(m)} disabled={submitting}>
-                      {t("web_pages.courses.member_remove_btn", "إزالة")}
-                    </button>
+                    <div className="folder-members-modal__row-actions course-actions">
+                      {membersCourse ? (
+                        <Link className="ghost-btn toolbar-btn" to={`/admin/course/${membersCourse.id}/members`} {...dashboardBackLinkState("/admin/courses")}>
+                          {t("web_pages.admin_folders.member_edit_period_btn", "تعديل المدة")}
+                        </Link>
+                      ) : null}
+                      <button type="button" className="ghost-btn toolbar-btn" onClick={() => void removeCourseMember(m)} disabled={submitting}>
+                        {t("web_pages.courses.member_remove_btn", "إزالة")}
+                      </button>
+                    </div>
                   </ContentListItem>
                 ))}
               </ContentList>

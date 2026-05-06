@@ -4405,6 +4405,7 @@
             "members_btn": "Students",
             "members_modal_title": "Course students",
             "members_load_failed": "Could not load course students.",
+            "members_manage_full": "Full management",
             "members_search": "Search student",
             "members_search_ph": "Type name/email/phone/id",
             "activation_lifetime": "Lifetime activation",

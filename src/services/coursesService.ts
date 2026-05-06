@@ -135,6 +135,9 @@ function mapCourseStudentDoc(id: string, data: Record<string, unknown>): Student
           ? String(data.photoURL)
           : undefined,
     isActivated: data.isActivated != null ? Boolean(data.isActivated) : undefined,
+    isLifetime: data.isLifetime != null ? Boolean(data.isLifetime) : undefined,
+    expiresAt: data.expiresAt != null ? String(data.expiresAt) : data.expiresAt === null ? null : undefined,
+    activationDays: typeof data.activationDays === "number" ? data.activationDays : undefined,
     createdAt: data.enrolledAt ?? data.createdAt,
     linkedByName:
       data.updatedByName != null
@@ -295,6 +298,58 @@ export const coursesService = {
     const col = collection(db, "numbers", courseId, "numbers");
     const snap = await getDocs(col);
     return snap.docs.map((d) => mapCourseStudentDoc(d.id, d.data() as Record<string, unknown>));
+  },
+
+  /** تحديث مدة/نوع تفعيل طالب داخل الدورة (numbers + Mycourses) دون تغيير studentCount. */
+  async updateCourseStudentActivation(opts: {
+    course: Course;
+    student: Pick<StudentRecord, "uid" | "displayName" | "email" | "phone" | "photoURL">;
+    activation: ActivationOptions;
+  }) {
+    const actor = auth.currentUser;
+    const courseId = opts.course.id;
+    const studentId = opts.student.uid;
+
+    const numbersRef = doc(db, "numbers", courseId, "numbers", studentId);
+    const myCourseRef = doc(db, "Mycourses", studentId, "Mycourses", courseId);
+
+    const expiresAtStr = opts.activation.expiresAt ? opts.activation.expiresAt.toISOString() : null;
+    const payload = {
+      isActivated: true,
+      isLifetime: opts.activation.isLifetime,
+      expiresAt: expiresAtStr,
+      activationDays: Math.max(1, opts.activation.days),
+      activatedAt: serverTimestamp(),
+      updatedBy: actor?.uid ?? "",
+      updatedByName: actor?.displayName ?? "",
+      updatedAt: serverTimestamp(),
+    };
+
+    await Promise.all([
+      setDoc(
+        numbersRef,
+        {
+          studentId,
+          studentName: opts.student.displayName ?? "",
+          studentEmail: opts.student.email ?? "",
+          studentPhone: opts.student.phone ?? null,
+          studentPhotoURL: opts.student.photoURL ?? null,
+          ...payload,
+        },
+        { merge: true },
+      ),
+      setDoc(
+        myCourseRef,
+        {
+          courseId,
+          courseTitle: opts.course.title,
+          courseDescription: opts.course.description ?? "",
+          courseImageURL: opts.course.imageUrl ?? null,
+          ...payload,
+        },
+        { merge: true },
+      ),
+    ]);
   },
 
   async requestFolderEnrollment(user: PlatformUser, folder: Folder, reason = "طلب انضمام لمجلد") {

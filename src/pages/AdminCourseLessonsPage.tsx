@@ -410,6 +410,9 @@ export function AdminCourseLessonsPage() {
             <button type="button" className="primary-btn toolbar-btn" onClick={onOpenCreateModal}>
               {tr("إضافة درس")}
             </button>
+            <Link to={`/admin/course/${courseId}/members`} className="ghost-btn toolbar-btn">
+              {tr("إدارة طلاب الدورة")}
+            </Link>
             <button type="button" className="ghost-btn toolbar-btn" onClick={() => void openStudentModal()} disabled={submitting}>
               <ButtonBusyLabel busy={submitting}>{tr("إدارة طلاب الدورة")}</ButtonBusyLabel>
             </button>
