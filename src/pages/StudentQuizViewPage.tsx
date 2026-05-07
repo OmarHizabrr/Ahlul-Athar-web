@@ -571,9 +571,9 @@ export function StudentQuizViewPage() {
 
   const title = String(
     quiz?.title ??
-      (quiz as { name?: string } | null)?.name ??
-      (quiz as { quizTitle?: string } | null)?.quizTitle ??
-      t(`${SQ}.title_fallback`, "اختبار"),
+    (quiz as { name?: string } | null)?.name ??
+    (quiz as { quizTitle?: string } | null)?.quizTitle ??
+    t(`${SQ}.title_fallback`, "اختبار"),
   );
   const desc = String(quiz?.description ?? (quiz as { body?: string } | null)?.body ?? "");
   const mediaUrl = String(
